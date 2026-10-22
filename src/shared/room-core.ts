@@ -18,7 +18,6 @@ export function validateMetadata(meta: RelayMetadata): void {
   if (meta.mode !== undefined && !['multiplayer','practice','ai'].includes(meta.mode)) throw Error('比赛模式无效。');
   if (!/^[A-Z2-9]{6}$/.test(meta.code) || !Number.isSafeInteger(meta.createdAt) || meta.createdAt < 0) throw Error('房间元数据无效。');
   if (!Number.isInteger(meta.maxPlayers) || meta.maxPlayers < (meta.mode==='practice'?1:2) || meta.maxPlayers > 8) throw Error('房间人数范围无效。');
-  if(meta.config)validateRoomConfigForPlayers(meta.config,meta.maxPlayers,meta.mode==='practice');
   if (!Number.isInteger(meta.timeoutSeconds) || (meta.timeoutSeconds !== 0 && (meta.timeoutSeconds < 30 || meta.timeoutSeconds > 600))) throw Error('房间超时配置无效。');
   if (!Array.isArray(meta.members) || !meta.members.length || meta.members.length > meta.maxPlayers) throw Error('房间成员数量无效。');
   if (new Set(meta.members.map(m => m.id)).size !== meta.members.length || new Set(meta.members.map(m => m.seat)).size !== meta.members.length) throw Error('房间成员身份或座位重复。');
@@ -46,6 +45,8 @@ export function memberPlayer(member: RelayMember): Player {
 export function createBrowserRoom(meta: RelayMetadata, seed: RandomSeed, now: number): Room {
   validateMetadata(meta);
   if (meta.phase !== 'lobby') throw Error('主持设备没有这局的本地存档，无法恢复已开始的比赛。请创建新房间。');
+  // Admission checks apply to new games, not reconnecting frozen-rule saves.
+  if(meta.config)validateRoomConfigForPlayers(meta.config,meta.maxPlayers,meta.mode==='practice');
   const room:Room = { mode:meta.mode??'multiplayer', code: meta.code, hostId: meta.adminHostId, ownerId:meta.ownerId??meta.authorityId,hostLeftAt:meta.hostLeftAt,createdAt: meta.createdAt, updatedAt: now, version: 1, maxPlayers: meta.maxPlayers, timeoutSeconds: meta.timeoutSeconds, deadline: null,
     spectators: structuredClone(meta.spectators ?? []), game: createGame([...meta.members].sort((a,b) => a.seat-b.seat).map(memberPlayer), seed,meta.mode,meta.characterPool) };
   room.game.config = meta.config ? validateRoomConfig(meta.config) : legacyRoomConfig(meta.characterPool,meta.mode==='practice');
@@ -132,7 +133,7 @@ export function reduceRoomAction(original: Room, playerId: string, action: GameA
       p.ready = action.ready; break;
     case 'start':
       if (room.hostId !== playerId) throw Error('只有房主能开始比赛。');
-      if(room.game.config)validateRoomConfigForPlayers(room.game.config,room.game.players.length,room.mode==='practice');
+      if(room.game.config&&rulesVersion(room.game)===CURRENT_RULES_VERSION)validateRoomConfigForPlayers(room.game.config,room.game.players.length,room.mode==='practice');
       if (room.game.phase !== 'lobby' || room.game.players.length < (room.mode==='practice'?1:2) || !room.game.players.every(p => p.ready && p.connected)) throw Error('需要至少2名玩家，且全员在线并准备。');
       roomRules(room.game).startGame(room.game); room.configFrozen = true; break;
     case 'transfer':

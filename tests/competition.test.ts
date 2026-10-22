@@ -7,7 +7,7 @@ import { roomRules } from '../src/engine/runtime.js';
 import { FAN_V3_RULES_VERSION } from '../src/shared/rules-versions.js';
 import { Store } from '../src/server/store.js';
 import { Rooms } from '../src/server/rooms.js';
-import type { Player } from '../src/shared/types.js';
+import type { Player, ScoreBreakdown } from '../src/shared/types.js';
 import { projectRoom } from '../src/shared/room-core.js';
 import { decideAI } from '../src/engine/ai.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -67,6 +67,11 @@ for(const rounds of [4,6,8] as const)for(const n of [2,3,8])test(`${n} players f
     const a=next();
     if(!a){mkdirSync('.local',{recursive:true});writeFileSync(`.local/competition-${n}-${rounds}-failure.json`,JSON.stringify(s));}
     assert(a,`no continuation ${s.phase}`);applyGameAction(s,a.playerId,a.action);
+    if(s.scoreLedger)for(const p of s.players){
+      const e:ScoreBreakdown=s.scoreLedger.find(entry=>entry.playerId===p.id)!;
+      assert.equal(e.total,e.placement+e.map+e.skill+e.event);
+      assert.equal(e.total,p.score-Number((s.flags.roundStartScores as Record<string,number>)[p.id]));
+    }
   }
   assert.equal(s.round,rounds);assert.equal(s.results.length,rounds);assert.deepEqual(s.matchPlan,plan);
   assert(s.players.every(p=>p.hand.length===0&&p.used.length===rounds*k));

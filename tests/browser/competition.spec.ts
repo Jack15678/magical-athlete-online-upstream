@@ -53,6 +53,31 @@ test('home, preserved draft, exact presets, invalid rotation and desktop/mobile 
   expect(errors).toEqual([]);
 });
 
+for(const mode of ['practice','ai'] as const)test(`${mode} rematch returns to configuration and starts the saved six-race plan`,async({page})=>{
+  const made=app.rooms.create('再来一局',2,0,mode,1,'mixed'),code=made.identity.roomCode;
+  const previous=app.rooms.get(code);previous.game.phase='finished';previous.game.round=4;previous.version++;app.store.save(previous);
+  await page.addInitScript(identity=>{
+    localStorage.setItem(`magical-athlete:identity:${identity.roomCode}`,JSON.stringify(identity));
+    localStorage.setItem('magical-athlete:reduced-motion','true');localStorage.setItem('magical-athlete:low-quality','true');
+  },made.identity);
+  await page.goto(`${url}/room/${code}`);await expect(page.locator('.connection.is-online')).toBeVisible();
+  await page.locator('.room-config-panel > summary').click();
+  await page.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();await page.getByLabel('比赛场数').selectOption('6');
+  await page.getByRole('button',{name:'保存本房间设置',exact:true}).click();
+  await expect.poll(()=>app.rooms.get(code).game.config?.competition?.raceCount).toBe(6);
+  expect(app.rooms.get(code).game.matchPlan?.raceCount).toBe(4);
+  await page.getByRole('button',{name:'原房间，再来一局',exact:true}).click();
+  await expect(page.getByRole('button',{name:'我准备好了',exact:true})).toBeVisible();
+  expect(app.rooms.get(code).game.phase).toBe('lobby');expect(app.rooms.get(code).game.matchPlan).toBeUndefined();
+  await page.reload();await expect(page.getByRole('button',{name:'我准备好了',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'我准备好了',exact:true}).click();
+  await page.getByRole('button',{name:'开始选秀',exact:true}).click();
+  await expect.poll(()=>app.rooms.get(code).game.matchPlan?.raceCount).toBe(6);
+  expect(app.rooms.get(code).game.phase).toBe('draft');expect(app.rooms.get(code).game.players.every(p=>p.score===0&&p.used.length===0)).toBe(true);
+  if(mode==='practice')await expect(page.getByRole('status').filter({hasText:'已选 0 / 6 张'})).toBeVisible();
+  else await expect(page.locator('.draft-order span')).toHaveCount(4);
+});
+
 test('two browsers preserve a pending choice and reject both duplicate and previous-round packets',async({browser})=>{
   const made=app.rooms.create('等待技能',2,0),code=made.identity.roomCode,joins=[made,app.rooms.join(code,'旁观等待的对手')];
   const room=app.rooms.get(code);
