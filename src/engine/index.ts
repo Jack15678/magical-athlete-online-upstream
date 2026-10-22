@@ -291,12 +291,18 @@ function finish(s:GameState,r:Racer, forcedRank?:number) {
   }
   if(rank===2)endRace(s);
 }
-function endRace(s:GameState,cycleDraw=false) {
+function endRace(s:GameState,cycleDraw=false,awardsResolved=false) {
   if(s.phase!=='race')return;
+  if(s.flags.wilyAwardsPending&&!awardsResolved)return;
   const runnerUp=currentPlacements(s).find(p=>p.rank===2)?.racerId;
-  for(const r of s.racers)if(!cycleDraw&&runnerUp&&r.flags.wilyPrediction===runnerUp&&!r.flags.wilyPaid&&hasPower(s,r,'wurstii-dr-wily')){
-    r.flags.wilyPaid=true;points(s,r,3,'威利博士猜中亚军');
+  if(!awardsResolved&&!cycleDraw&&runnerUp){
+    const winners=order(s,s.racers.filter(r=>r.flags.wilyPrediction===runnerUp&&!r.flags.wilyPaid&&hasPower(s,r,'wurstii-dr-wily')));
+    if(winners.length){
+      s.flags.wilyAwardsPending=true;s.flags.awaitRoll=false;
+      s.queue=[...winners.map(r=>({kind:'wurstiiAward',racerId:r.id,power:'wurstii-dr-wily'})),{kind:'wurstiiRaceEnd',cycleDraw}];return;
+    }
   }
+  delete s.flags.wilyAwardsPending;
   leafRules.raceEnd(s,cycleDraw);fanRaceEnd(s,cycleDraw);
   if(!cycleDraw)for(const g of powers(s,'gloth'))if(g.position<=TRACKS[s.track].secondCorner)points(s,g,3,'葛洛斯未超过第二弯道');
   for(const r of s.racers)if(hasPower(s,r,'re-runner')||r.characterId==='re-runner'){const entries=(s.flags.reRunners??=[]) as {playerId:string;characterId:string}[];const id=r.playerId;if(!entries.some(x=>x.playerId===id&&x.characterId===r.characterId))entries.push({playerId:id,characterId:r.characterId});}
@@ -382,7 +388,7 @@ function motion(s:GameState,t:Work) {
   for(const p of moved)racer(s,p.racerId)!.position=Math.min(TRACKS[s.track].finish,destinations[p.racerId]!);
   log(s,t.kind==='warp'?'warp':'move',moved.map(p=>`${name(racer(s,p.racerId)!)} ${before[p.racerId]} → ${racer(s,p.racerId)!.position}`).join('，')||'没有产生移动',{source:t.racerId,targets:moved.map(p=>p.racerId),before:moved.map(p=>before[p.racerId]!),after:moved.map(p=>racer(s,p.racerId)!.position),group,cause:t.cause});
   // Rank the followed racer before followers while preserving simultaneous arrival.
-  for(const p of moved){const r=racer(s,p.racerId)!;if((hasPower(s,r,em('doc-paradox'))?r.position<=0:r.position>=TRACKS[s.track].finish)){finish(s,r);if(s.phase!=='race')return;}}
+  for(const p of moved){const r=racer(s,p.racerId)!;if((hasPower(s,r,em('doc-paradox'))?r.position<=0:r.position>=TRACKS[s.track].finish)){finish(s,r);if(s.phase!=='race'||s.flags.wilyAwardsPending)return;}}
   const passEffects:Work[]=[];
   if(t.kind!=='warp')for(const p of moved){const r=racer(s,p.racerId)!;const start=before[r.id]!;const end=destinations[r.id]!;
     const crossed=active(s).filter(x=>!movingIds.includes(x.id)&&(start-before[x.id]!)*(end-before[x.id]!)<0).sort((a,b)=>(before[a.id]!-before[b.id]!)*Math.sign(end-start));
@@ -667,7 +673,10 @@ function rawTask(s:GameState,t:Work) {
     case 'wurstiiEnd':if(r&&live(r))dispatch(s,r,t.power,()=>wurstiiEnd(s,r,t));break;
     case 'wurstiiSpotFollow':if(r&&live(r)&&hasPower(s,r,'wurstii-spot')){const target=racer(s,t.targetId);if(target&&live(target)&&target.position>r.position)push(s,{kind:'move',racerId:r.id,distance:2,cause:'wurstii-spot'});}break;
     case 'wurstiiBurtBonus':if(r&&live(r)&&hasPower(s,r,'wurstii-burt'))usePower(s,r,[{kind:'move',racerId:r.id,distance:5,cause:'wurstii-burt'}],'wurstii-burt');break;
-    case 'wurstiiLizzie':if(r&&live(r)){const position=nearestAhead(s,r);if(position!==undefined&&hasPower(s,r,'wurstii-lizzie'))usePower(s,r,[{kind:'warp',racerId:r.id,position,cause:'wurstii-lizzie'}],'wurstii-lizzie');else push(s,{kind:'mainMove',racerId:r.id,base:t.face});}break;
+    case 'wurstiiLizzie':if(r&&live(r)){const position=nearestAhead(s,r);if(position!==undefined&&hasPower(s,r,'wurstii-lizzie'))usePower(s,r,[{kind:'warp',racerId:r.id,position,cause:'wurstii-lizzie'}],'wurstii-lizzie',[{kind:'mainMove',racerId:r.id,base:t.face}]);else push(s,{kind:'mainMove',racerId:r.id,base:t.face});}break;
+    case 'wurstiiExtraTurns':if(r&&live(r))r.flags.wurstiiExtraTurns=Number(r.flags.wurstiiExtraTurns??0)+Number(t.amount);break;
+    case 'wurstiiAward':if(r&&!r.flags.wilyPaid){r.flags.wilyPaid=true;if(hasPower(s,r,'wurstii-dr-wily')){log(s,'power',`${name(r)}猜中亚军`,{source:r.id,cause:'wurstii-dr-wily'});points(s,r,3,'威利博士猜中亚军');}}break;
+    case 'wurstiiRaceEnd':endRace(s,Boolean(t.cycleDraw),true);break;
     case 'activate':if(r&&live(r)){log(s,'power',`${name(r)}发动「${character(t.power)?.nameZh??t.power}」`,{source:r.id,cause:t.power});push(s,...t.effects,{kind:'powerDone',racerId:r.id,power:t.power});}break;
     case 'fan':if(r&&live(r))fanTask(s,r,t);break;
     case 'leaf':if(r&&live(r))leafRules.task(s,r,t);break;
@@ -738,11 +747,16 @@ export function resolveTasks(s:GameState):void {
     if(diagnostic.events>=9000){s.phase='paused';s.flags.ruleHold={kind:'resolution-diagnostic',message:'连锁超过独立诊断保护阈值，本房间已暂停。已保存完整状态、随机种子和待处理事件；请保留房间供排查后恢复，未判定循环或胜负。',...diagnostic};s.flags.continuation=true;save();log(s,'engine-paused',String((s.flags.ruleHold as {message:string}).message),{cause:'diagnostic-budget'});return;}
     if(++budget>3000){s.flags.continuation=true;save();return;}
     diagnostic.events++;
-    const signature=resolutionSignature(s),earlier=seen.get(signature);
-    if(earlier&&s.queue.length>earlier.queueLength){
+    // Project ruling for the mutual Game & Watch / Scoocher reaction: repeated
+    // star income alone cannot keep an otherwise identical forced branch alive.
+    // Check only their reaction boundary, never ordinary moves or resource tasks.
+    const next=s.queue[0] as Work;
+    const scoreCycle=next.kind==='ability'&&['scoocher','wurstii-mr-game-and-watch'].includes(String(next.power))&&powers(s,'scoocher').length>0&&powers(s,'wurstii-mr-game-and-watch').length>0;
+    const signature=(scoreCycle?'score-cycle:':'')+resolutionSignature(s,scoreCycle),earlier=seen.get(signature);
+    if(earlier&&(s.queue.length>earlier.queueLength||scoreCycle&&s.queue.length===earlier.queueLength)){
       const tailLength=earlier.queueLength-1,tail=tailLength?s.queue.slice(-tailLength):[];
       if(JSON.stringify(tail)===earlier.tail){
-        log(s,'loop','同一连锁的完整规则状态与待处理效果重现，保留已经完成的一遍结算，在重复分支开始前停止；其他效果继续。');
+        log(s,'loop',scoreCycle?'游戏与观看先生／蹭蹭怪的同一强制反应环重现，仅重复星格收入发生变化；保留已完成的一圈积分，停止重复分支，其他效果继续。':'同一连锁的完整规则状态与待处理效果重现，保留已经完成的一遍结算，在重复分支开始前停止；其他效果继续。');
         s.queue=tail;seen.clear();historyBytes=0;continue;
       }
     }
@@ -751,9 +765,13 @@ export function resolveTasks(s:GameState):void {
       const bytes=signature.length+checkpoint.tail.length;
       // Forgetting a checkpoint may miss a very long cycle but cannot invent
       // one. Bound diagnostic scratch space independently of legal chain size.
-      if(bytes<=96000){while(seen.size&&(seen.size>=256||historyBytes+bytes>96000)){const oldest=seen.keys().next().value!;const entry=seen.get(oldest)!;historyBytes-=oldest.length+entry.tail.length;seen.delete(oldest);}seen.set(signature,checkpoint);historyBytes+=bytes;}
+      if(bytes<=96000){while(seen.size&&(seen.size>=256||historyBytes+bytes>96000)){const oldest=[...seen.keys()].find(key=>!key.startsWith('score-cycle:'))??seen.keys().next().value!;const entry=seen.get(oldest)!;historyBytes-=oldest.length+entry.tail.length;seen.delete(oldest);}seen.set(signature,checkpoint);historyBytes+=bytes;}
     }
+    const scores=s.players.map(p=>p.score);
     task(s,s.queue.shift()! as Work);
+    // Score can also be a consumable resource. Any expenditure starts a new
+    // income-only interval, so a finite paid chain is never truncated as a ring.
+    if(s.players.some((p,i)=>p.score<scores[i]!))for(const [key,entry] of seen)if(key.startsWith('score-cycle:')){historyBytes-=key.length+entry.tail.length;seen.delete(key);}
     if(s.flags.awaitRoll)break;
   }
   s.flags.continuation=false;
@@ -794,7 +812,10 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
   if(s.phase!=='race')throw Error('当前没有正在进行的比赛');
   if(action.type==='choose'){
     const pending=s.pending;if(!pending||pending.id!==action.choiceId)throw Error('该选择已经过期');if(pending.playerId!==playerId)throw Error('这个选择需要对应玩家操作');if(!pending.options.some(o=>o.id===action.optionId))throw Error('不合法的技能选项');
-    delete s.flags.resolutionSeen;delete s.flags.resolutionSeenScores;delete s.flags.resolutionSuppressed;s.pending=undefined;processChoice(s,pending,action.optionId);resolveTasks(s);return;
+    // Declining the same Suckerfish follow-up changes no rules state. Retain
+    // the parent branch's checkpoints so repeated declines cannot hide a loop.
+    if(pending.kind!=='suckerfish'||action.optionId!=='skip')delete s.flags.resolutionSeen;
+    delete s.flags.resolutionSeenScores;delete s.flags.resolutionSuppressed;s.pending=undefined;processChoice(s,pending,action.optionId);resolveTasks(s);return;
   }
   if(action.type==='roll'){
     const r=racer(s,s.currentRacerId!);if(!r||r.playerId!==playerId)throw Error('还没有轮到你的角色');if(s.pending)throw Error('请先完成待处理选择');
@@ -869,9 +890,9 @@ function wurstiiEnd(s:GameState,r:Racer,t:Work) {
     effects.push({kind:'gain',racerId:target.id,amount:-1});
   }
   if(power==='wurstii-jason-vorhees'&&live(target))effects.push({kind:'warp',racerId:target.id,position:20,cause:power});
-  if(power==='wurstii-knuckles'){r.flags.knucklesUsed=true;r.flags.wurstiiExtraTurns=Number(r.flags.wurstiiExtraTurns??0)+2;}
+  if(power==='wurstii-knuckles'){r.flags.knucklesUsed=true;effects.push({kind:'wurstiiExtraTurns',racerId:r.id,amount:2});}
   if(power==='wurstii-olaf')effects.push({kind:'warp',racerId:r.id,position:20,cause:power});
-  if(power==='wurstii-simon-belmont')r.flags.extraTurn=true;
+  if(power==='wurstii-simon-belmont')effects.push({kind:'wurstiiExtraTurns',racerId:r.id,amount:1});
   if(power==='wurstii-yoshi')effects.push({kind:'move',racerId:r.id,distance:2,cause:power});
   if(power==='wurstii-rollercoaster-tycoon-guest')effects.push({kind:'gain',racerId:r.id,amount:1});
   if(power==='wurstii-spot'&&live(target))effects.push({kind:'warp',racerId:target.id,position:Math.max(0,target.position-5),cause:power},{kind:'wurstiiSpotFollow',racerId:r.id,targetId:target.id});
@@ -1114,7 +1135,21 @@ function fanChoice(s:GameState,r:Racer,c:PendingChoice,id:string):boolean{
   const ctx=c.context as Record<string,any>;
   if(c.kind==='em-fox'){
     const pending=ctx.task as Work,source=racer(s,String(ctx.sourceId));
-    if(id==='block'&&live(r)&&hasPower(s,r,em('mr-fox'))&&Number(r.flags.foxUsed??0)<3&&source&&live(source)){
+    // Pre-fix fan-v3 saves can be at the old direct end window, or at its
+    // redundant empty activation after the effect was prematurely credited.
+    // Normalize only those two shapes; new/frozen-version continuations differ.
+    if(source&&['wurstii-knuckles','wurstii-simon-belmont'].includes(String(pending.power))){
+      const amount=pending.power==='wurstii-knuckles'?2:1;
+      if(pending.kind==='wurstiiEnd'||pending.kind==='activate'&&pending.effects?.length===0){
+        if(pending.kind==='activate'){
+          if(amount===2)source.flags.wurstiiExtraTurns=Math.max(0,Number(source.flags.wurstiiExtraTurns??0)-2);
+          else source.flags.extraTurn=false;
+        }
+        if(amount===2)source.flags.knucklesUsed=true;
+        pending.kind='activate';pending.effects=[{kind:'wurstiiExtraTurns',racerId:source.id,amount}];pending.fallback=[];
+      }
+    }
+    if(id==='block'&&live(r)&&hasPower(s,r,em('mr-fox'))&&Number(r.flags.foxUsed??0)<3&&source&&(live(source)||pending.kind==='wurstiiAward')){
       r.flags.foxUsed=Number(r.flags.foxUsed??0)+1;pending.reactionBlocked=[...(pending.reactionBlocked??[]),ctx.key];
       log(s,'block',`${owner(s,r).name}的${name(r)}阻止${name(source)}本次「${character(ctx.power)?.nameZh??ctx.power}」（本场剩余${3-Number(r.flags.foxUsed)}次）`,{source:r.id,targets:[source.id],cause:em('mr-fox')});
       pending.reactionChecked=[...(pending.reactionChecked??[]),ctx.key];push(s,pending,{kind:'powerDone',racerId:r.id,power:em('mr-fox')});
@@ -1233,12 +1268,13 @@ function fanRaceEnd(s:GameState,draw:boolean){
   }
   delete s.flags.fanSecrets;
 }
-/** Only bookkeeping fields are omitted. Scores, owners, resources, powers and
- * the continuation remain in the signature, so progressing chains never stop. */
-function resolutionSignature(s:GameState):string{
+/** Ordinary detection retains scores and all rule state. The explicit mutual
+ * reaction ruling also normalizes income; expenditures invalidate those entries. */
+function resolutionSignature(s:GameState,scoreCycle=false):string{
   const flags={...s.flags};for(const key of ['choiceSeq','motionSeq','loopSeen','forcedCycleTrace','resolutionSeen','resolutionSeenScores','resolutionSuppressed','continuation','resolutionDiagnostic'])delete flags[key];
   if(Number(flags.fanTurnPowerCount)>=2)flags.fanTurnPowerCount=2;
-  return JSON.stringify({players:s.players.map(p=>({id:p.id,score:p.score,hand:p.hand,used:p.used,selection:p.selection})),racers:s.racers.map(r=>({...r,flags:semanticRacerFlags(s,r)})),phase:s.phase,round:s.round,turn:s.turn,current:s.currentRacerId,baseTurnOrder:s.baseTurnOrder,deck:s.deck,discard:s.discard,flags,next:s.queue[0],random:[s.rngState,s.randomStream]},(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value);
+  if(scoreCycle){delete flags.fanIncome;if(!powers(s,em('pooh')).length)delete flags.fanTurnPowerCount;}
+  return JSON.stringify({players:s.players.map(p=>({id:p.id,score:scoreCycle?0:p.score,hand:p.hand,used:p.used,selection:p.selection})),racers:s.racers.map(r=>{const racerFlags=semanticRacerFlags(s,r);if(scoreCycle)delete racerFlags.leafRaceIncome;return {...r,flags:racerFlags};}),phase:s.phase,round:s.round,turn:s.turn,current:s.currentRacerId,baseTurnOrder:s.baseTurnOrder,deck:s.deck,discard:s.discard,flags,next:s.queue[0],random:[s.rngState,s.randomStream]},(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value);
 }
 
 /** Reaction windows belong to one persisted activation, not to a character name
@@ -1248,10 +1284,11 @@ function reactionActivations(s:GameState,t:Work):{racerId:string;power:string}[]
   const add=(source:Racer,power:string)=>{if(power!==em('mr-fox')&&!result.some(x=>x.racerId===source.id&&x.power===power))result.push({racerId:source.id,power});};
   if(!r)return result;
   if(t.kind==='activate'){add(r,String(t.power));return result;}
+  // Wily's explicit end-of-race exception includes finished/eliminated owners.
+  if(t.kind==='wurstiiAward'&&!r.flags.wilyPaid&&hasPower(s,r,'wurstii-dr-wily')){add(r,'wurstii-dr-wily');return result;}
   const directWindows:Record<string,string[]>={
     beforeRacePower:['sisyphus','egg','twin','hog-knight','nepo-baby','soulmate','understudy',em('doc-paradox'),em('dom-and-gary'),em('honey-pot'),em('toll-troll'),em('snake-eyes'),em('thief'),'leaf-loan-shark','leaf-filmmaker','wurstii-hoagie','wurstii-tails','wurstii-dr-wily'],
     turnStartOne:['speed-demon','spoilsport','mastermind','wurstii-bart-simpson'],
-    wurstiiEnd:['wurstii-knuckles','wurstii-simon-belmont'],
     swEndTurn:['hopfrog','switcharoo'],
     swRollEffect:['bite-mark','icarus','mush'],
   };
