@@ -812,9 +812,10 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
   if(s.phase!=='race')throw Error('当前没有正在进行的比赛');
   if(action.type==='choose'){
     const pending=s.pending;if(!pending||pending.id!==action.choiceId)throw Error('该选择已经过期');if(pending.playerId!==playerId)throw Error('这个选择需要对应玩家操作');if(!pending.options.some(o=>o.id===action.optionId))throw Error('不合法的技能选项');
-    // Declining the same Suckerfish follow-up changes no rules state. Retain
-    // the parent branch's checkpoints so repeated declines cannot hide a loop.
-    if(pending.kind!=='suckerfish'||action.optionId!=='skip')delete s.flags.resolutionSeen;
+    // Follow/decline resumes this same movement branch. Retain its checkpoints:
+    // real movement/resource changes distinguish progress, but returning the
+    // whole group to the identical state must not hide a loop behind a prompt.
+    if(pending.kind!=='suckerfish')delete s.flags.resolutionSeen;
     delete s.flags.resolutionSeenScores;delete s.flags.resolutionSuppressed;s.pending=undefined;processChoice(s,pending,action.optionId);resolveTasks(s);return;
   }
   if(action.type==='roll'){

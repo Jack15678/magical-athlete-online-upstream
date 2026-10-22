@@ -17,6 +17,7 @@ function fixture(ids:string[],positions:number[]):GameState{
 const scenarios=[
   {name:'huge-baby-forced',state:fixture(['cheerleader','huge-baby','magikarp'],[11,12,0]),task:{kind:'move',racerId:'r0',distance:1,cause:'track-arrow'}},
   {name:'huge-baby-fish-declines',state:fixture(['cheerleader','huge-baby','suckerfish'],[11,12,11]),task:{kind:'move',racerId:'r0',distance:1,cause:'track-arrow'}},
+  {name:'huge-baby-fish-follows',state:fixture(['cheerleader','huge-baby','suckerfish'],[11,12,11]),task:{kind:'move',racerId:'r0',distance:1,cause:'track-arrow'}},
   {name:'gluebert-pass',state:fixture(['leaptoad','extra-mile-gluebert','leaf-triangle-man'],[2,4,20]),task:{kind:'move',racerId:'r0',distance:5}},
   {name:'game-watch-scoocher',state:fixture(['wurstii-mr-game-and-watch','scoocher','magikarp'],[12,12,0]),task:{kind:'ability',racerId:'r1',power:'scoocher',effects:[{kind:'move',racerId:'r1',distance:1,cause:'scoocher'}]}},
 ];
@@ -27,7 +28,7 @@ for(const scenario of scenarios){
     if(label==='upstream'&&scenario.name==='game-watch-scoocher')continue;
     const s=structuredClone(scenario.state);let choices=0,calls=1;engine.resolveTasks(s);
     while(s.phase==='race'&&(s.pending||s.flags.continuation)&&calls++<10000){
-      if(s.pending){choices++;engine.applyGameAction(s,s.pending.playerId,{type:'choose',choiceId:s.pending.id,optionId:'skip'});}
+      if(s.pending){choices++;engine.applyGameAction(s,s.pending.playerId,{type:'choose',choiceId:s.pending.id,optionId:scenario.name.endsWith('follows')?'use':'skip'});}
       else engine.applyGameAction(s,'p0',{type:'next'});
     }
     report.push({scenario:scenario.name,engine:label,phase:s.phase,positions:s.racers.map(r=>r.position),scores:s.players.map(p=>p.score),choices,calls,remaining:s.queue.length,rng:s.rngState,hold:s.flags.ruleHold,loops:s.logs.filter(e=>e.type==='loop').length,trace:s.logs.slice(-24)});

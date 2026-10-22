@@ -100,13 +100,13 @@ test('finite work yields, another room can resolve, and persisted loop checkpoin
   s=JSON.parse(JSON.stringify(s));applyGameAction(s,'p0',{type:'next'});
   assert.deepEqual(s.players.map(p=>p.score),[3002,1]);assert.equal(s.queue.length,0);assert.equal(s.phase,'race');
 });
-test('Huge Baby arrow with declined Suckerfish retains true-cycle checkpoints, accepted follow remains a choice',()=>{
+test('Huge Baby arrow with repeated Suckerfish follow or decline detects only identical complete state',()=>{
   for(const response of ['skip','use']){
     const s=fixture('magikarp',1);s.track='wild';s.racers[0]!.position=11;s.racers[1]!.characterId='huge-baby';s.racers[1]!.position=12;s.racers[2]!.characterId='suckerfish';s.racers[2]!.position=11;
     s.queue=[{kind:'move',racerId:'r0',distance:1,cause:'track-arrow'}];resolveTasks(s);assert.equal(s.pending?.kind,'suckerfish');
     const first=s.pending!;applyGameAction(s,first.playerId,{type:'choose',choiceId:first.id,optionId:response});
     if(response==='use')assert(s.logs.some(e=>e.type==='move'&&e.targets?.includes('r2')),'accepted follow really moves the fish');
-    let choices=0;while(s.pending){assert(++choices<10);const c=s.pending;applyGameAction(s,c.playerId,{type:'choose',choiceId:c.id,optionId:'skip'});}
+    let choices=0;while(s.pending){assert(++choices<10);const c=s.pending;applyGameAction(s,c.playerId,{type:'choose',choiceId:c.id,optionId:response});}
     assert.equal(s.phase,'race');assert.equal(s.queue.length,0);assert(s.logs.some(e=>e.type==='loop'));assert.equal(s.players[0]!.score,0);
   }
 });
