@@ -1,0 +1,504 @@
+{
+  "seed": 13008,
+  "actions": 364,
+  "plan": {
+    "version": "points-v1",
+    "trackVersion": "base-tracks-2026-10-21",
+    "raceCount": 8,
+    "races": [
+      {
+        "round": 1,
+        "map": "mild",
+        "rewards": [
+          3,
+          1
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 2,
+        "map": "wild",
+        "rewards": [
+          3,
+          1
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 3,
+        "map": "mild",
+        "rewards": [
+          4,
+          2
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 4,
+        "map": "mild",
+        "rewards": [
+          4,
+          2
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 5,
+        "map": "wild",
+        "rewards": [
+          5,
+          3
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 6,
+        "map": "mild",
+        "rewards": [
+          5,
+          3
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 7,
+        "map": "mild",
+        "rewards": [
+          6,
+          4
+        ],
+        "specialEvent": null
+      },
+      {
+        "round": 8,
+        "map": "wild",
+        "rewards": [
+          6,
+          4
+        ],
+        "specialEvent": null
+      }
+    ]
+  },
+  "results": [
+    {
+      "round": 1,
+      "placements": [
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:1:0",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "hare",
+          "rank": 1,
+          "points": 3
+        },
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:1:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "legs",
+          "rank": 2,
+          "points": 1
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 3,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 3
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 1,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 1
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "placements": [
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:2:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "alchemist",
+          "rank": 1,
+          "points": 3
+        },
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:2:1",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "coach",
+          "rank": 2,
+          "points": 1
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 1,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 1
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 3,
+          "map": 1,
+          "skill": 5,
+          "event": 0,
+          "total": 9
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "placements": [
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:3:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "party-animal",
+          "rank": 1,
+          "points": 4
+        },
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:3:1",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "cheerleader",
+          "rank": 2,
+          "points": 2
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 2,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 2
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 4,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 4
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "placements": [
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:4:1",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "baba-yaga",
+          "rank": 1,
+          "points": 4
+        },
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:4:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "hypnotist",
+          "rank": 2,
+          "points": 2
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 0,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 0
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 6,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 6
+        }
+      ]
+    },
+    {
+      "round": 5,
+      "placements": [
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:5:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "banana",
+          "rank": 1,
+          "points": 5
+        },
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:5:1",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "duelist",
+          "rank": 2,
+          "points": 3
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 3,
+          "map": 1,
+          "skill": 0,
+          "event": 0,
+          "total": 4
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 5,
+          "map": 2,
+          "skill": 0,
+          "event": 0,
+          "total": 7
+        }
+      ]
+    },
+    {
+      "round": 6,
+      "placements": [
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:6:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "inchworm",
+          "rank": 1,
+          "points": 5
+        },
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:6:0",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "egg",
+          "rank": 2,
+          "points": 3
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 3,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 3
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 5,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 5
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "placements": [
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:7:1",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "leaptoad",
+          "rank": 1,
+          "points": 6
+        },
+        {
+          "racerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54:7:0",
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "characterId": "huge-baby",
+          "rank": 2,
+          "points": 4
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 10,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 10
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 0,
+          "map": 0,
+          "skill": 0,
+          "event": 0,
+          "total": 0
+        }
+      ]
+    },
+    {
+      "round": 8,
+      "placements": [
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:8:0",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "skipper",
+          "rank": 1,
+          "points": 6
+        },
+        {
+          "racerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0:8:1",
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "characterId": "twin",
+          "rank": 2,
+          "points": 4
+        }
+      ],
+      "scores": [
+        {
+          "playerId": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+          "placement": 0,
+          "map": 1,
+          "skill": 3,
+          "event": 0,
+          "total": 4
+        },
+        {
+          "playerId": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+          "placement": 10,
+          "map": 2,
+          "skill": 0,
+          "event": 0,
+          "total": 12
+        }
+      ]
+    }
+  ],
+  "players": [
+    {
+      "id": "79d4c975-8606-47a0-ab1e-e5a4af48bf54",
+      "name": "同名",
+      "score": 27,
+      "used": [
+        "hare",
+        "magician",
+        "rocket-scientist",
+        "coach",
+        "flip-flop",
+        "cheerleader",
+        "third-wheel",
+        "centaur",
+        "copycat",
+        "duelist",
+        "egg",
+        "heckler",
+        "huge-baby",
+        "leaptoad",
+        "stickler",
+        "sisyphus"
+      ]
+    },
+    {
+      "id": "4d7913f0-98ac-416a-8c4b-a8b57c9b4fb0",
+      "name": "同名1",
+      "score": 44,
+      "used": [
+        "legs",
+        "blimp",
+        "alchemist",
+        "lovable-loser",
+        "party-animal",
+        "genius",
+        "hypnotist",
+        "baba-yaga",
+        "banana",
+        "dicemonger",
+        "inchworm",
+        "lackey",
+        "mastermind",
+        "mouth",
+        "skipper",
+        "twin"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "round": 1,
+      "track": "mild",
+      "stats": {
+        "heap": 23689317,
+        "canvases": 2,
+        "resources": 12
+      }
+    },
+    {
+      "round": 2,
+      "track": "wild",
+      "stats": {
+        "heap": 26570551,
+        "canvases": 2,
+        "resources": 12
+      }
+    },
+    {
+      "round": 3,
+      "track": "mild",
+      "stats": {
+        "heap": 28142753,
+        "canvases": 2,
+        "resources": 12
+      }
+    },
+    {
+      "round": 4,
+      "track": "mild",
+      "stats": {
+        "heap": 28920772,
+        "canvases": 2,
+        "resources": 12
+      }
+    },
+    {
+      "round": 5,
+      "track": "wild",
+      "stats": {
+        "heap": 37610963,
+        "canvases": 2,
+        "resources": 13
+      }
+    },
+    {
+      "round": 6,
+      "track": "mild",
+      "stats": {
+        "heap": 30423716,
+        "canvases": 2,
+        "resources": 13
+      }
+    },
+    {
+      "round": 7,
+      "track": "mild",
+      "stats": {
+        "heap": 31479361,
+        "canvases": 2,
+        "resources": 13
+      }
+    },
+    {
+      "round": 8,
+      "track": "wild",
+      "stats": {
+        "heap": 53273119,
+        "canvases": 2,
+        "resources": 13
+      }
+    }
+  ],
+  "errors": []
+}

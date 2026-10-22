@@ -27,7 +27,7 @@ async function pair(browser: Browser, mobileHost = false) {
       page.on('websocket', socket => socket.on('framesent', frame => { try { const message = JSON.parse(String(frame.payload)); if (message.type === 'action' && message.envelope.action.type === 'close') closeRequests[seat] = closeRequests[seat]! + 1; } catch { /* Raw ping frames are outside the action protocol. */ } }));
     }
     const [host, guest] = pages as [Page, Page];
-    await host.goto(url); await host.getByLabel('你的昵称').fill('解散房主'); await host.getByLabel('房间人数上限').selectOption('2'); await host.getByLabel('每次操作时限').selectOption('0');
+    await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click(); await host.getByLabel('你的昵称').fill('解散房主'); await host.getByLabel('房间人数上限').selectOption('2'); await host.getByLabel('每次操作时限').selectOption('0');
     await host.getByRole('button', { name: '创建房间，召集朋友' }).click(); await expect(host.locator('.connection.is-online')).toBeVisible();
     const code = host.url().split('/').at(-1)!;
     await guest.goto(`${url}/room/${code}`); await guest.getByLabel('你的昵称').fill('解散访客'); await guest.getByRole('button', { name: '加入这场胡闹' }).click(); await expect(guest.locator('.connection.is-online')).toBeVisible();
@@ -62,7 +62,7 @@ test('close: lobby confirmation can cancel, management transfer applies, and bot
     await Promise.all(room.pages.map(expectClosed)); expect(room.closeRequests).toEqual([0, 1]);
     await host.reload(); await expectClosed(host);
     const joined = await guest.request.post(`${url}/api/browser/rooms/${room.code}/join`, { data: { name: '旧链接访客' } }); expect(joined.status()).toBe(410);
-    await guest.getByRole('button', { name: '返回首页', exact: true }).click(); await expect(guest.getByRole('button', { name: '创建房间，召集朋友' })).toBeVisible();
+    await guest.getByRole('button', { name: '返回首页', exact: true }).click(); await expect(guest.getByRole('tab', { name: '创建房间', exact: true })).toBeVisible();
     expect(room.errors).toEqual([]);
   } finally { await Promise.all(room.contexts.map(context => context.close())); }
 });
@@ -92,7 +92,7 @@ test('close: the management host can dissolve an active race without rolling or 
     await host.getByTestId('presentation-settings').click();
     await host.getByRole('button', { name: '结束房间', exact: true }).click(); await host.getByRole('dialog', { name: '结束此房间？' }).getByRole('button', { name: '确认结束', exact: true }).click();
     await Promise.all(room.pages.map(expectClosed)); expect(room.closeRequests).toEqual([1, 0]);
-    await guest.reload(); await expectClosed(guest); await host.getByRole('button', { name: '返回首页', exact: true }).click(); await expect(host.getByRole('button', { name: '创建房间，召集朋友' })).toBeVisible();
+    await guest.reload(); await expectClosed(guest); await host.getByRole('button', { name: '返回首页', exact: true }).click(); await expect(host.getByRole('tab', { name: '创建房间', exact: true })).toBeVisible();
     expect(room.errors).toEqual([]);
   } finally { await Promise.all(room.contexts.map(context => context.close())); }
 });

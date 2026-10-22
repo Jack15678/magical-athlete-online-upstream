@@ -426,6 +426,15 @@ async function namespace(){
   return {env,instances,hooks};
 }
 async function listedRooms(env:any){const response=await worker.default.fetch(new Request('https://game.test/api/browser/rooms'),env);assert.equal(response.status,200);return (await response.json()).rooms as import('../src/shared/types.js').RoomSummary[];}
+test('private worker rooms remain joinable by code and count against capacity without directory disclosure',async()=>{
+  const ns=await namespace(),config={...legacyRoomConfig(),visibility:'private' as const};
+  const response=await worker.default.fetch(new Request('https://game.test/api/browser/rooms',{method:'POST',body:JSON.stringify({name:'私密房主',maxPlayers:2,config})}),ns.env);
+  assert.equal(response.status,201);const created=await response.json() as RelayJoinReply;
+  assert.deepEqual(await listedRooms(ns.env),[]);
+  assert.equal((await ns.instances.get('__room_directory__')!.ctx.storage.list({prefix:'capacity:'})).size,1);
+  const joined=await worker.default.fetch(new Request(`https://game.test/api/browser/rooms/${created.identity.roomCode}/join`,{method:'POST',body:JSON.stringify({name:'持码加入'})}),ns.env);
+  assert.equal(joined.status,201);assert.deepEqual(await listedRooms(ns.env),[]);
+});
 function deferred(){let resolve!:()=>void;const promise=new Promise<void>(done=>{resolve=done;});return {promise,resolve};}
 async function bounded<T>(operation:Promise<T>):Promise<T>{let timeout:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([operation,new Promise<never>((_,reject)=>{timeout=setTimeout(()=>reject(Error('directory operation deadlocked')),1000);})]);}finally{clearTimeout(timeout);}}
 
@@ -762,13 +771,14 @@ test('new worker rooms settle authoritatively without a browser computer, reject
   const forbidden=await authenticate(env,env.created.identity,true);assert.equal(forbidden.closeCode,4401);
   assert.equal((await workerAction(env,host,{type:'ready',ready:true})).result.ok,true);
   assert.equal((await workerAction(env,peer,{type:'ready',ready:true})).result.ok,true);
-  const config=legacyRoomConfig('mixed');
+  const config={...legacyRoomConfig('mixed'),competition:{version:'points-v1' as const,mode:'points' as const,preset:'custom' as const,raceCount:8 as const,rotation:['wild' as const,'mild' as const,'mild' as const],thrillingThirds:{enabled:false,rounds:[]}}};
   const change=await workerAction(env,host,{type:'configure',config});assert.equal(change.result.ok,true);
   assert((await env.ctx.storage.get<any>('room')).serverRoom.game.players.every((player:any)=>!player.ready));
   const repeated=await workerAction(env,host,{type:'configure',config},crypto.randomUUID(),change.envelope);assert.equal(repeated.result.duplicate,true);
   for(const socket of [host,peer])assert.equal((await workerAction(env,socket,{type:'ready',ready:true})).result.ok,true);
   assert.equal((await workerAction(env,host,{type:'start'})).result.ok,true);
   let record=await env.ctx.storage.get<any>('room');assert.equal(record.serverRoom.game.phase,'draft');assert.equal(record.configFrozen,true);
+  const frozen=structuredClone(record.serverRoom.game.matchPlan);assert.equal(frozen.raceCount,8);assert.deepEqual(frozen.races.map((race:any)=>race.map),['wild','mild','mild','wild','mild','mild','wild','mild']);
   const draft=record.serverRoom.game.draft,actor=draft.order[draft.cursor],socket=actor===env.created.identity.playerId?host:peer;
   assert.equal((await workerAction(env,socket,{type:'draft',characterId:draft.market[0]})).result.ok,true);
   record=await env.ctx.storage.get<any>('room');
@@ -782,6 +792,7 @@ test('new worker rooms settle authoritatively without a browser computer, reject
   const restored=await instance(env.ctx.storage,env.ctx.sockets),returned=await authenticate({...restored,created:env.created});
   assert.equal(returned.sent.find(message=>message.type==='auth-ok').authorityOnline,true);
   assert.equal(returned.sent.filter(message=>message.type==='snapshot').at(-1).room.phase,'draft');
+  assert.deepEqual(returned.sent.filter(message=>message.type==='snapshot').at(-1).room.matchPlan,frozen);
   assert.equal((await restored.ctx.storage.get<any>('room')).serverRoom.game.randomStream.algorithm,'chacha20-v1');
 });
 test('worker commits a rule action and resend receipt atomically; failed storage neither consumes the action nor acknowledges success',async()=>{
@@ -850,7 +861,7 @@ test('worker background rule exception persists a diagnostic pause instead of re
 test('worker refuses an insufficient independent role pool before reserving capacity or persisting a ghost room',async()=>{
   const ns=await namespace(),config=legacyRoomConfig();config.characterPacks.original=false;config.characterPacks['leaf-fan']=true;
   const response=await worker.default.fetch(new Request('https://game.test/api/browser/rooms',{method:'POST',headers:{'CF-Connecting-IP':'insufficient-role-pool'},body:JSON.stringify({name:'资料验证',maxPlayers:8,config,requestId:crypto.randomUUID()})}),ns.env);
-  assert.equal(response.status,400);assert.match((await response.json()).error,/至少需要32名/);assert.equal(ns.instances.size,0);
+  assert.equal(response.status,400);assert.match((await response.json()).error,/选秀32名，技能抽牌预留23名/);assert.equal(ns.instances.size,0);
 });
 
 test('directory returns JSON 400 and 409 across a DO boundary that strips uncaught exception types',async()=>{

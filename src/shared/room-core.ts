@@ -144,7 +144,7 @@ export function reduceRoomAction(original: Room, playerId: string, action: GameA
       { const config = structuredClone(room.game.config ?? legacyRoomConfig(room.game.characterPool,room.mode==='practice'));
       room.game = createGame(room.game.players.map(p => ({ ...p, renameUsed:false, renameRequestId:undefined, ready:!!p.isAI, score:0, hand:[], used:[], selection:[] })), options.rematchSeed,room.mode,room.game.characterPool);
       room.game.config = config;room.configFrozen=false;
-      if(room.mode==='practice'||room.mode==='ai'){room.game.players.forEach(p=>p.ready=true);startGame(room.game);room.configFrozen=true;}break; }
+      break; }
     default: roomRules(room.game).applyGameAction(room.game, playerId, action);
   }
   room.version++; room.updatedAt = options.now; setRoomDeadline(room, options.now);
@@ -174,7 +174,7 @@ export function validateActionEnvelope(value: unknown): ActionEnvelope {
     case 'start': case 'roll': case 'next': case 'rematch': case 'close': keys(a,['type']); action={type:a.type}; break;
     case 'draft': keys(a,['type','characterId']); action={type:'draft',characterId:string(a.characterId,50)}; break;
     case 'practice-team':
-      keys(a,['type','characterIds']);if(!Array.isArray(a.characterIds)||a.characterIds.length!==4)throw Error('请选择4张练习角色牌。');
+      keys(a,['type','characterIds']);if(!Array.isArray(a.characterIds)||![4,6,8].includes(a.characterIds.length))throw Error('请选择本局所需的4、6或8张练习角色牌。');
       action={type:'practice-team',characterIds:a.characterIds.map(id=>string(id,50))};break;
     case 'select':
       keys(a,['type','characterIds']); if (!Array.isArray(a.characterIds) || a.characterIds.length < 1 || a.characterIds.length > 2) throw Error('请选择本场所需角色。');
@@ -198,7 +198,7 @@ export function projectRoom(room: Room, playerId: string, options: ProjectionOpt
   // or when a later client previously wrote a broader legacy pool hint.
   const version=rulesVersion(g);
   const config=version===LEGACY_RULES_VERSION?legacyRoomConfig('original'):version===WURSTII_V1_RULES_VERSION?legacyRoomConfig(room.mode==='practice'?'all':g.characterPool):g.config??legacyRoomConfig(g.characterPool,room.mode==='practice');
-  return { config:structuredClone(config),configFrozen:g.phase==='finished'?false:room.configFrozen??g.phase!=='lobby',characterPool:g.characterPool??'original',rulesVersion:rulesVersion(g),chat:structuredClone(room.chat?.messages??[]),chatLatestId:room.chat?.latestId??0,renameRemaining:spectator?0:g.players.find(p=>p.id===playerId)?.renameUsed?0:1,role:spectator?'spectator':'player',spectators:structuredClone(room.spectators??[]),createdAt:room.createdAt,expiresAt:room.hostLeftAt===undefined?undefined:expiry,ownerId:room.ownerId??room.hostId,hostLeftAt:room.hostLeftAt,closeReason:room.closeReason,mode:room.mode??'multiplayer',turnStage:g.phase==='race'?(pending?'choice':g.flags.needsBegin?'starting':g.flags.awaitRoll?'roll':'resolving'):undefined, code:room.code, version:room.version, hostId:room.hostId, selfId:playerId, maxPlayers:room.maxPlayers, timeoutSeconds:room.timeoutSeconds, deadline:room.deadline,
+  return { matchPlan:g.matchPlan?structuredClone(g.matchPlan):undefined,config:structuredClone(config),configFrozen:g.phase==='finished'?false:room.configFrozen??g.phase!=='lobby',characterPool:g.characterPool??'original',rulesVersion:rulesVersion(g),chat:structuredClone(room.chat?.messages??[]),chatLatestId:room.chat?.latestId??0,renameRemaining:spectator?0:g.players.find(p=>p.id===playerId)?.renameUsed?0:1,role:spectator?'spectator':'player',spectators:structuredClone(room.spectators??[]),createdAt:room.createdAt,expiresAt:room.hostLeftAt===undefined?undefined:expiry,ownerId:room.ownerId??room.hostId,hostLeftAt:room.hostLeftAt,closeReason:room.closeReason,mode:room.mode??'multiplayer',turnStage:g.phase==='race'?(pending?'choice':g.flags.needsBegin?'starting':g.flags.awaitRoll?'roll':'resolving'):undefined, code:room.code, version:room.version, hostId:room.hostId, selfId:playerId, maxPlayers:room.maxPlayers, timeoutSeconds:room.timeoutSeconds, deadline:room.deadline,
     phase:g.phase, round:g.round, track:g.track, hosting:'browser', authorityId:options.authorityId, authorityOnline:room.closedAt === undefined && options.authorityOnline, ...(room.closedAt === undefined ? {} : {closedAt:room.closedAt}),
     players:g.players.map(({hand,selection,renameRequestId,...p}) => ({ ...p, handCount:hand.length, selected:selection.length>0, ...(p.id===playerId ? {hand:[...hand],selection:[...selection]} : {}) })),
     draft:g.draft ? structuredClone(g.draft) : undefined, racers:g.racers.map(r=>({...structuredClone(r),flags:{...publicRacerFlags(r.flags),...publicCopyCardIds(r,g.logs),publicAbilities:publicAbilityState(g,r)}})), baseTurnOrder:g.baseTurnOrder?[...g.baseTurnOrder]:undefined, currentRacerId:g.currentRacerId,

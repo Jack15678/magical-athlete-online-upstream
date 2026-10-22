@@ -39,7 +39,7 @@ test('Node and browser authority draft exactly the enabled Wurstii pack and reje
     const resumed=JSON.parse(JSON.stringify(browser));assert.deepEqual(projectRoom(resumed,'p0',{authorityId:'p0',authorityOnline:true}).config,config);
     assert.throws(()=>reduceRoomAction(resumed,'p0',{type:'configure',config:legacyRoomConfig()},{now:3,rematchSeed:2}),/锁定|开始|开局/);
     resumed.game.phase='finished';const rematch=reduceRoomAction(resumed,'p0',{type:'rematch'},{now:4,rematchSeed:2});
-    assert.deepEqual(rematch.game.config,config);assert.equal(rematch.game.draft!.market.length,30);
+    assert.deepEqual(rematch.game.config,config);assert.equal(rematch.game.phase,'lobby');assert.equal(rematch.game.draft,undefined);
   }finally{store.close();}
 });
 

@@ -18,7 +18,7 @@ async function setup(page: Page, mode: 'practice' | 'ai', aiCount = 3) {
     localStorage.setItem('magical-athlete:animation-speed', '4');
     localStorage.setItem('magical-athlete:reduced-motion', 'true');
   } catch { /* Opaque initial page. */ } });
-  await page.goto(url); await page.getByLabel('你的昵称').fill(mode === 'practice' ? '独自练习' : '人机验收玩家');
+  await page.goto(url);await page.getByRole('tab',{name:'创建房间',exact:true}).click(); await page.getByLabel('你的昵称').fill(mode === 'practice' ? '独自练习' : '人机验收玩家');
   await page.getByRole('tab', { name: mode === 'practice' ? '自己练习' : '人机对战', exact: true }).click();
   if (mode === 'ai') await page.getByLabel('AI 人数', { exact: true }).selectOption(String(aiCount));
   await page.getByRole('button', { name: mode === 'practice' ? '开始自己练习' : '开始人机对战', exact: true }).click();

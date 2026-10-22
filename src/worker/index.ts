@@ -95,7 +95,7 @@ function actionEnvelope(value:unknown):value is ActionEnvelope {
     case 'ready':return only(a,['type','ready'])&&typeof a.ready==='boolean';
     case 'start':case 'roll':case 'next':case 'rematch':case 'close':return only(a,['type']);
     case 'draft':return only(a,['type','characterId'])&&textId(a.characterId,50);
-    case 'practice-team':return only(a,['type','characterIds'])&&Array.isArray(a.characterIds)&&a.characterIds.length===4&&a.characterIds.every(id=>textId(id,50));
+    case 'practice-team':return only(a,['type','characterIds'])&&Array.isArray(a.characterIds)&&[4,6,8].includes(a.characterIds.length)&&a.characterIds.every(id=>textId(id,50));
     case 'select':return only(a,['type','characterIds'])&&Array.isArray(a.characterIds)&&a.characterIds.length>=1&&a.characterIds.length<=2&&a.characterIds.every(id=>textId(id,50));
     case 'choose':return only(a,['type','choiceId','optionId'])&&textId(a.choiceId)&&textId(a.optionId);
     case 'transfer':return only(a,['type','playerId'])&&typeof a.playerId==='string'&&UUID.test(a.playerId);
@@ -212,7 +212,7 @@ export class RoomRelay extends DurableObject<Env> {
   private participant(playerId:string):StoredMember|StoredSpectator|undefined {return this.record?.members.find(person=>person.id===playerId)??this.spectator(playerId);}
   private summary():RoomSummary {
     const room=this.record!;
-    return {code:room.code,hostName:room.members.find(person=>person.id===room.ownerId)?.name??room.members[0]?.name??'房主',phase:room.phase,playerCount:room.members.length,maxPlayers:room.maxPlayers,spectatorCount:(room.spectators??[]).filter(person=>this.online(person.id)).length,createdAt:room.createdAt,expiresAt:this.expiry(),authorityOnline:this.computationOnline(),mode:room.mode??'multiplayer'};
+    return {visibility:room.config?.visibility??'public',code:room.code,hostName:room.members.find(person=>person.id===room.ownerId)?.name??room.members[0]?.name??'房主',phase:room.phase,playerCount:room.members.length,maxPlayers:room.maxPlayers,spectatorCount:(room.spectators??[]).filter(person=>this.online(person.id)).length,createdAt:room.createdAt,expiresAt:this.expiry(),authorityOnline:this.computationOnline(),mode:room.mode??'multiplayer'};
   }
   private async publishDirectory():Promise<void> {
     if(!this.env.ROOMS||!this.record)return;
@@ -289,7 +289,7 @@ export class RoomRelay extends DurableObject<Env> {
             if(fresh.mode==='practice'||fresh.expiresAt<=Date.now()){await this.ctx.storage.delete(key);return;}
             // Presence changes already publish their own durable entry. A list
             // must not resurrect a room removed while this summary was read.
-            return fresh;
+            return fresh.visibility==='private'?undefined:fresh;
           }catch{return;}
         }));
         rooms.push(...results.filter((entry):entry is RoomSummary=>!!entry));

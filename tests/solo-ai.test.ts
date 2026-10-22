@@ -144,6 +144,9 @@ test('copied Fish / Scoocher loops terminate and AI independently declines repea
 test('Node authority completes a full AI match, owns bot identities and pauses unattended bot play',()=>{
   const store=new Store(':memory:'),rooms=new Rooms(store,0);try{
     const created=rooms.create('真人',8,0,'ai',3),code=created.identity.roomCode,self=created.identity.playerId;
+    // This completion test needs a reproducible match. Random original games can
+    // legally enter the forced-cycle hold covered separately in forced-cycle.test.
+    const game=createGame(rooms.get(code).game.players,2055,'ai');startGame(game);rooms.get(code).game=game;
     assert.equal(created.room.mode,'ai');assert.equal(created.room.players.length,4);assert.equal(created.room.phase,'draft');
     const bot=created.room.players.find(p=>p.isAI)!;
     assert.throws(()=>rooms.authenticate({...created.identity,playerId:bot.id}),/身份已失效/);
@@ -159,7 +162,7 @@ test('Node authority completes a full AI match, owns bot identities and pauses u
     assert.equal(rooms.get(code).game.results.length,4);assert(!rooms.get(code).game.logs.some(e=>e.type==='timeout'));
     const view=rooms.view(rooms.get(code),self);
     assert(rooms.act(code,self,{actionId:crypto.randomUUID(),expectedVersion:view.version,action:{type:'rematch'}}).ok);
-    assert.equal(rooms.get(code).game.phase,'draft');assert.equal(rooms.get(code).game.players.length,4);
+    assert.equal(rooms.get(code).game.phase,'lobby');assert.equal(rooms.get(code).game.players.length,4);
     assert.equal(rooms.act(code,self,{actionId:crypto.randomUUID(),expectedVersion:rooms.get(code).version,action:{type:'transfer',playerId:bot.id}}).ok,false);
   }finally{store.close();}
 });

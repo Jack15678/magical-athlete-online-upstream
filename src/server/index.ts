@@ -16,7 +16,7 @@ import { validateRoomConfig } from '../shared/room-config.js';
 const action=z.discriminatedUnion('type',[
   z.object({type:z.literal('configure'),config:z.unknown().transform(value=>validateRoomConfig(value))}).strict(),
   z.object({type:z.literal('ready'),ready:z.boolean()}).strict(),z.object({type:z.literal('start')}).strict(),
-  z.object({type:z.literal('draft'),characterId:z.string().max(50)}).strict(),z.object({type:z.literal('select'),characterIds:z.array(z.string().max(50)).min(1).max(2)}).strict(),z.object({type:z.literal('practice-team'),characterIds:z.array(z.string().max(50)).length(4)}).strict(),
+  z.object({type:z.literal('draft'),characterId:z.string().max(50)}).strict(),z.object({type:z.literal('select'),characterIds:z.array(z.string().max(50)).min(1).max(2)}).strict(),z.object({type:z.literal('practice-team'),characterIds:z.array(z.string().max(50)).refine(ids=>[4,6,8].includes(ids.length))}).strict(),
   z.object({type:z.literal('roll')}).strict(),z.object({type:z.literal('choose'),choiceId:z.string().max(100),optionId:z.string().max(100)}).strict(),
   z.object({type:z.literal('next')}).strict(),z.object({type:z.literal('rematch')}).strict(),z.object({type:z.literal('close')}).strict(),z.object({type:z.literal('transfer'),playerId:z.string().uuid()}).strict()]);
 const envelope=z.object({actionId:z.string().uuid(),expectedVersion:z.number().int().nonnegative(),action}).strict();

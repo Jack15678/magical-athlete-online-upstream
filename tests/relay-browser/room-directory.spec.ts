@@ -40,7 +40,7 @@ async function roomPeers(browser: Browser) {
       }));
     }
     const [host, guest, viewer] = pages as [Page, Page, Page];
-    await host.goto(url); await host.getByLabel('你的昵称').fill('目录房主'); await host.getByLabel('房间人数上限').selectOption('2'); await host.getByLabel('每次操作时限').selectOption('0');
+    await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click(); await host.getByLabel('你的昵称').fill('目录房主'); await host.getByLabel('房间人数上限').selectOption('2'); await host.getByLabel('每次操作时限').selectOption('0');
     await host.getByRole('button', { name: '创建房间，召集朋友', exact: true }).click(); await expect(host.locator('.connection.is-online')).toBeVisible();
     const code = host.url().split('/').at(-1)!;
     await directory(guest, '目录选手'); const guestRow = guest.getByTestId(`directory-room-${code}`); await expect(guestRow).toContainText('1 / 2 位选手'); await guestRow.getByRole('button', { name: '加入房间', exact: true }).click(); await expect(guest.locator('.connection.is-online')).toBeVisible();
@@ -196,7 +196,7 @@ test('Home returns to the retained owner room in every mode without creating ano
     page.on('pageerror',error=>errors.push(error.stack??error.message));
     page.on('request',request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/api/browser/rooms')creations++;});
     try {
-      await page.goto(url);await page.getByLabel('你的昵称').fill('返回原房主');
+      await page.goto(url);await page.getByRole('tab',{name:'创建房间',exact:true}).click();await page.getByLabel('你的昵称').fill('返回原房主');
       if(mode==='multiplayer')await page.getByLabel('房间人数上限').selectOption('2');
       else await page.getByRole('tab',{name:mode==='practice'?'自己练习':'人机对战',exact:true}).click();
       if(mode==='ai')await page.getByLabel('AI 人数',{exact:true}).selectOption('1');

@@ -14,6 +14,9 @@ async function probe(page: Page, code: string) {
   await page.evaluate(async code => {
     const identity = JSON.parse(localStorage.getItem(`magical-athlete:identity:${code}`)!);
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/browser/ws/${code}`);
+    // The independent test socket must renew its own lease during long matches.
+    const heartbeat=setInterval(()=>{if(socket.readyState===WebSocket.OPEN)socket.send('ping');},15000);
+    socket.addEventListener('close',()=>clearInterval(heartbeat));
     const waits = new Map<string, (reply: unknown) => void>();
     const state: any = (window as any).__swProbe = {view:null,send: async (action: unknown, expectedVersion?:number) => {
       const requestId = crypto.randomUUID();
@@ -35,7 +38,8 @@ async function probe(page: Page, code: string) {
 async function view(page: Page): Promise<RoomView> { return page.evaluate(() => JSON.parse(JSON.stringify((window as any).__swProbe.view))); }
 async function action(page: Page, action: GameAction,version?:number): Promise<ActionReply> { return page.evaluate(({action,version}) => (window as any).__swProbe.send(action,version), {action,version}); }
 
-for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: four races through authenticated relay; mobile chat, rename, privacy and reload`, async ({browser},testInfo) => {
+for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: ${pool==='mixed'?6:4} races through authenticated relay; mobile chat, rename, privacy and reload`, async ({browser},testInfo) => {
+  const rounds=pool==='mixed'?6:4;
   const evidenceRoot=testInfo.outputPath('evidence');
   const contexts: BrowserContext[] = [], pages: Page[] = [], errors: string[] = [];
   let latestPublic: unknown; const summaries: unknown[] = [];mkdirSync(evidenceRoot,{recursive:true});
@@ -47,7 +51,7 @@ for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: four 
       page.on('websocket',socket=>socket.on('framereceived',frame=>{try {const message=JSON.parse(String(frame.payload));if(message.type==='snapshot'){latestPublic={phase:message.room.phase,round:message.room.round,version:message.room.version,currentRacerId:message.room.currentRacerId,waitingFor:message.room.waitingFor,pending:message.room.pending?{kind:message.room.pending.kind,title:message.room.pending.title}:undefined,racers:message.room.racers.map((r:any)=>({characterId:r.characterId,position:r.position,tripped:r.tripped,eliminated:r.eliminated}))};for(const p of message.room.players)if(p.id!==message.room.selfId&&(p.hand!==undefined||p.selection!==undefined))errors.push('private hand leaked');if(message.room.racers.some((r:any)=>r.flags.cheatahSecret!==undefined))errors.push('Cheatah secret leaked');}}catch{}}));
     }
     const [host,guest,mobile,viewer]=pages as [Page,Page,Page,Page];
-    await host.goto(url);await host.getByLabel('你的昵称').fill('同名');await host.getByLabel('房间人数上限').selectOption('3');await host.getByLabel('每次操作时限').selectOption('0');await host.getByRole('checkbox',{name:'基础角色包',exact:true}).setChecked(pool!=='second-wind');await host.getByRole('checkbox',{name:'Second Wind',exact:true}).check();if(pool==='fans'){await host.getByRole('checkbox',{name:'Extra Mile',exact:true}).check();await host.getByRole('checkbox',{name:'Leaf’s Fan Expansion',exact:true}).check();}await host.getByRole('button',{name:'创建房间，召集朋友',exact:true}).click();await online(host);
+    await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click();await host.getByLabel('你的昵称').fill('同名');await host.getByLabel('房间人数上限').selectOption('3');await host.getByLabel('每次操作时限').selectOption('0');await host.getByRole('checkbox',{name:'基础角色包',exact:true}).setChecked(pool!=='second-wind');await host.getByRole('checkbox',{name:'Second Wind',exact:true}).check();if(pool==='fans'){await host.getByRole('checkbox',{name:'Extra Mile',exact:true}).check();await host.getByRole('checkbox',{name:'Leaf’s Fan Expansion',exact:true}).check();}if(rounds===6){await host.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();await host.getByLabel('比赛场数').selectOption('6');await host.getByRole('button',{name:'添加 Mild Mile',exact:true}).click();}await host.getByRole('button',{name:'创建房间，召集朋友',exact:true}).click();await online(host);
     const code=host.url().split('/').at(-1)!;
     for (const page of [guest,mobile,viewer]) {await page.goto(`${url}/room/${code}`);await page.getByLabel('你的昵称').fill('同名');if(page===viewer)await page.getByRole('radio',{name:/作为观战者/}).check();await page.getByRole('button',{name:page===viewer?'进入房间观战':'加入这场胡闹',exact:true}).click();await online(page);}
     await expect(host.locator('.lobby-seats')).toContainText('同名1');await expect(host.locator('.lobby-seats')).toContainText('同名2');
@@ -69,7 +73,7 @@ for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: four 
     while (++steps<3000) {
       const views=await Promise.all([host,guest,mobile].map(view));
       const latest=views.reduce((a,b)=>a.version>b.version?a:b);if(steps%100===0)console.log(`[${pool}] step ${steps}: ${latest.phase}/${latest.round} ${latest.pending?.kind??latest.turnStage}`);
-      if(latest.phase==='finished') {expect(latest.results).toHaveLength(4);summaries.push({phase:latest.phase,results:latest.results,steps});break;}
+      if(latest.phase==='finished') {expect(latest.results).toHaveLength(rounds);summaries.push({phase:latest.phase,results:latest.results,steps});break;}
       if(latest.phase==='paused')throw Error(`engine paused: ${latest.rulesStatus}`);
       if(latest.phase==='race'&&latest.round>roundsCaptured){roundsCaptured=latest.round;summaries.push({round:latest.round,characters:latest.racers.map(r=>r.characterId),rulesVersion:latest.rulesVersion});
         if(!reloaded){await mobile.reload();await online(mobile);await probe(mobile,code);await host.reload();await online(host);await probe(host,code);reloaded=true;}
@@ -79,11 +83,11 @@ for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: four 
       for(let seat=0;seat<3;seat++) {const v=views[seat]!;if(v.version!==latest.version)continue;const intent=decideAI(v);if(intent){const wait=200-(Date.now()-(sentAt.get(seat)??0));if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));sentAt.set(seat,Date.now());const result=await action(pages[seat]!,intent,v.version);if(!result.ok&&!/画面已更新|已有更新/.test(result.error??''))throw Error(`${intent.type}: ${result.error}`);sent=true;break;}}
       if(!sent)await new Promise(resolve=>setTimeout(resolve,80));
     }
-    expect(steps).toBeLessThan(3000);expect(roundsCaptured).toBe(4);expect(reloaded).toBe(true);
+    expect(steps).toBeLessThan(3000);expect(roundsCaptured).toBe(rounds);expect(reloaded).toBe(true);
     await chat(mobile);await expect(mobile.getByRole('log')).toContainText('大厅聊天保留');await expect(mobile.locator('.chat-personal')).toContainText('0 次');
     const final=await view(host);await action(host,{type:'rematch'});await expect.poll(async()=>(await view(host)).phase).toBe('lobby');await expect(mobile.locator('.chat-personal')).toContainText('1 次');await expect(mobile.getByRole('log')).toContainText('改名后的消息');
     for(const p of pages)expect(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
-    expect(errors).toEqual([]);mkdirSync(evidenceRoot,{recursive:true});writeFileSync(`${evidenceRoot}/${pool}-four-races.json`,JSON.stringify({pool,results:final.results,summaries,errors,limitations:'Browser mobile viewport, not physical device GPU. Public-view legal intents sent through actual server-authoritative Durable Object WebSockets.'},null,2));
+    expect(errors).toEqual([]);mkdirSync(evidenceRoot,{recursive:true});writeFileSync(`${evidenceRoot}/${pool}-${rounds}-races.json`,JSON.stringify({pool,results:final.results,summaries,errors,limitations:'Browser mobile viewport, not physical device GPU. Public-view legal intents sent through actual server-authoritative Durable Object WebSockets.'},null,2));
   } catch(error){writeFileSync(testInfo.outputPath('public-diagnostics.json'),JSON.stringify({pool,latestPublic,summaries,error:error instanceof Error?error.message:String(error)},null,2));throw error;} finally {await Promise.all(contexts.map(context=>context.close()));}
 });
 
@@ -105,11 +109,11 @@ for(const allPacks of [false,true])test(`explicit Wurstii practice has ${allPack
 });
 
 test('Wurstii-only cannot start eight players with30 cards; two players require16',async({page})=>{
-  await page.goto(url);await page.getByRole('checkbox',{name:/基础角色包/}).uncheck();await page.getByRole('checkbox',{name:/Wurstii/}).check();
+  await page.goto(url);await page.getByRole('tab',{name:'创建房间',exact:true}).click();await page.getByRole('checkbox',{name:/基础角色包/}).uncheck();await page.getByRole('checkbox',{name:/Wurstii/}).check();
   await page.getByLabel('房间人数上限').selectOption('8');
-  await expect(page.locator('.config-total')).toHaveText('当前牌池 30 位可用角色 · 本房间至少需要 32 位');
-  await expect(page.getByRole('alert')).toContainText('角色数量不足');await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
-  await page.getByLabel('房间人数上限').selectOption('2');await expect(page.locator('.config-total')).toContainText('至少需要 16 位');
+  await expect(page.locator('.config-total')).toHaveText('当前牌池 30 位 · 选秀 32 位 · 技能预留 0 位');
+  await expect(page.getByRole('alert')).toContainText('缺');await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
+  await page.getByLabel('房间人数上限').selectOption('2');await expect(page.locator('.config-total')).toContainText('选秀 16 位');
   await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeEnabled();
 });
 

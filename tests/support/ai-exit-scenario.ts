@@ -20,7 +20,7 @@ export async function aiExitScenario(browser:Browser,url:string,backend:'node'|'
   });
   const suffix=`${backend}-${mobile?'mobile':'desktop'}`,prefix=backend==='relay'?'/api/browser':'/api';
   try{
-    await page.goto(url);await page.getByLabel('你的昵称').fill('AI退出验收');await page.getByRole('tab',{name:'人机对战',exact:true}).click();
+    await page.goto(url);await page.getByRole('tab',{name:'人机对战',exact:true}).click();await page.getByLabel('你的昵称').fill('AI退出验收');
     await page.getByLabel('AI 人数',{exact:true}).selectOption('1');await page.getByRole('button',{name:'开始人机对战',exact:true}).click();
     await expect(page.locator('.connection.is-online')).toBeVisible();const code=page.url().split('/').at(-1)!,original=await identity(page,code);
     await expect(page.locator('.phase-draft')).toBeVisible();
