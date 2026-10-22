@@ -19,15 +19,22 @@ export interface LeafContext {
   drawUnchosen:(s:State,count:number)=>string[];
   acquirePower:(r:Racer,power:string,source?:{sourceCardId?:string;sourceRacerId?:string;via?:string})=>void;
   preparePowerGrant:(r:Racer,power:string)=>void;
+  progress?:(s:State,value:number|Racer)=>number;
+  sharing?:(s:State,a:Racer,b:Racer)=>boolean;
+  forwardDistance?:(s:State,from:number,to:number)=>number;
 }
 export function installLeaf(ctx:LeafContext){
   const {name,live,racer,active,owner,order,hasPower,powers,ask,askTarget,targetOptions,usePower,push,log,points,drawUnchosen:draw,acquirePower,preparePowerGrant}=ctx;
+  // Frozen engines omit these callbacks and retain their linear-track rules.
+  const progress=ctx.progress??((_s:State,value:number|Racer)=>typeof value==='number'?value:value.position);
+  const shares=ctx.sharing??((_s:State,a:Racer,b:Racer)=>a.position===b.position);
+  const forwardDistance=ctx.forwardDistance??((_s:State,from:number,to:number)=>to-from);
   const has=(s:State,r:Racer,id:string)=>hasPower(s,r,leaf(id));
   const title=(id:string)=>CHARACTERS.find(card=>card.id===id)?.nameZh??id;
   const effect=(r:Racer,power:string,effects:Work[],detail:Record<string,any>={}):Work=>({kind:'ability',racerId:r.id,power:leaf(power),effects,...detail});
   const done=(r:Racer,power:string):Work=>({kind:'powerDone',racerId:r.id,power:leaf(power)});
   const task=(r:Racer,step:string,extra:Record<string,any>={}):Work=>({kind:'leaf',racerId:r.id,step,...extra});
-  const aloneLast=(s:State,r:Racer)=>active(s).every(other=>other.id===r.id||other.position>r.position);
+  const aloneLast=(s:State,r:Racer)=>active(s).every(other=>other.id===r.id||progress(s,other)>progress(s,r));
   type Borrow={power:string;source:string};
   /** Migrate the original single borrowed slot once; permanent and temporary
    * grants then have separate storage even when their text is identical. */
@@ -89,10 +96,14 @@ export function installLeaf(ctx:LeafContext){
   function turnStart(s:State,r:Racer,p:string):boolean{
     if(!p.startsWith('leaf-'))return false;
     if(p===leaf('dark-horse'))r.flags.leafDarkTurn=aloneLast(s,r)?s.turnCount:-1;
-    if(p===leaf('lonely-wolf')){r.flags.leafWolfTurn=s.turnCount;r.flags.leafWolfBonus=active(s).some(other=>other.id!==r.id&&other.position===r.position)?2:1;}
+    if(p===leaf('lonely-wolf')){r.flags.leafWolfTurn=s.turnCount;r.flags.leafWolfBonus=active(s).some(other=>other.id!==r.id&&shares(s,other,r))?2:1;}
     if(p===leaf('revolutionary')&&aloneLast(s,r)){
-      const lead=Math.max(...active(s).map(other=>other.position));
-      if(lead!==r.position)usePower(s,r,[{kind:'warp',racerId:r.id,position:lead,cause:p}],p);
+      const lead=Math.max(...active(s).map(other=>progress(s,other)));
+      const leaders=[...new Map(active(s).filter(other=>progress(s,other)===lead).map(other=>[other.position,other])).values()];
+      if(lead>progress(s,r)){
+        if(leaders.length>1)askTarget(s,r,'leaf-revolutionary','革命家：选择要传送到的并列领先选手所在格',leaders);
+        else usePower(s,r,[{kind:'warp',racerId:r.id,position:leaders[0]!.position,cause:p}],p);
+      }
     }
     return true;
   }
@@ -142,6 +153,10 @@ export function installLeaf(ctx:LeafContext){
   }
   function choice(s:State,r:Racer,c:PendingChoice,id:string):boolean{
     if(!c.kind.startsWith('leaf-'))return false;const context=c.context as Record<string,any>;
+    if(c.kind==='leaf-revolutionary'){
+      const target=racer(s,id);if(!target||!live(target))throw Error('领先选手已失效。');
+      usePower(s,r,[{kind:'warp',racerId:r.id,position:target.position,cause:leaf('revolutionary')}],leaf('revolutionary'));return true;
+    }
     if(c.kind==='leaf-zombie'){
       if(id==='skip')return true;
       if(!(context.candidates as string[]).includes(id))throw Error('僵尸复制目标无效。');
@@ -184,18 +199,18 @@ export function installLeaf(ctx:LeafContext){
     const tasks:Work[]=[];
     for(const source of order(s)){
       if(has(s,source,'crash-dummy')&&motion.cause==='main'&&arrivals.includes(source.id)){
-        const sharing=active(s).filter(target=>target.position===source.position);
+        const sharing=active(s).filter(target=>shares(s,target,source));
         if(sharing.length>1)tasks.push(effect(source,'crash-dummy',sharing.map(target=>({kind:'trip',racerId:target.id,source:source.id})),{priority:'pre-stop'}));
       }
-      if(has(s,source,'kangaroo'))for(const id of arrivals){const target=racer(s,id);if(target&&target.id!==source.id&&target.position===source.position+1)tasks.push(effect(source,'kangaroo',[{kind:'move',racerId:source.id,distance:2,cause:leaf('kangaroo')}]));}
-      if(has(s,source,'loan-shark'))for(const target of active(s).filter(target=>target.id!==source.id&&target.position===source.position&&(arrivals.includes(source.id)||arrivals.includes(target.id)))){
+      if(has(s,source,'kangaroo'))for(const id of arrivals){const target=racer(s,id);if(target&&target.id!==source.id&&forwardDistance(s,source.position,target.position)===1)tasks.push(effect(source,'kangaroo',[{kind:'move',racerId:source.id,distance:2,cause:leaf('kangaroo')}]));}
+      if(has(s,source,'loan-shark'))for(const target of active(s).filter(target=>target.id!==source.id&&shares(s,target,source)&&(arrivals.includes(source.id)||arrivals.includes(target.id)))){
         if((target.flags.leafLoanTokens as Record<string,boolean>|undefined)?.[source.id])tasks.push(effect(source,'loan-shark',[task(source,'collect-loan',{targetId:target.id})]));
       }
     }
     return tasks;
   }
-  function passTasks(s:State,moving:Racer,crossed:Racer[]):Work[]{
-    return crossed.filter(target=>has(s,target,'catfish')&&moving.position>target.position).map(target=>effect(target,'catfish',[{kind:'move',racerId:target.id,distance:1,cause:leaf('catfish')}]));
+  function passTasks(s:State,moving:Racer,crossed:Racer[],before?:Record<string,number>):Work[]{
+    return crossed.filter(target=>has(s,target,'catfish')&&progress(s,moving)>progress(s,target)&&(!before||progress(s,before[moving.id]!)<progress(s,before[target.id]!))).map(target=>effect(target,'catfish',[{kind:'move',racerId:target.id,distance:1,cause:leaf('catfish')}]));
   }
   function rawDie(s:State,_roller:Racer,raw:number):Work[]{
     return raw===3?powers(s,leaf('triangle-man')).map(source=>effect(source,'triangle-man',[{kind:'move',racerId:source.id,distance:1,cause:leaf('triangle-man')}])):[];
@@ -218,7 +233,7 @@ export function installLeaf(ctx:LeafContext){
     s.flags.leafPastLosers=[...new Set([...((s.flags.leafPastLosers??[]) as string[]),...s.racers.filter(r=>r.rank!==1&&r.rank!==2).map(r=>r.characterId)])];
     if(cycleDraw)return;
     for(const target of s.racers){const tokens=target.flags.leafLoanTokens as Record<string,boolean>|undefined;if(!tokens)continue;const retained=Object.values(tokens).filter(Boolean).length;delete target.flags.leafLoanTokens;if(retained)points(s,target,retained,'高利贷鲨未收回的卡面筹码');}
-    const candidates=s.racers.filter(r=>!r.eliminated),last=Math.min(...candidates.map(r=>r.position)),back=candidates.filter(r=>r.position===last);
+    const candidates=s.racers.filter(r=>!r.eliminated),last=Math.min(...candidates.map(r=>progress(s,r))),back=candidates.filter(r=>progress(s,r)===last);
     if(back.length===1&&has(s,back[0]!,'sore-loser'))points(s,back[0]!,3,'输不起独自末位奖励');
   }
   /** Release actual cards before race instances are replaced. This does not
@@ -253,7 +268,7 @@ export function installLeaf(ctx:LeafContext){
     if(t.step==='toucan-adjust'){log(s,'die-adjusted',`${name(r)}将主骰2调整为${t.face}，不产生一次新掷骰。`,{source:r.id,faces:[2,Number(t.face)],cause:leaf('toucan')});push(s,{kind:'finalRoll',racerId:r.id,face:Number(t.face)});return true;}
     if(t.step!=='collect-loan')return false;
     const target=racer(s,String(t.targetId)),tokens=target?.flags.leafLoanTokens as Record<string,boolean>|undefined;
-    if(target&&live(target)&&target.position===r.position&&tokens?.[r.id]){delete tokens[r.id];points(s,r,1,`高利贷鲨从${name(target)}牌面收回筹码`);}return true;
+    if(target&&live(target)&&shares(s,target,r)&&tokens?.[r.id]){delete tokens[r.id];points(s,r,1,`高利贷鲨从${name(target)}牌面收回筹码`);}return true;
   }
   return {beforeRace,turnStart,turnBoundary,mainReady,finalRoll,distance,choice,rollResult,stopTasks,passTasks,rawDie,trackIncome,preventTrip,onTrip,recover,endTurn,raceEnd,releaseCards,task:processTask};
 }

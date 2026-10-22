@@ -1,17 +1,17 @@
-import { RACE_POINTS } from './tracks.js';
-import { SCHEDULE_RULES_VERSION } from './rules-versions.js';
+import { TRACKS, RACE_POINTS } from './tracks.js';
+import { MAPS_RULES_VERSION, SCHEDULE_RULES_VERSION } from './rules-versions.js';
 
 export const TRACK_CATALOG = {
   mild: { name: 'Mild Mile', label: '温和一英里', kind: '官方', available: true, description: '30 格基础跑道，专注角色互动。' },
   wild: { name: 'Wild Wilds', label: '狂野荒野', kind: '官方', available: true, description: '星星得分、绊倒与有向箭头，30 格。' },
-  'twisty-twirl': { name: 'Twisty Twirl', label: 'Twisty Twirl', kind: '官方续作', available: false, description: '待取得 Second Wind 完整规则书与逐格布局。' },
-  'whirly-world': { name: 'Whirly World', label: 'Whirly World', kind: '官方续作', available: false, description: '待取得 Second Wind 完整规则书与逐格布局。' },
-  squiggle: { name: 'Squiggle', label: 'Squiggle', kind: '粉丝地图', available: false, description: '待取得 Leafsnack 原始地图 PDF，核对特殊格与弯道标记。' },
-  boardwalks: { name: 'Boardwalks', label: 'Boardwalks', kind: '粉丝地图', available: false, description: '待取得原图、完整选路规则与作者距离图。' },
-  bridges: { name: 'Bridges', label: 'Bridges', kind: '粉丝地图', available: false, description: '待取得原图与桥上、桥下、下穿规则。' },
+  'twisty-twirl': { name: 'Twisty Twirl', label: 'Twisty Twirl', kind: '官方续作', available: true, description: '首次穿过13／14格边界抽一张变化卡，13种事件按规则结算。' },
+  'whirly-world': { name: 'Whirly World', label: 'Whirly World', kind: '官方续作', available: false, description: '规则书照片遮挡部分路线，待补无遮挡完整地图。' },
+  squiggle: { name: 'Squiggle', label: 'Squiggle', kind: '粉丝地图', available: true, description: '蜿蜒路线含正负积分星格、绊倒与箭头；弯道角色排除。' } ,
+  boardwalks: { name: 'Boardwalks', label: 'Boardwalks', kind: '粉丝地图', available: true, description: '三处分岔自主选路，以作者的剩余步数判定领先；弯道角色排除。' } ,
+  bridges: { name: 'Bridges', label: 'Bridges', kind: '粉丝地图', available: true, description: '桥上下分层移动，共格与越过按作者专属规则；不支持第一弯道角色。' } ,
 } as const;
 export type MapId = keyof typeof TRACK_CATALOG;
-export type PlayableMapId = 'mild' | 'wild';
+export type PlayableMapId = import('./tracks.js').TrackId;
 export type RaceCount = 4 | 6 | 8;
 export type PresetId = 'classic' | 'official' | 'extended' | 'custom';
 export interface CompetitionConfig {
@@ -48,7 +48,7 @@ export function validateCompetition(value: unknown): CompetitionConfig {
   if(c.rotation.some(id=>typeof id!=='string'||!Object.hasOwn(TRACK_CATALOG,id))) throw Error('赛程包含未知地图。');
   const event=object(c.thrillingThirds);
   if(Object.keys(event).some(key=>!['enabled','rounds'].includes(key)) || typeof event.enabled!=='boolean' || !Array.isArray(event.rounds) || event.rounds.some(n=>!Number.isInteger(n)||n<1||n>(c.raceCount as number)) || new Set(event.rounds).size!==event.rounds.length) throw Error('特殊赛事适用场次无效。');
-  if(event.enabled) throw Error('Thrilling Thirds 完整事件表与抽牌裁定待确认，尚未开放。');
+  if(event.enabled) throw Error('Thrilling Thirds 已取得36项事件表，扩展角色与事件时序适配尚未确认。');
   if(event.rounds.length) throw Error('特殊赛事关闭时不能指定适用场次。');
   const config=structuredClone(c) as unknown as CompetitionConfig;
   if(config.preset!=='custom'){
@@ -61,21 +61,21 @@ export function validateCompetition(value: unknown): CompetitionConfig {
 }
 export interface MatchPlan {
   version: 'points-v1';
-  trackVersion: 'base-tracks-2026-10-21';
+  trackVersion: 'base-tracks-2026-10-21' | 'expanded-tracks-2026-10-23';
   raceCount: RaceCount;
   races: { round:number; map:PlayableMapId; rewards:number[]; specialEvent:null }[];
 }
 export function createMatchPlan(config?: {competition?:CompetitionConfig}): MatchPlan {
   const c=validateCompetition(competitionConfig(config));
-  return {version:'points-v1',trackVersion:'base-tracks-2026-10-21',raceCount:c.raceCount,races:expandedSchedule(c).map((map,i)=>({round:i+1,map:map as PlayableMapId,rewards:[...RACE_POINTS[REWARD_TIERS[c.raceCount][i]!]!],specialEvent:null}))};
+  return {version:'points-v1',trackVersion:'expanded-tracks-2026-10-23',raceCount:c.raceCount,races:expandedSchedule(c).map((map,i)=>({round:i+1,map:map as PlayableMapId,rewards:[...RACE_POINTS[REWARD_TIERS[c.raceCount][i]!]!],specialEvent:null}))};
 }
 export function matchRaceCount(state:{rulesVersion?:string;matchPlan?:MatchPlan;config?:{competition?:CompetitionConfig}}):RaceCount {
   if(state.matchPlan)return state.matchPlan.raceCount;
   // A finished historical match may already have a different next-game draft.
-  return state.rulesVersion===SCHEDULE_RULES_VERSION?competitionConfig(state.config).raceCount:4;
+  return [SCHEDULE_RULES_VERSION,MAPS_RULES_VERSION].includes(state.rulesVersion??'')?competitionConfig(state.config).raceCount:4;
 }
 /** Executable plans are saved once at draft start; the live catalog never rebuilds them. */
 export function assertSupportedPlan(plan?:MatchPlan):void {
   if(!plan)return;
-  if(plan.version!=='points-v1'||plan.trackVersion!=='base-tracks-2026-10-21'||![4,6,8].includes(plan.raceCount)||plan.races.length!==plan.raceCount||plan.races.some((race,i)=>race.round!==i+1||!['mild','wild'].includes(race.map)||race.specialEvent!==null||JSON.stringify(race.rewards)!==JSON.stringify(RACE_POINTS[REWARD_TIERS[plan.raceCount][i]!]))) throw Error('存档赛程版本或奖励表不兼容，请使用对应版本恢复，不能按另一张地图继续。');
+  if(plan.version!=='points-v1'||!['base-tracks-2026-10-21','expanded-tracks-2026-10-23'].includes(plan.trackVersion)||![4,6,8].includes(plan.raceCount)||plan.races.length!==plan.raceCount||plan.races.some((race,i)=>race.round!==i+1||!(plan.trackVersion==='base-tracks-2026-10-21'?['mild','wild'].includes(race.map):Object.hasOwn(TRACKS,race.map))||race.specialEvent!==null||JSON.stringify(race.rewards)!==JSON.stringify(RACE_POINTS[REWARD_TIERS[plan.raceCount][i]!]))) throw Error('存档赛程版本或奖励表不兼容，请使用对应版本恢复，不能按另一张地图继续。');
 }

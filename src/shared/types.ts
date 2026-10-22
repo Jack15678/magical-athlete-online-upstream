@@ -48,7 +48,7 @@ export interface PendingChoice { id: string; playerId: string; racerId?: string;
 export interface GameEvent { id: number; type: string; text: string; source?: string; targets?: string[]; faces?: number[]; before?: number[]; after?: number[]; group?: string; cause?: string; selectedCardId?: string; }
 export interface Draft { market: string[]; order: string[]; cursor: number; batch: number; }
 export interface RaceResult { round: number; placements: { racerId: string; playerId: string; characterId: string; rank: number; points: number }[]; }
-export interface GameState { mode?: GameMode; phase: Phase; round: number; players: Player[]; deck: string[]; discard: string[]; draft?: Draft; racers: Racer[]; baseTurnOrder?: string[]; turn: number; turnCount: number; currentRacerId?: string; pending?: PendingChoice; queue: Task[]; logs: GameEvent[]; results: RaceResult[]; rngState: number; randomLog: { index: number; reason: string; value: number }[]; lastRoll?: { racerId: string; face: number; distance: number }; track: 'mild' | 'wild'; flags: Record<string, unknown>; }
+export interface GameState { mode?: GameMode; phase: Phase; round: number; players: Player[]; deck: string[]; discard: string[]; draft?: Draft; racers: Racer[]; baseTurnOrder?: string[]; turn: number; turnCount: number; currentRacerId?: string; pending?: PendingChoice; queue: Task[]; logs: GameEvent[]; results: RaceResult[]; rngState: number; randomLog: { index: number; reason: string; value: number }[]; lastRoll?: { racerId: string; face: number; distance: number }; track: import('./tracks.js').TrackId; flags: Record<string, unknown>; }
 export interface Task { kind: string; [key: string]: unknown; }
 export interface Room { mode?: GameMode; code: string; hostId: string; createdAt: number; updatedAt: number; version: number; maxPlayers: number; timeoutSeconds: number; deadline: number | null; game: GameState; closedAt?: number; hostLeftAt?: number; closeReason?: 'expired' | 'host-away' | 'dismissed'; }
 export type GameAction = { type: 'continue-vote'; continuationId: string; continue: boolean } | { type: 'results-seen'; continuationId: string } | { type: 'configure'; config: import('./room-config.js').RoomConfig } | { type: 'ready'; ready: boolean } | { type: 'start' } | { type: 'draft'; characterId: string } | { type: 'practice-team'; characterIds: string[] } | { type: 'select'; characterIds: string[] } | { type: 'roll' } | { type: 'choose'; choiceId: string; optionId: string } | { type: 'next' } | { type: 'rematch' } | { type: 'transfer'; playerId: string } | { type: 'close' };
@@ -58,7 +58,7 @@ export interface RoomView { continuation?: import('./room-continuation.js').Room
 export interface PlayerView extends Omit<Player, 'hand' | 'selection'> { handCount: number; selected: boolean; hand?: string[]; selection?: string[]; }
 export interface PublicEventBatch { afterId: number; latestId: number; events: GameEvent[]; }
 export interface PublicEventReply { ok: boolean; batch?: PublicEventBatch; error?: string; }
-export interface RoomView { presentationEvents?: GameEvent[]; mode?: GameMode; turnStage?: 'starting' | 'choice' | 'roll' | 'resolving'; code: string; version: number; hostId: string; selfId: string; maxPlayers: number; timeoutSeconds: number; deadline: number | null; phase: Phase; round: number; track: 'mild' | 'wild'; players: PlayerView[]; draft?: Draft; racers: Racer[]; currentRacerId?: string; pending?: Omit<PendingChoice, 'context'>; waitingFor?: string; logs: GameEvent[]; results: RaceResult[]; lastRoll?: GameState['lastRoll']; rulesStatus: string; }
+export interface RoomView { presentationEvents?: GameEvent[]; mode?: GameMode; turnStage?: 'starting' | 'choice' | 'roll' | 'resolving'; code: string; version: number; hostId: string; selfId: string; maxPlayers: number; timeoutSeconds: number; deadline: number | null; phase: Phase; round: number; track: import('./tracks.js').TrackId; players: PlayerView[]; draft?: Draft; racers: Racer[]; currentRacerId?: string; pending?: Omit<PendingChoice, 'context'>; waitingFor?: string; logs: GameEvent[]; results: RaceResult[]; lastRoll?: GameState['lastRoll']; rulesStatus: string; }
 export interface Identity { roomCode: string; playerId: string; token: string; role?: RoomRole; }
 export interface ActionReply { ok: boolean; error?: string; version?: number; duplicate?: boolean; }
 export interface RoomView { hosting?: 'browser' | 'local' | 'worker'; authorityId?: string; authorityOnline?: boolean; closedAt?: number; }
@@ -91,3 +91,8 @@ export interface GameEvent { changes?: { racerId:string; playerId?:string; form?
 export interface GameEvent { rollKind?: 'main'|'ability'|'contest'|'recovery'|'reroll'; }
 /** Public grant at this event's exact time; never private draw candidates. */
 export interface GameEvent { grantedPowerIds?: string[]; grantDuration?: PublicAbilityEntry['duration']; }
+
+/** Confirmed visited nodes, aligned with targets; needed for forked tracks. */
+export interface GameEvent { paths?: number[][]; }
+
+export interface RoomView { trackState?: { reversed:boolean; twist?: Omit<import('../engine/twist-cards.js').TwistState,'deck'|'swap'> }; }

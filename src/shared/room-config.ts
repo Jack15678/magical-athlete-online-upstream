@@ -1,4 +1,5 @@
 import { CHARACTERS } from './characters.js';
+import { TRACKS, type TrackId } from './tracks.js';
 import type { CharacterPool } from './types.js';
 import { competitionConfig, validateCompetition, type CompetitionConfig } from './competition.js';
 
@@ -31,11 +32,15 @@ export function validateRoomConfig(value: unknown): RoomConfig {
 }
 export function enabledCharacterIds(config?: RoomConfig, legacyPool: CharacterPool = 'original', practice = false): string[] {
   const enabled = config ?? legacyRoomConfig(legacyPool, practice);
+  const blocked=new Set(blockedMapCharacters(config));
   return CHARACTERS.filter(character => {
     const edition: string = character.edition ?? 'original';
     const pack = edition === 'leaf' ? 'leaf-fan' : edition;
-    return enabled.characterPacks[pack as CharacterPackId] === true;
+    return enabled.characterPacks[pack as CharacterPackId] === true && !blocked.has(character.id);
   }).map(character => character.id);
+}
+export function blockedMapCharacters(config?: RoomConfig): string[] {
+  return [...new Set(competitionConfig(config).rotation.flatMap(id=>TRACKS[id as TrackId]?.blockedCharacters??[]))];
 }
 export function requiredCharacterCount(players:number,practice=false,rounds=4):number { return practice?rounds:players===2?players*rounds*2:players*rounds; }
 /** Physical reserves, not an alternate draw pool. Egg returns its three cards;
@@ -47,7 +52,8 @@ export function characterResources(config:RoomConfig,players:number,practice=fal
   const film=ids.has('leaf-filmmaker')?7*Math.min(slots,filmSources):0;
   // Copied Thespian / Filmmaker can hold one display of each kind per racer.
   const displays=ids.has('leaf-thespian')?slots:0;
-  const draw=ids.has('egg')?3:ids.has('mush')||ids.has('leaf-thespian')?1:0;
+  const abilityDraw=ids.has('egg')?3:ids.has('mush')||ids.has('leaf-thespian')?1:0;
+  const draw=Math.max(abilityDraw,competitionConfig(config).rotation.includes('twisty-twirl')?(practice?1:players):0);
   const reserve=film+displays+draw;
   return {available:ids.size,drafted,reserve,required:drafted+reserve};
 }

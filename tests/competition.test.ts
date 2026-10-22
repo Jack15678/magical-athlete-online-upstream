@@ -26,12 +26,12 @@ test('exact presets, repeated rotations and complete reward sets',()=>{
   assert.deepEqual(createMatchPlan(config(8)).races.map(r=>r.rewards),[[3,1],[3,1],[4,2],[4,2],[5,3],[5,3],[6,4],[6,4]]);
 });
 test('invalid and unavailable combinations fail closed without altering the input',()=>{
-  for(const patch of [{rotation:[]},{raceCount:5},{rotation:Array(5).fill('mild')},{rotation:['boardwalks']},{mode:'tournament'},{thrillingThirds:{enabled:true,rounds:[3]}},{thrillingThirds:{enabled:false,rounds:[3]}},{unexpected:true}]){
+  for(const patch of [{rotation:[]},{raceCount:5},{rotation:Array(5).fill('mild')},{rotation:['whirly-world']},{mode:'tournament'},{thrillingThirds:{enabled:true,rounds:[3]}},{thrillingThirds:{enabled:false,rounds:[3]}},{unexpected:true}]){
     const c={...presetCompetition(),preset:'custom',...patch},before=JSON.stringify(c);assert.throws(()=>validateCompetition(c));assert.equal(JSON.stringify(c),before);
   }
   assert.throws(()=>validateCompetition({...presetCompetition(),rotation:['wild']}),/自定义/);
-  assert.throws(()=>validateCompetition(presetCompetition('official')),/Twisty Twirl.*Whirly World/);
-  assert.throws(()=>validateCompetition(presetCompetition('extended')),/Squiggle.*Boardwalks.*Bridges/);
+  assert.throws(()=>validateCompetition(presetCompetition('official')),/Whirly World/);
+  assert.throws(()=>validateCompetition(presetCompetition('extended')),/Whirly World/);
   const scarce=config(8);scarce.characterPacks['second-wind']=false;assert.throws(()=>validateRoomConfigForPlayers(scarce,5),/缺.*减少场数/);
   const leaf=config(8);leaf.characterPacks['leaf-fan']=true;assert.throws(()=>validateRoomConfigForPlayers(leaf,3),/返场跑者/);
   assert.equal(characterResources(legacyRoomConfig(),8).reserve,3);

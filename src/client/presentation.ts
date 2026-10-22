@@ -89,7 +89,7 @@ function eventMotion(event: GameEvent, kind: PresentationKind): PresentationMoti
   return (event.targets ?? []).flatMap((racerId, index) => {
     const from = event.before?.[index]; const to = event.after?.[index];
     if (from === undefined || to === undefined || !Number.isFinite(from) || !Number.isFinite(to)) return [];
-    return [{ racerId, from, to, path: kind === 'move' ? trackPath(from, to) : [from, to] }];
+    return [{ racerId, from, to, path: kind === 'move' ? event.paths?.[index] ?? trackPath(from, to) : [from, to] }];
   });
 }
 
@@ -108,7 +108,7 @@ function beatForEvent(event: GameEvent, room: RoomView): PresentationBeat | unde
   const face = kind === 'dice' ? confirmedFace(event, room) : undefined;
   if (kind === 'dice' && face === undefined && !(event.type === 'multi-dice' && faces?.length === 6)) return undefined;
   const motions = eventMotion(event, kind);
-  const longest = motions.reduce((steps, motion) => Math.max(steps, Math.abs(motion.to - motion.from)), 0);
+  const longest = motions.reduce((steps, motion) => Math.max(steps, Math.max(0,motion.path.length-1)), 0);
   const durationMs = kind === 'dice' ? event.type === 'multi-dice' ? 3600 : 2500 : kind === 'duel-dice' ? 3000 : kind === 'skill' ? 1800 : kind === 'move' ? Math.min(2200, Math.max(800, 280 + Math.max(1, longest) * 240)) : kind === 'swap' || kind === 'warp' || kind === 'finish' ? 1100 : 850;
   const boundary = eventsOf(room).findLast(log => log.id <= event.id && (log.type === 'turn' || log.type === 'reveal'));
   return { key: `${room.code}:${room.round}:${event.id}`, chainId: `${room.code}:${room.round}:chain:${boundary?.id ?? 0}`, kind, events: [event], source: event.source, targets: event.targets ?? (event.source ? [event.source] : []), motions, face, faces, cause: event.cause, durationMs, naturalDurationMs: durationMs, ...(abilityReveal ? {abilityReveal} : {}) };

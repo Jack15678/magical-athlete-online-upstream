@@ -7,6 +7,7 @@ import { TRACKS } from '../../shared/tracks.js';
 import type { PresentationBeat } from '../presentation.js';
 import { BOARD_CENTER_SPAN, boardPoint, TILE } from './math.js';
 import { specialTileTexture } from './tile-art.js';
+import { TopologyStadium } from './TopologyStadium.js';
 
 const C = { mint: '#84c6b1', darkMint: '#438674', cream: '#f3e3c4', coral: '#ee785e', ink: '#285e55', wood: '#cda77b', gold: '#edbc55' };
 const WIDTH = BOARD_CENTER_SPAN.width + TILE * 1.95;
@@ -102,7 +103,7 @@ function Cylinder({ kit, position, scale, material = kit.plastic }: Omit<BoxProp
   return <mesh geometry={kit.cylinder} material={material} position={position} scale={scale} castShadow receiveShadow dispose={null} />;
 }
 
-function printTexture(index: number) {
+function printTexture(index: number, reversed = false) {
   const canvas = document.createElement('canvas'); canvas.width = index === 0 ? 1024 : 256; canvas.height = 256;
   const ctx = canvas.getContext('2d')!;
   const endpoint = index === 0 || index === 30;
@@ -112,7 +113,7 @@ function printTexture(index: number) {
   // START/FINISH, leaving the small finish segment clear for its number.
   ctx.fillText(String(index).padStart(2, '0'), index === 0 ? 954 : 19, 34);
   if (endpoint) {
-    if (index === 0) { ctx.textAlign = 'center'; ctx.font = '900 30px sans-serif'; ctx.fillText('集结区', 470, 39); }
+    if (index === 0) { ctx.textAlign = 'center'; ctx.font = '900 30px sans-serif'; ctx.fillText(reversed ? '终点' : '集结区', 470, 39); }
     for (let i = 0; i < (index === 0 ? 48 : 10); i++) { ctx.fillStyle = i % 2 ? C.cream : C.ink; ctx.fillRect(22 + i * 20, 222, 20, 12); }
     if (index === 0) {
       ctx.strokeStyle = C.cream; ctx.lineWidth = 3; ctx.globalAlpha = .25; ctx.setLineDash([18, 13]);
@@ -125,14 +126,14 @@ function printTexture(index: number) {
 }
 
 /** Reused geometry, shallow moulded caps and printed ink; the route remains the engine's route. */
-export function DioramaTile({ index, track, triggered, kit, lowQuality }: { index: number; track: RoomView['track']; triggered: boolean; kit: Kit; lowQuality: boolean }) {
+export function DioramaTile({ index, track, reversed = false, triggered, kit, lowQuality }: { index: number; track: RoomView['track']; reversed?: boolean; triggered: boolean; kit: Kit; lowQuality: boolean }) {
   const special = TRACKS[track].specials[index];
   const point = boardPoint(index, false);
   const next = boardPoint(index + Math.sign(special?.move ?? 1), false);
   const angle = Math.atan2(-(next[0] - point[0]), -(next[2] - point[2]));
-  const texture = useMemo(() => special ? specialTileTexture(special.kind, special.move, index, angle) : printTexture(index), [index, special?.kind, special?.move, angle]);
+  const texture = useMemo(() => special ? specialTileTexture(special.kind, special.move, index, angle, special.points, special.to) : printTexture(index, reversed), [index, reversed, special?.kind, special?.move, special?.points, special?.to, angle]);
   useEffect(() => () => texture.dispose(), [texture]);
-  const color = index === 0 ? C.darkMint : index === 30 ? C.coral : special?.kind === 'star' ? '#f1c552' : special?.kind === 'trip' ? C.coral : special?.kind === 'arrow' ? (special.move ?? 0) < 0 ? '#b69bd1' : '#74c7af' : '#efd29c';
+  const color = index === 0 ? reversed ? C.coral : C.darkMint : index === 30 ? reversed ? C.darkMint : C.coral : special?.kind === 'star' ? '#f1c552' : special?.kind === 'trip' ? C.coral : special?.kind === 'arrow' ? (special.move ?? 0) < 0 ? '#b69bd1' : '#74c7af' : '#efd29c';
   const top = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: .76, roughnessMap: lowQuality?null:kit.grain,bumpMap:lowQuality?null:kit.grain,bumpScale:.012, emissive: color }), [color, kit.grain, lowQuality]);
   useEffect(() => () => top.dispose(), [top]);
   useFrame(({ clock }) => { top.emissiveIntensity = triggered ? .16 + Math.sin(clock.elapsedTime * 8) * .09 : 0; });
@@ -161,8 +162,9 @@ function Sign({ text, position, width, kit, coral = false }: { text: string; pos
 }
 
 /** Gates sit outside the numbered square; the opening clears the maximum crowd. */
-function Gate({ finish, kit }: { finish?: boolean; kit: Kit }) {
+function Gate({ finish, reversed = false, kit }: { finish?: boolean; reversed?: boolean; kit: Kit }) {
   const point = boardPoint(finish ? 30 : 0, false);
+  const isFinish = !!finish !== reversed;
   const halfSpan = finish ? 1.14 : 3.55;
   const width=finish?2.55:7.35;
   const checker=useMemo(()=>{
@@ -178,12 +180,12 @@ function Gate({ finish, kit }: { finish?: boolean; kit: Kit }) {
     {[-halfSpan, halfSpan].map(side => <group key={side}>
       <Box kit={kit} position={[side, .17, 0]} scale={[.62, .24, .68]} material={kit.plastic} />
       <Box kit={kit} position={[side, .32, 0]} scale={[.46, .09, .51]} material={kit.plastic} />
-      <Cylinder kit={kit} position={[side, 1.25, 0]} scale={[.12, 1.93, .12]} material={finish ? kit.coral : kit.mint} />
-      <Cylinder kit={kit} position={[side, 2.18, 0]} scale={[.135, .31, .135]} material={finish?kit.coral:kit.dark} />
+      <Cylinder kit={kit} position={[side, 1.25, 0]} scale={[.12, 1.93, .12]} material={isFinish ? kit.coral : kit.mint} />
+      <Cylinder kit={kit} position={[side, 2.18, 0]} scale={[.135, .31, .135]} material={isFinish?kit.coral:kit.dark} />
       <mesh geometry={kit.sphere} position={[side,2.43,0]} scale={.19} material={kit.gold} castShadow dispose={null}/>
     </group>)}
-    <Sign text={finish ? 'FINISH' : '胡闹运动会 · START'} position={[0, 2.17, 0]} width={width} kit={kit} coral={finish} />
-    <Box kit={kit} position={[0,1.91,0]} scale={[width,.25,.18]} material={finish?kit.coral:kit.dark}/>
+    <Sign text={isFinish ? reversed ? 'FINISH · 终点' : 'FINISH' : finish ? 'START' : '胡闹运动会 · START'} position={[0, 2.17, 0]} width={width} kit={kit} coral={isFinish} />
+    <Box kit={kit} position={[0,1.91,0]} scale={[width,.25,.18]} material={isFinish?kit.coral:kit.dark}/>
     <mesh position={[0,1.91,.098]}><planeGeometry args={[width*.91,.22]}/><meshStandardMaterial map={checker} roughness={.68}/></mesh>
   </group>;
 }
@@ -269,10 +271,11 @@ function LawnDetails({lowQuality,kit}:{lowQuality:boolean;kit:Kit}) {
   </group>;
 }
 
-export function DioramaStadium({ compact, track, lowQuality, beat, racers }: { compact: boolean; track: RoomView['track']; lowQuality: boolean; beat?: PresentationBeat; racers: Racer[] }) {
+export function DioramaStadium({ compact, track, reversed = false, lowQuality, beat, racers }: { compact: boolean; track: RoomView['track']; reversed?: boolean; lowQuality: boolean; beat?: PresentationBeat; racers: Racer[] }) {
   const kit = useKit(lowQuality);
   const triggered = new Set(beat?.motions.map(motion => motion.to) ?? []);
   if (beat && ['score', 'trip'].includes(beat.kind)) for (const racer of racers) if (beat.targets.includes(racer.id) || beat.source === racer.id) triggered.add(racer.position);
+  if (TRACKS[track].nodes) return <TopologyStadium {...{ track, compact, triggered }} />;
   return <group rotation={[0, compact ? -Math.PI / 2 : 0, 0]}>
     <mesh rotation={[-Math.PI/2,0,0]} position={[.12,-.923,0]}><planeGeometry args={[WIDTH*1.07,DEPTH*1.21]}/><meshBasicMaterial map={kit.baseContact} transparent depthWrite={false} toneMapped={false}/></mesh>
     <mesh geometry={kit.plinth} position={[0, -.62, 0]} material={kit.wood} castShadow receiveShadow dispose={null} />
@@ -283,8 +286,8 @@ export function DioramaStadium({ compact, track, lowQuality, beat, racers }: { c
     <Box kit={kit} position={[2.4,.154,-.05]} scale={[6.15,.022,2.08]} material={kit.turfShade} shadow={false}/>
     <mesh geometry={kit.course} material={kit.dark} position={[0,.19,0]} receiveShadow castShadow dispose={null}/>
     <LawnDetails lowQuality={lowQuality} kit={kit}/>
-    {Array.from({ length: 31 }, (_, index) => <DioramaTile key={index} {...{ index, track, kit, lowQuality }} triggered={triggered.has(index)} />)}
-    <Gate kit={kit} /><Gate finish kit={kit} /><CourseDetails kit={kit} lowQuality={lowQuality} />
+    {Array.from({ length: 31 }, (_, index) => <DioramaTile key={index} {...{ index, track, reversed, kit, lowQuality }} triggered={triggered.has(index)} />)}
+    <Gate kit={kit} reversed={reversed} /><Gate finish kit={kit} reversed={reversed} /><CourseDetails kit={kit} lowQuality={lowQuality} />
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.925, 0]} receiveShadow><planeGeometry args={[240, 240]} /><meshStandardMaterial color="#e3dcca" roughness={1} /></mesh>
   </group>;
 }

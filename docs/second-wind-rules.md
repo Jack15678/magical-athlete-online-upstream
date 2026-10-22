@@ -1,4 +1,4 @@
-# Second Wind 接入、来源与核验状态（2026-10-21）
+# Second Wind 接入、来源与核验状态（2026-10-23）
 
 当前角色数据为原作36张 + Second Wind36张，共72个稳定定义；不包含 Extra Mile。不能据此标记“完整支持72个角色”：新角色官方完整规则/卡面复核和下面的边界裁定尚未全部完成。
 
@@ -7,15 +7,15 @@
 - [CMYK更新版基础规则书镜像](https://johnnlds.github.io/Magical-Athlete-Racers/officialrules.pdf)：直接下载成功，共32页。它是更新版基础规则书，不是 Second Wind 完整规则书。p14明确主要移动和可选/强制措辞；p15顺序为赛道、当前玩家、顺时针其他玩家；p20列出合盒四场顺序；p23区分移动、传送、停格、越过、最终骰面、并列目标、多选手固定顺序、能力失效、循环和剩余一人的规则。保存于 `docs/research-downloads/cmyk-updated-base-2026.pdf`。
 - [IELLO发行商FAQ](https://iello.fr/athletes-de-compete-tatillon-repond-a-vos-questions/)：网页可访问。FAQ2.0，2026-08-28更新，声明纳入CMYK2026年8月修订。用于基础通则和原作交互，不当作续作逐卡FAQ。
 - [玩家图鉴v13](https://johnnlds.github.io/Magical-Athlete-Racers/?v=13)：网页及脚本可访问，脚本 `expansionAthletes` 数组恰好36条，每条标签 Second Wind。分别读取其中技能转录、插画链接；未读取站主 Interactions 作为裁定。插画只有角色形象，不能用它证明文字确为官方卡面。
-- [Ludopedia英文规则线索](https://ludopedia.com.br/jogo/magical-athlete-second-wind/anexos/350133)：搜索/网页工具可读到文件介绍，称为发行方Discord流出的英文规则；直接下载请求遇到Cloudflare验证，未取得正文。没有绕过登录，也没有据文件介绍宣称核实版本。另找到 `CMYK_MASW_Rulebook_072826_FPO.pdf` 的过期Discord线索，未取得文件。
+- 用户于2026-10-23提供 `magical_athlete_sec_livro_de_regras_da_expansao_s_350133.pdf`，32页：已逐页提取与查看地图/卡面；第26页明确企鹅在主移动后恢复。地图、13张Twist及未覆盖组合的准确边界见 [地图来源说明](second-wind-map-source.md)。此前Ludopedia/Discord下载失败不再表示本地没有原文。
 
-来源优先级为：官方规则/卡面、主创原始答复、发行商FAQ、玩家卡文转录、玩家解释。当前新36张的数据均 `verified:false`，显示“卡文转录已核对；待官方 Second Wind 规则/卡面复核”。中文名都是本项目暂译，未宣称官方译名。
+来源优先级为：官方规则/卡面、主创原始答复、发行商FAQ、玩家卡文转录、玩家解释。当前新36张的数据均 `verified:false`，大部分显示“卡文转录已核对；待官方 Second Wind 规则/卡面复核”，企鹅另注明本次直接页码核验。中文名都是本项目暂译，未宣称官方译名。
 
 ## 引擎落实
 
 `characters.ts` 导出 `ORIGINAL_CHARACTERS`、完整 `CHARACTERS` 和 `characterPool('original'|'second-wind'|'mixed')`。完整36张续作记录在 `second-wind.ts`，包括稳定ID、中英文名、版本、来源/定位/访问日期、触发时点、可选性、目标、次数、持续时间、插画URL和核验状态。
 
-每次新局记录 `characterPool` 和 `rulesVersion`，可执行规则标识与旧版本映射以 `src/engine/runtime.ts` 为准。旧存档缺版本时绑定 `legacy-base-v1` 并通过 `engine/runtime.ts` 单一版本登记继续使用保存的旧引擎 `legacy-v1.ts`；未知版本拒绝套用当前规则，保留存档待对应引擎恢复。牌库与蛋候选补充都沿用本局牌池；练习模式一直提供完整72张选四张。赛道仍是明确的现有赛道配置 Mild/Wild/Mild/Wild。官方合盒次序是 Mild Mile → Wild Wilds → Twisty Twirl → Whirly World；因新两条赛道布局与格子规则未核实，未按名称猜测实现。
+每次新局记录 `characterPool` 和 `rulesVersion`，可执行规则标识与旧版本映射以 `src/engine/runtime.ts` 为准。旧存档缺版本时绑定 `legacy-base-v1` 并通过 `engine/runtime.ts` 单一版本登记继续使用保存的旧引擎 `legacy-v1.ts`；未知版本拒绝套用当前规则，保留存档待对应引擎恢复。牌库与蛋候选补充都沿用本局牌池；练习模式一直提供完整72张选四张。默认仍为 Mild/Wild/Mild/Wild，自定义赛程新增 Twisty Twirl 与三张 Leaf 地图。Whirly World 的规则书照片被盒子遮住部分路线，尚未开放；不会按名称猜测完整布局。
 
 玩家ID用于身份、分数和重连；`Racer.identityPlayerId`保留选手创建来源，`Racer.playerId`是当前控制者，`Racer.id`是场上实例，`characterId`是印刷角色定义。Switcharoo只交换当前控制者和已用牌归属，不交换位置或实例ID。Re-Runner记录后续额外参赛条目，并在每场创建额外实例；固定行动列表不限定每玩家两名。
 
@@ -36,7 +36,7 @@ Cheatah设定值只保留在权威`flags.cheatahSecret`和pending.context，公�
 5. Doppelgängster自冲线、多个复制的Doppelgängster、它获得的能力是否包含对方已获得能力、与Mastermind同时结束的优先关系，仍需逐项取得权威例证。当前按首个冲线者淘汰（包含自己）、每场一次、持续获得实际能力处理。
 6. Re-Runner与Switcharoo跨比赛的最终卡归属、Re-Runner获得其他角色能力后是否继续额外出场、一次比赛出现多个同名来源的额外参赛条目，需要官方续作多选手示例。
 7. Hog Knight多名同时到达、原骑手到达另一名选手、骑手被淘汰/完赛、Null禁用来源后坐骑是否留下，仍需官方坐骑规则。当前非同时到达者可以夺走已在格子的坐骑，坐骑物件独立给骑手+2。
-8. Penguin转录规定绊倒时主骰加倍以替代跳过；当前实验性实现会持续保持绊倒，只加倍原主骰，不加倍后续加减。**不能据此认定官方允许一直不起立**：基础通则另有“下一次主移动将棋子立起”的恢复步骤，转录只明确替代跳过，没有明确说明是否也替代恢复。2026-10-23复核仍未取得可读取的Second Wind官方原文/FAQ：公开Discord规则书链接已失效，Ludopedia附件350133需登录。保留现有实现及未核实标记；取得原始卡面/规则裁定后再决定是否更改恢复时点。与不掷骰的固定距离能力结合，同样尚待核实。
+8. Penguin的恢复时点已解决：用户提供规则书第26页明确“I recover from tripping after my main move.”。新 `maps-v1` 中倒地时主骰加倍、不跳过主移动，随后站起；后续加减不随原骰翻倍。旧 `schedule-v1` 与更早存档仍由冻结引擎保留原行为，不在重连时迁移规则。固定距离或复制组合的全部解释未由这一句覆盖。
 9. Spoilsport取消比赛是否触发Gloth等“比赛结束”奖励，已有名次如何处理；以及比赛结束前后同时触发多个奖励的细节，尚待官方续作说明。
 10. 新获得能力不会重开已经过去的before-race时点；Understudy在before-race窗口复制能力时会继续初始化该能力（包括Sisyphus、Egg、Hog Knight等）。此处理依照基础规则时点原则，仍待续作复制示例复核。
 

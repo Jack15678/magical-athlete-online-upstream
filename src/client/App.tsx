@@ -1,3 +1,5 @@
+import { TRACKS } from '../shared/tracks.js';
+import { trackMovementDistance } from './scene/math.js';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { GameAction, Identity, PlayerView, Racer, RoomRole, RoomSummary, RoomView } from '../shared/types.js';
 import { RoomChat, RenameForm } from './RoomChat.js';
@@ -9,7 +11,7 @@ import { COPY_ABILITY_PROJECT_NOTES } from '../shared/character-info.js';
 import { enabledCharacterIds, legacyRoomConfig, legacyPoolForConfig, roomConfigError } from '../shared/room-config.js';
 import { RoomConfigFields, RoomConfigPanel } from './RoomConfig.js';
 import { matchRaceCount, presetCompetition } from '../shared/competition.js';
-import { SCHEDULE_RULES_VERSION, FAN_V3_RULES_VERSION } from '../shared/rules-versions.js';
+import { MAPS_RULES_VERSION, SCHEDULE_RULES_VERSION, FAN_V3_RULES_VERSION } from '../shared/rules-versions.js';
 import { SECOND_WIND_PROJECT_NOTES } from '../shared/second-wind.js';
 import { Avatar } from './avatars.js';
 import { CharacterOwnership, StepdadTarget, characterContext, currentController } from './character-context.js';
@@ -153,7 +155,7 @@ export function App() {
       <main className={`game-shell phase-${visibleRoom?.phase ?? room.phase}`} data-room-version={room.version}>
         {!immersive && <div className={`room-session-note ${spectator ? 'is-spectating' : ''}`}>{spectator && <strong>你正在观战 · 可查看公开赛况，不参与选人和操作</strong>}<span>{room.spectators?.filter(spectator => spectator.connected).length ?? 0} 人观战 · <RoomLifetime expiresAt={room.expiresAt} mode={room.mode} /></span></div>}
         {!immersive && room.hosting === 'browser' && <div className="authority-notice"><strong>计算房主：{room.players.find(player => player.id === room.authorityId)?.name ?? '创建者'}</strong><span>{room.authorityId === room.selfId ? '请保持负责计算的原浏览器标签页打开。对局存档保存在这个浏览器中。' : '计算房主页面在线时对局继续；关闭后等待其用原浏览器返回。'}</span></div>}
-        {!immersive && <div className="stage-heading"><div><p className="stage-kicker">{room.phase === 'lobby' ? '朋友到齐，就开跑' : room.phase === 'draft' ? `第 ${(room.draft?.batch ?? 0) + 1} 次选秀` : `第 ${Math.max(1, room.round)} / ${matchRaceCount(room)} 场 · ${room.track === 'mild' ? '轻松赛道' : '狂野赛道'}`}</p><h1>{phaseLabels[visibleRoom?.phase ?? room.phase]}</h1></div><span className="mode-tag">{room.mode === 'practice' ? '自己练习' : room.mode === 'ai' ? '人机对战' : room.players.length >= 7 ? '7～8 人扩展规则' : room.players.length === 2 ? '两人双角色模式' : '标准模式'}</span></div>}
+        {!immersive && <div className="stage-heading"><div><p className="stage-kicker">{room.phase === 'lobby' ? '朋友到齐，就开跑' : room.phase === 'draft' ? `第 ${(room.draft?.batch ?? 0) + 1} 次选秀` : `第 ${Math.max(1, room.round)} / ${matchRaceCount(room)} 场 · ${TRACKS[room.track].name}`}</p><h1>{phaseLabels[visibleRoom?.phase ?? room.phase]}</h1></div><span className="mode-tag">{room.mode === 'practice' ? '自己练习' : room.mode === 'ai' ? '人机对战' : room.players.length >= 7 ? '7～8 人扩展规则' : room.players.length === 2 ? '两人双角色模式' : '标准模式'}</span></div>}
         {visiblePhase === 'lobby' ? <Lobby room={room} busy={busy || !online} act={act} copy={copy} /> : <>
           {visiblePhase === 'draft' && <Draft room={visibleRoom ?? room} busy={busy || !online} act={act} onDetail={showCharacter} />}
           {visiblePhase === 'selection' && <Selection room={visibleRoom ?? room} busy={busy || !online} act={act} onDetail={showCharacter} />}
@@ -387,7 +389,7 @@ function Race({ room, busy, leavingBusy, canClose, act, onDetail, presentation, 
   const { beat, playing } = presentation;
   const showing = presentation.displayRoom ?? room;
   const playbackRacer = presentation.racers.find(r => r.id === beat?.source);
-  const playbackLabel = beat?.kind === 'intro' ? '选手入场' : beat?.kind === 'duel-dice' ? '双方决斗掷骰' : beat?.kind === 'dice' ? '正在掷骰' : beat?.kind === 'move' ? beat.motions.some(m => m.to < m.from) ? '后退移动' : beat.motions.length > 1 ? '同时移动' : '向前出发' : beat?.kind === 'swap' ? '交换位置' : beat?.kind === 'warp' ? '传送中' : beat?.kind === 'trip' ? '绊倒了！' : beat?.kind === 'score' ? '获得分数' : beat?.kind === 'finish' ? '冲过终点！' : '技能连锁';
+  const playbackLabel = beat?.kind === 'intro' ? '选手入场' : beat?.kind === 'duel-dice' ? '双方决斗掷骰' : beat?.kind === 'dice' ? '正在掷骰' : beat?.kind === 'move' ? beat.motions.some(m => trackMovementDistance(showing.track,m.path)*(showing.trackState?.reversed?-1:1)<0) ? '后退移动' : beat.motions.length > 1 ? '同时移动' : '向前出发' : beat?.kind === 'swap' ? '交换位置' : beat?.kind === 'warp' ? '传送中' : beat?.kind === 'trip' ? '绊倒了！' : beat?.kind === 'score' ? '获得分数' : beat?.kind === 'finish' ? '冲过终点！' : '技能连锁';
   const sameStage = showing.phase === room.phase && showing.round === room.round;
   const pendingChoice = !playing && sameStage ? room.pending : undefined;
   const duelChoice = !!pendingChoice && /duel-roll|cletus.*roll/.test(pendingChoice.kind);
@@ -399,7 +401,7 @@ function Race({ room, busy, leavingBusy, canClose, act, onDetail, presentation, 
     {beat?.abilityReveal && <AbilityReveal key={beat.key} reveal={beat.abilityReveal} onDetail={onDetail} />}
     <div className="race-hud-top">
       <div className="race-hud-buttons"><button className="race-menu-button" data-testid="presentation-settings" aria-label="比赛菜单" aria-expanded={settingsOpen} aria-controls="presentation-settings-panel" onClick={() => setSettingsOpen(true)}><span aria-hidden="true">☰</span> 菜单</button><button className="leave-room-button" disabled={leavingBusy} onClick={onLeave}>{spectator ? '退出观看' : '退出房间'}</button></div>
-      <div className="race-match-label"><strong>{spectator && '观战 · '}第 {showing.round} / {matchRaceCount(room)} 场 <span>· {showing.track === 'mild' ? '轻松赛道' : '魔法赛道'}</span></strong><span className={`connection ${online ? 'is-online' : ''}`}><i />{online ? '已连接' : '正在重连'}</span></div>
+      <div className="race-match-label"><strong>{spectator && '观战 · '}第 {showing.round} / {matchRaceCount(room)} 场 <span>· {TRACKS[showing.track].name}</span></strong><span className={`connection ${online ? 'is-online' : ''}`}><i />{online ? '已连接' : '正在重连'}</span></div>
     </div>
     {showing.phase === 'race' && <div className={`race-status-pill ${canRoll ? 'is-mine' : ''}`} role="status" data-testid="animation-phase"><i />{status}<Countdown deadline={room.deadline} />{playing && <button className="skip-animation" data-testid="skip-animation" onClick={presentation.skip} aria-label="跳过动画">跳过 »</button>}</div>}
     <div className="floating-racers" aria-label="选手与累计分数">{showing.racers.map(racer => { const owner = currentController(room,racer); if(!owner)return null; const current = (playing ? beat?.source === racer.id : active?.id === racer.id); return <button className={`floating-racer ${current ? 'is-active' : ''} ${owner.id === room.selfId ? 'is-self' : ''}`} key={racer.id} style={{ '--racer-color': owner.color } as CSSProperties} aria-label={`${characterName(racer.characterId)}，${owner.seat + 1}号${owner.id === room.selfId ? '你' : owner.name}，累计${owner.score}分，${racer.position}格，查看技能`} onClick={() => onDetail(racer.characterId, racer.id)}><span className="floating-avatar"><Avatar id={racer.characterId} />{owner.id === room.selfId && <i>你</i>}</span><span className="floating-racer-score"><b>{owner.seat + 1}号</b><span>{owner.score}<small>分</small></span></span></button>; })}</div>
@@ -454,7 +456,7 @@ function CharacterModal({ id, racerId, room, onDetail, onClose }: { id: string; 
   const racer = context.racers.find(current => current.id === selectedId) ?? context.racers[0];
   const requestedInstanceId = selectedId ?? racerId;
   const adaptation = FAN_CHARACTERS.find(card => card.id === id)?.adaptation;
-  const copyNote = !room || [SCHEDULE_RULES_VERSION,FAN_V3_RULES_VERSION].includes(room.rulesVersion??'') ? COPY_ABILITY_PROJECT_NOTES[id] : undefined;
+  const copyNote = !room || [MAPS_RULES_VERSION,SCHEDULE_RULES_VERSION,FAN_V3_RULES_VERSION].includes(room.rulesVersion??'') ? COPY_ABILITY_PROJECT_NOTES[id] : undefined;
   const printedAbility = <><p className="full-ability">{character?.ability ?? '角色资料正在载入。'}</p>{adaptation && <p className="character-project-note">数字化适配与项目裁定：{adaptation}</p>}{SECOND_WIND_PROJECT_NOTES[id] && <p className="character-project-note">{SECOND_WIND_PROJECT_NOTES[id]}</p>}{copyNote && <p className="character-project-note"><strong>复制交互的项目裁定：</strong>{copyNote}</p>}</>;
   return <Modal title={characterName(id)} onClose={onClose}>
     <div className="character-modal character-detail">

@@ -866,7 +866,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "企鹅",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "被其他选手越过时自己绊倒；绊倒时主移动不跳过，改为骰面加倍。",
+    "ability": "被其他选手越过时自己绊倒；绊倒时主移动不跳过，改为骰面加倍，并在主移动后恢复站立。",
     "timing": [
       "passed",
       "main-move",
@@ -876,7 +876,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "targets": "自身",
     "scope": "按卡文；other 为其他选手，opposing 为其他玩家控制的选手",
     "limit": "每次被越过/绊倒主移动",
-    "duration": "保持绊倒，主骰加倍代替跳过；待官方复核",
+    "duration": "绊倒时主骰加倍代替跳过；该次主移动后恢复站立",
     "statuses": [],
     "sources": [
       {
@@ -896,7 +896,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     ],
     "testId": "SW-24",
     "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verification": "用户提供的 Second Wind 规则书第26页确认主移动后恢复；其他复制交互未全部核验",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Penguin.png"
   },
   {

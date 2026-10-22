@@ -1,10 +1,12 @@
 # 赛程、计分与开放状态
 
-核验日期：2026-10-22。此页区分已可玩规则、项目适配和未取得的资料。公开文件介绍、下载量、作者试玩与本项目运行验收是不同证据。
+核验日期：2026-10-23。此页区分已可玩规则、项目适配和未取得的资料。公开文件介绍、下载量、作者试玩与本项目运行验收是不同证据。
 
 ## 当前可玩
 
-- 地图：Mild Mile、Wild Wilds，沿用 `src/shared/tracks.ts` 已核验的 0–30 格数据、弯道标记和有向箭头。三维位置只用于显示，不参与计分或移动裁定。
+- 地图：Mild Mile、Wild Wilds、Twisty Twirl、Squiggle、Boardwalks、Bridges。三维位置只用于显示；分岔使用有向连接，领先使用作者的剩余步数图，桥上下层按专属共格/越过规则结算。
+- Squiggle、Boardwalks 按用户决定禁用飞艇、葛洛斯、纨绔子弟等依赖未标定弯道的角色；Bridges 缺第一弯道定义，只禁用依赖它的纨绔子弟。限制应用于整个赛程牌池，包括技能抽牌。
+- Twisty Twirl 在首次穿过第13/14格边界时触发13张Twist之一；具体解释见来源说明。季终决战若迟至已有名次奖励后才抽到，原文没有处理已发分数的规则，当前暂停并保留局面，不能补造或重发奖励。
 - 经典赛：四场，Mild → Wild → Mild → Wild，默认选择。
 - 自定义积分赛：4 / 6 / 8 场；按玩家编辑的有序列表循环，允许重复地图。空列表、超过比赛场数的列表和未开放地图都会被服务端拒绝，不自动删除或替换。
 - 角色包独立开关：原版36、Second Wind36（沿用实验性实现）、Extra Mile31、Leaf18、Wurstii A30。后三者为粉丝内容。开关不随赛程预设变化。
@@ -17,8 +19,8 @@
 |方案|场数|逐场地图|状态|
 |---|---:|---|---|
 |经典赛|4|Mild Mile → Wild Wilds → Mild Mile → Wild Wilds|可玩|
-|官方巡回|4|Mild Mile → Wild Wilds → Twisty Twirl → Whirly World|禁用：缺两张续作地图的完整规则与布局|
-|扩展巡回|8|Mild Mile → Wild Wilds → Twisty Twirl → Whirly World → Squiggle → Boardwalks → Bridges → Wild Wilds|禁用：缺五张地图|
+|官方巡回|4|Mild Mile → Wild Wilds → Twisty Twirl → Whirly World|禁用：Whirly World 照片遮挡部分路线|
+|扩展巡回|8|Mild Mile → Wild Wilds → Twisty Twirl → Whirly World → Squiggle → Boardwalks → Bridges → Wild Wilds|禁用：Whirly World 尚缺完整布局|
 
 扩展巡回：七张地图各跑一次，最后回到 Wild Wilds，按八场总积分决定胜负。这是项目自定义安排，不是难度递增的验证结论，最后一场不加倍也不单独决定冠军。
 
@@ -44,7 +46,7 @@
 - Twin读取此前冠军历史，不能按普通补牌计算。
 - Filmmaker每个可能的赛前持有者预留七张；计入原角色以及Egg、Twin、Understudy、Zombie等已开启的赛前复制来源，上限为本场普通选手数。
 - Thespian可能被复制，每名普通选手预留一张持续展示牌，另留一次新抽牌；影片手牌中取出的展示牌已含在七张内，不重复扣除。
-- 同时额外抽牌上界取Egg的三张，否则Mush或Thespian的一张。抽牌来源、洗回公共弃牌及已用牌排除逻辑均不改变。
+- 同时额外抽牌上界取Egg的三张，否则Mush或Thespian的一张；赛程含Twisty时至少预留每位玩家一张，供交换集市同时抽取。抽牌来源、洗回公共弃牌及已用牌排除逻辑均不改变。
 
 长赛程暂不支持 **Leaf + Second Wind 同时开启**：Re-runner与赛前复制可让额外参赛者累积，私人影片手牌上界尚未核实。关闭其中一个包或使用四场即可；不会自动开包、减少技能抽牌、改变抽取范围或用已出赛角色补足。
 
@@ -54,17 +56,17 @@
 |---|---|---|
 |基础与巡回顺序|[官方规则镜像](https://johnnlds.github.io/Magical-Athlete-Racers/officialrules.pdf)，32页PDF。p18允许赛前约定地图顺序；p19四场总分与共享胜利；p20列出四图轮换；p23补充技能交互。已下载并阅读，p20另做页面图像检查。|此PDF不替代Second Wind新地图细则。基础特殊格仍以本仓库已核验图像为依据。|
 |2026年8月更新|[原讨论](https://boardgamegeek.com/thread/3754599/a-couple-august-2026-rules-updates/page/1)|本次返回403；没有把摘要当新裁定。沿用已冻结的基线能力规则。|
-|Twisty Twirl / Whirly World|基础规则p20确认名称和顺序；[Ludopedia附件介绍](https://ludopedia.com.br/jogo/magical-athlete-second-wind/anexos/350133)称有英文规则书。|附件下载跳登录；未取得完整Second Wind规则书、逐格布局及Blimp弯道标记。|
-|Squiggle / Boardwalks / Bridges|[Leafsnack文件页](https://boardgamegeek.com/filepage/316780/3-custom-tracks-squiggle-boardwalks-bridges)、[作者讨论](https://boardgamegeek.com/thread/3625886/the-future-of-magical-athlete/page/6)存在可检索介绍。|入口403，未取得地图PDF、版本勘误、Boardwalks距离图与全选路裁定、Bridges上下层连接。即使Squiggle被描述为不新增通用规则，也不据此虚构格子。|
-|Thrilling Thirds|[文件页](https://boardgamegeek.com/filepage/312588/thrilling-thirds-an-unofficial-expansion-for-magic)、[原讨论](https://boardgamegeek.com/thread/3591386/the-thrilling-third-house-rules-to-spice-up-the-th)。介绍指向作者tntsoma与英文Thrilling3rds.pdf。|未取得完整事件表、抽牌与回收规则、扩展牌映射。整个玩法禁用；没有删事件后宣称完整实现。|
-|社区锦标赛|[指定讨论](https://boardgamegeek.com/thread/3589241/magical-athlete-tournament-see-all-player-powers-i)|入口403，未取得绑定具体作者／版本的完整阶段、晋级、同分和淘汰后操作方案。不能将八场积分赛称为锦标赛。|
+|Twisty Twirl / Whirly World|用户提供32页Second Wind规则书。p21地图，p27–29的13张Twist；[实现与来源边界](../../docs/second-wind-map-source.md)。|Twisty已开放。Whirly照片被盒子遮挡，未捏造剩余跳跃端点，暂不开放。|
+|Squiggle / Boardwalks / Bridges|用户提供bgg442357/442654/442655.pdf，逐页渲染核对；[节点与规则抄录](../../docs/leaf-map-source.md)。|三图已开放；缺失弯道采用上述角色禁用策略。|
+|Thrilling Thirds|用户提供bgg464837.pdf；[36项事件表与适配缺口](../../docs/thrilling-thirds-source.md)。|完整表已取得，但7–8人、扩展角色映射及部分事件时序尚无完整裁定，保持禁用。|
+|社区锦标赛|[指定讨论](https://boardgamegeek.com/thread/3589241/magical-athlete-tournament-see-all-player-powers-i)当前被Cloudflare阻挡。|用户明确暂不处理，不把八场积分赛称为锦标赛。|
 
-已尝试原文件入口、作者公开页面、搜索索引与公开镜像；没有绕过登录或访问限制。没有新地图的伪造缩略图、3D场景、分岔规则或赛事结果。取得上述原始材料并完成规则、联机与网页实测后，才可逐项开放。
+未把附带文件中的文本当开发指令。Whirly缺少的数据不以通用跑道替代，也不标记五图全部完成。
 
 ## 冻结、恢复与边界
 
-新规则版本：`cmyk-base-aug2026-schedule-v1`。在开始选秀时一次性保存完整 `matchPlan`：场数、逐场地图、奖励、关闭的赛事、地图规则版本 `base-tracks-2026-10-21`。后续场次与恢复读取保存值，不重新展开预设。
+新规则版本：`cmyk-base-aug2026-maps-v1`。在开始选秀时一次性保存完整 `matchPlan`：场数、逐场地图、奖励、关闭的赛事、地图规则版本 `expanded-tracks-2026-10-23`。后续场次与恢复读取保存值，不重新展开预设。
 
-旧fan-v3及更早存档使用各自冻结引擎；没有赛程字段的旧局继续原四场。未知规则／地图版本会明确拒绝运行。重开回到可配置大厅，房间版本继续增长；选择ID含场次，旧场次选择不能匹配新场次。已处理动作仍由现有持久去重回执保证只生效一次。
+旧schedule-v1、fan-v3及更早存档使用各自冻结引擎；没有赛程字段的旧局继续原四场。未知规则／地图版本会明确拒绝运行。重开回到可配置大厅，房间版本继续增长；选择ID含场次，旧场次选择不能匹配新场次。已处理动作仍由现有持久去重回执保证只生效一次。
 
 原有真正强制循环的诊断暂停继续保留，不为了让长赛程完赛而捏造名次。主动选择与新随机结果不因空间位置重复被删掉。现有回归包含强制环、合法长链、重连和私有牌区；这不意味着所有混合角色组合都保证终止或已完成平衡测试。

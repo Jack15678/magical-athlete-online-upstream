@@ -115,7 +115,19 @@ for(const [rounds,n] of [[4,2],[6,3],[8,2]] as const)test(`${n} independent brow
   const contexts=await Promise.all(Array.from({length:n},(_,i)=>browser.newContext({viewport:i?{width:390,height:844}:{width:1440,height:900}})));
   const pages:Page[]=[],errors:string[]=[],observations:unknown[]=[];
   try{
-    for(const context of contexts){await context.addInitScript(()=>{for(const [key,value] of Object.entries({'animation-speed':'4','reduced-motion':'true','low-quality':'true','muted':'true'}))localStorage.setItem(`magical-athlete:${key}`,value);});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));pages.push(page);}
+    for(const context of contexts){
+      await context.addInitScript(()=>{for(const [key,value] of Object.entries({'animation-speed':'4','reduced-motion':'true','low-quality':'true','muted':'true'}))localStorage.setItem(`magical-athlete:${key}`,value);});
+      const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+      // The full-match check exercises every real action and score. Skills keep
+      // 1.5–3 second reading pauses even at 4× speed; use the player's skip button
+      // while waiting for the next control, as separate tests cover the playback.
+      await page.addLocatorHandler(page.getByTestId('skip-animation'),async skip=>{
+        // A short beat can finish between pointer actionability checks. Activate
+        // the currently displayed button atomically; an ended beat needs no skip.
+        await skip.evaluateAll(buttons=>(buttons[0] as HTMLButtonElement|undefined)?.click());
+      },{noWaitAfter:true});
+      pages.push(page);
+    }
     const host=pages[0]!;await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click();
     await host.getByLabel('你的昵称').fill('同名');await host.getByLabel('房间人数上限').selectOption(String(n));await host.getByLabel('每次操作时限').selectOption('0');
     if(rounds!==4){await host.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();await host.getByLabel('比赛场数').selectOption(String(rounds));await host.getByRole('button',{name:'添加 Mild Mile',exact:true}).click();}

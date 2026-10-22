@@ -122,3 +122,9 @@ tests        角色、组合、流程、事务、网络与浏览器验收
 docs         来源、房规、美术、测试与部署
 scripts      构建、本机启动、更新与仓库发布
 ```
+
+### 新地图规则与当前边界（2026-10-23）
+
+自定义赛程新增 Squiggle、Boardwalks、Bridges、Twisty Twirl。分岔选择可恢复，桥上下层使用作者专属规则；未标定弯道的地图从整个牌池排除依赖该弯道的角色。企鹅按用户提供规则书第26页在主移动后恢复站立。旧局继续冻结引擎，新建局使用 maps-v1。
+
+[地图抄录](docs/leaf-map-source.md)、[Second Wind地图与13张Twist](docs/second-wind-map-source.md)、[赛程说明](public/rules/competition.md)列出来源和网页解释。Whirly World原图被遮挡，仍未开放；Thrilling Thirds已取得36项事件表但尚未实现，社区锦标赛按用户要求暂缓。迟抽季终决战且已发名次分等原文未覆盖的已复现组合暂停并保留局面。

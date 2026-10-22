@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import type { ActionEnvelope, Identity, RoomView } from '../src/shared/types.js';
 import { legacyRoomConfig } from '../src/shared/room-config.js';
-import { presetCompetition } from '../src/shared/competition.js';
+import { createMatchPlan, presetCompetition } from '../src/shared/competition.js';
 import { FAN_V3_RULES_VERSION } from '../src/shared/rules-versions.js';
 import { automaticRoomAction, roomRules } from '../src/engine/runtime.js';
 import { createGame, resolveTasks } from '../src/engine/index.js';
@@ -840,6 +840,34 @@ test('worker serializes simultaneous long-duo selections and rolls, then preserv
   assert.deepEqual((await env.ctx.storage.get<any>('room')).serverRoom.game,before);
   for(const p of before.players){const e=before.scoreLedger.find((e:any)=>e.playerId===p.id);assert.equal(e.total,p.score-before.flags.roundStartScores[p.id]);}
 });
+test('worker restores a Boardwalk branch and commits simultaneous duplicate choices and star income only once',async()=>{
+  const config=legacyRoomConfig();config.characterPacks['leaf-fan']=true;config.competition={...presetCompetition(),preset:'custom',rotation:['boardwalks']};
+  let env=await modern('multiplayer',config);const guest=await join(env);
+  await authenticate(env);await authenticate(env,guest.identity);
+  const saved=await env.ctx.storage.get<any>('room'),g=createGame(saved.serverRoom.game.players,42);
+  g.config=config;g.matchPlan=createMatchPlan(config);g.phase='race';g.round=1;g.track='boardwalks';g.currentRacerId='r0';g.baseTurnOrder=['r0','r1'];
+  g.racers=g.players.map((p,i)=>({id:`r${i}`,playerId:p.id,identityPlayerId:p.id,characterId:i?'rocket-scientist':'banana',position:i?3:17,tripped:false,finished:false,eliminated:false,flags:{}}));
+  g.scoreLedger=g.players.map(p=>({playerId:p.id,placement:0,map:0,skill:0,event:0,total:0}));g.flags.roundStartScores=Object.fromEntries(g.players.map(p=>[p.id,p.score]));
+  g.queue=[{kind:'move',racerId:'r0',distance:1,cause:'test'}];resolveTasks(g);assert.equal(g.pending?.kind,'track-branch');assert.deepEqual(g.pending!.options.map(o=>o.id),['18','37']);
+  const choice=g.pending!;saved.serverRoom.game=g;saved.serverRoom.version++;saved.phase='race';await env.ctx.storage.put('room',saved);
+  env={...await instance(env.ctx.storage),created:env.created};let host=await authenticate(env),peer=await authenticate(env,guest.identity);
+  const pending=(await env.ctx.storage.get<any>('room')).serverRoom.game;assert.deepEqual(pending.pending,choice);assert.equal(host.sent.findLast(m=>m.type==='snapshot').room.pending.id,choice.id);assert.equal(peer.sent.findLast(m=>m.type==='snapshot').room.pending,undefined);
+  const action={type:'choose' as const,choiceId:choice.id,optionId:'37'};
+  const wrongPlayer=await workerAction(env,peer,action);assert.equal(wrongPlayer.result.ok,false);assert.match(wrongPlayer.result.error,/对应玩家/);
+  const version=(await env.ctx.storage.get<any>('room')).serverRoom.version;
+  const stale=await workerAction(env,host,action,'stale-branch',{actionId:crypto.randomUUID(),expectedVersion:version-1,action});assert.equal(stale.result.ok,false);assert.match(stale.result.error,/画面已更新/);assert.deepEqual((await env.ctx.storage.get<any>('room')).serverRoom.game,pending);
+  const envelope:ActionEnvelope={actionId:crypto.randomUUID(),expectedVersion:version,action};
+  await Promise.all(['branch-a','branch-b'].map(requestId=>env.relay.webSocketMessage(host,JSON.stringify({type:'action',requestId,envelope}))));
+  const replies=['branch-a','branch-b'].map(id=>host.sent.findLast(m=>m.type==='ack'&&m.requestId===id).result);assert(replies.every(r=>r.ok));assert.equal(replies.filter(r=>r.duplicate).length,1);
+  const completed=(await env.ctx.storage.get<any>('room')).serverRoom.game;
+  assert.equal(completed.phase,'race');assert.equal(completed.round,1);assert.equal(completed.track,'boardwalks');assert.equal(completed.pending,undefined);assert.equal(completed.racers[0].position,37);assert.equal(completed.players[0].score,1);assert.equal(completed.scoreLedger[0].map,1);assert.equal(completed.scoreLedger[0].total,1);assert.equal(completed.logs.filter((e:any)=>e.type==='move'&&e.source==='r0').length,1);
+  env={...await instance(env.ctx.storage),created:env.created};host=await authenticate(env);peer=await authenticate(env,guest.identity);
+  const repeat=await workerAction(env,host,action,'restored-branch',envelope);assert.equal(repeat.result.duplicate,true);
+  const late=await workerAction(env,host,action,'late-branch');assert.equal(late.result.ok,false);assert.match(late.result.error,/过期/);assert.deepEqual((await env.ctx.storage.get<any>('room')).serverRoom.game,completed);
+  const publicState=(socket:Socket)=>{const view=socket.sent.findLast(m=>m.type==='snapshot').room as RoomView;return{phase:view.phase,round:view.round,track:view.track,matchPlan:view.matchPlan,racers:view.racers,players:view.players.map(p=>({id:p.id,score:p.score})),results:view.results};};
+  assert.deepEqual(publicState(host),publicState(peer));assert.equal(publicState(host).racers[0]!.position,37);
+});
+
 test('new worker rooms settle authoritatively without a browser computer, reject forged results and preserve private drafting',async()=>{
   const env=await modern(),host=await authenticate(env),guest=await join(env),peer=await authenticate(env,guest.identity);
   assert.equal(env.created.meta.authorityMode,'worker');assert.equal(env.created.room.hosting,'worker');
