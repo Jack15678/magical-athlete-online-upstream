@@ -15,6 +15,8 @@ test('Wurstii ships exactly the 30 implemented roles, with portraits and editabl
   assert.deepEqual((await readdir(folder)).filter(f => f.endsWith('.glb')).map(f => f.slice(0, -4)).sort(), ids);
   assert.deepEqual((await readdir(new URL('../public/avatars/wurstii/', import.meta.url))).map(f => f.slice(0, -4)).sort(), ids);
   for (const model of manifest.models) {
+    const thumb=await readFile(new URL(`../public/avatars/wurstii-small/${model.id}.webp`,import.meta.url));
+    assert.equal(thumb.subarray(8,12).toString(),'WEBP');assert(thumb.length<15000,'small avatar byte budget');
     assert.equal(model.nameZh, WURSTII_CHARACTERS.find(c => c.id === model.id)?.nameZh);
     assert.equal(model.model, `/models/wurstii/${model.id}.glb`);
     assert.equal(model.portrait, `/avatars/wurstii/${model.id}.png`);
