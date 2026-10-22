@@ -57,7 +57,7 @@ export function createPlayback(room: RoomView): PlaybackState {
       const face = confirmedFace(event, room);
       if (face !== undefined) lastDie = { source: event.source, face, eventId: event.id };
     }
-    if (['roll', 'turn', 'reveal', 'phase', 'move', 'warp', 'place'].includes(event.type)) lastDie = undefined;
+    if (['roll', 'turn', 'reveal', 'phase'].includes(event.type)) lastDie = undefined;
   }
   return { roomCode: room.code, version: room.version, round: room.round, eventCursor: highestEvent(eventsOf(room)), racers: cloneRacers(room.racers), queue: [], confirmed: room, lastDie };
 }
@@ -234,7 +234,9 @@ export function receiveRoom(state: PlaybackState, room: RoomView, options: { rec
       queue.push({key:`${room.code}:${room.round}:${event.id}:intro`,kind:'intro',events:[event],targets:baseRacers.map(racer=>racer.id),motions:[],durationMs:baseRacers.length*1350});
       continue;
     }
-    if (['turn', 'reveal', 'phase', 'move', 'warp', 'place'].includes(event.type)) lastDie = undefined;
+    // Scout and other reactions can move racers between the throw and its
+    // confirmation. Only a new turn/race ends that pending throw.
+    if (['turn', 'reveal', 'phase'].includes(event.type)) lastDie = undefined;
     const beat = beatForEvent(event, room);
     if (!beat) continue;
     // `die` is the throw; `roll` confirms it after the optional reroll window.

@@ -25,3 +25,5 @@ html[data-motion="reduce"] .chat-notice{animation:none!important;will-change:aut
 html[data-motion="reduce"] .chat-notice.is-leaving{opacity:0}
 @media(prefers-reduced-motion:reduce){.chat-notice{animation:none!important;will-change:auto}.chat-notice.is-leaving{opacity:0}}
 @media(max-width:650px){.chat-notice-region{gap:6px;max-height:calc(100dvh - 205px)}.chat-notice{padding:8px 10px}.chat-notice span{font-size:12px;-webkit-line-clamp:2}}
+
+.continuation-notice{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:80;max-width:90vw;padding:9px 16px;border:2px solid var(--ink);border-radius:8px;background:var(--yellow);font-size:12px;text-align:center}

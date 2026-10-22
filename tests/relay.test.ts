@@ -6,7 +6,8 @@ import { legacyRoomConfig } from '../src/shared/room-config.js';
 import { presetCompetition } from '../src/shared/competition.js';
 import { FAN_V3_RULES_VERSION } from '../src/shared/rules-versions.js';
 import { automaticRoomAction, roomRules } from '../src/engine/runtime.js';
-import { createGame } from '../src/engine/index.js';
+import { createGame, resolveTasks } from '../src/engine/index.js';
+import { CONTINUE_VOTE_MS, CONTINUE_RESULTS_MS } from '../src/shared/room-continuation.js';
 import type { RelayJoinReply } from '../src/shared/relay.js';
 import { MAX_SPECTATORS } from '../src/shared/constants.js';
 import { PERSONAL_ROOM_AWAY_MS, ownerAwayMs } from '../src/shared/room-lifecycle.js';
@@ -763,9 +764,9 @@ test('practice uses ten minutes with multi-tab owner presence and preserved dead
   clock.now=next;await restored.relay.alarm();assert.equal(await restored.ctx.storage.get('room'),undefined);assert.equal((await restored.ctx.storage.get<any>('closed')).closedAt,next);
 }));
 
-async function modern(mode:'multiplayer'|'practice'|'ai'='multiplayer',config=legacyRoomConfig()){
+async function modern(mode:'multiplayer'|'practice'|'ai'='multiplayer',config=legacyRoomConfig(),maxPlayers=2){
   const env=await instance();
-  const response=await env.relay.fetch(new Request('https://room.internal/create/ABC234',{method:'POST',body:JSON.stringify({name:'服务端房主',mode,aiCount:1,maxPlayers:mode==='practice'?1:2,timeoutSeconds:0,config,authorityMode:'worker'})}));
+  const response=await env.relay.fetch(new Request('https://room.internal/create/ABC234',{method:'POST',body:JSON.stringify({name:'服务端房主',mode,aiCount:1,maxPlayers:mode==='practice'?1:maxPlayers,timeoutSeconds:0,config,authorityMode:'worker'})}));
   assert.equal(response.status,201);return {...env,created:await response.json() as RelayJoinReply};
 }
 
@@ -1052,4 +1053,75 @@ test('idle authoritative room never schedules the no-deadline sentinel as an ala
   await env.relay.alarm();assert.equal(env.ctx.storage.alarmAt,clock.now+35_000);assert.equal((await env.ctx.storage.get<any>('room')).hostLeftAt,undefined);
   await env.relay.webSocketMessage(host,JSON.stringify({type:'sync',requestId:'second-idle-sync'}));assert.equal(env.ctx.storage.alarmAt,clock.now+35_000);
   assert(!host.sent.some(message=>message.type==='error'&&/2189|Invalid.*date/.test(message.message)));
+}));
+
+async function continuationWorker(){
+  let env=await modern('multiplayer',legacyRoomConfig(),3);
+  const a=await join(env),b=await join(env),spectator=await spectate(env);
+  const host=await authenticate(env),peers=[await authenticate(env,a.identity),await authenticate(env,b.identity)],viewer=await authenticate(env,spectator.identity);
+  const record=await env.ctx.storage.get<any>('room'),g=createGame(record.serverRoom.game.players,42);
+  g.phase='race';g.round=2;g.track='mild';g.currentRacerId='r0';g.baseTurnOrder=['r0','r1','r2'];g.flags.awaitRoll=true;
+  g.racers=g.players.map((p,i)=>({id:`r${i}`,playerId:p.id,characterId:'coach',position:10-i,tripped:false,finished:false,eliminated:false,flags:{}}));
+  record.serverRoom.game=g;record.phase='race';record.serverRoom.version++;await env.ctx.storage.put('room',record);
+  env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};
+  await env.relay.webSocketClose(host,1000,'owner left',true);
+  return{env,peers,viewer,identities:[a.identity,b.identity]};
+}
+for(const entry of ['alarm','http','sync','upgrade'] as const)test(`worker offers continuation on expiry via ${entry}, including reconnect at the deadline`,async()=>controlledClock(async clock=>{
+  const {env,peers,viewer}=await continuationWorker();clock.now+=PERSONAL_ROOM_AWAY_MS;
+  if(entry==='alarm')await env.relay.alarm();
+  if(entry==='http')assert.equal((await env.relay.fetch(new Request('https://room.internal/summary/ABC234'))).status,200);
+  if(entry==='sync')await env.relay.webSocketMessage(peers[0],JSON.stringify({type:'sync',requestId:'expired-sync'}));
+  if(entry==='upgrade'){
+    const NativeResponse=globalThis.Response;
+    class UpgradeResponse extends NativeResponse{constructor(value:BodyInit|null,init:ResponseInit){super(value,{...init,status:init.status===101?200:init.status});if(init.status===101)Object.defineProperty(this,'status',{value:101});}}
+    try{globalThis.Response=UpgradeResponse as typeof Response;const response=await env.relay.fetch(new Request('https://room.internal/ws/ABC234',{headers:{Upgrade:'websocket'}}));assert.equal(response.status,101);assert.equal(env.ctx.sockets.at(-1)!.closeCode,undefined);}
+    finally{globalThis.Response=NativeResponse;}
+  }
+  const room=(await env.ctx.storage.get<any>('room')).serverRoom,c=room.continuation;
+  assert.equal(c.stage,'voting');assert.equal(c.round,2);assert.equal(c.voters.length,2);assert.equal(c.deadline,clock.now+CONTINUE_VOTE_MS);assert(peers.every(p=>p.readyState===1));
+  assert.equal(viewer.sent.findLast(m=>m.type==='snapshot').room.continuation.id,c.id);
+  assert.equal((await workerAction(env,peers[0]!,{type:'roll'})).result.ok,false);
+  clock.now+=CONTINUE_VOTE_MS;await env.relay.alarm();assert.equal((await env.ctx.storage.get<any>('closed')).reason,'host-away');assert(peers.every(p=>p.closeCode===4410));
+}));
+
+test('worker serializes simultaneous continuation votes, survives restart and refresh, and closes after current-race results',async()=>controlledClock(async clock=>{
+  let {env,peers,identities}=await continuationWorker();clock.now+=PERSONAL_ROOM_AWAY_MS;await env.relay.alarm();
+  let record=await env.ctx.storage.get<any>('room');const c=record.serverRoom.continuation;
+  const envelopes=peers.map(()=>({actionId:crypto.randomUUID(),expectedVersion:record.serverRoom.version,action:{type:'continue-vote' as const,continuationId:c.id,continue:true}}));
+  const votes=await Promise.all(peers.map((peer,i)=>workerAction(env,peer,envelopes[i]!.action,`vote-${i}`,envelopes[i])));assert(votes.every(v=>v.result.ok));
+  record=await env.ctx.storage.get<any>('room');assert.equal(record.serverRoom.continuation.stage,'playing');
+  env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};
+  const duplicate=await workerAction(env,peers[0]!,envelopes[0]!.action,'repeated-vote',envelopes[0]);assert.equal(duplicate.result.duplicate,true);
+  record=await env.ctx.storage.get<any>('room');record.serverRoom.game.currentRacerId='r1';await env.ctx.storage.put('room',record);env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};
+  await env.relay.webSocketClose(peers[0],1000,'refresh',true);await env.relay.webSocketClose(peers[1],1000,'refresh',true);
+  clock.now+=10;await env.relay.alarm();assert.equal((await env.ctx.storage.get<any>('room')).serverRoom.continuation.emptySince,clock.now);
+  clock.now+=1000;peers=await Promise.all(identities.map(identity=>authenticate(env,identity)));
+  assert.equal((await env.ctx.storage.get<any>('room')).serverRoom.continuation.emptySince,undefined);
+  clock.now+=CONTINUE_VOTE_MS;await env.relay.alarm();assert.equal((await env.ctx.storage.get<any>('room')).serverRoom.game.phase,'race');
+  // Use actual engine scoring to finish this race, then rebuild the authority.
+  record=await env.ctx.storage.get<any>('room');const g=record.serverRoom.game;g.pending=undefined;g.flags.awaitRoll=false;g.queue=[{kind:'move',racerId:'r1',distance:30},{kind:'move',racerId:'r2',distance:30}];resolveTasks(g);assert.equal(g.phase,'results');record.phase=g.phase;
+  await env.ctx.storage.put('room',record);env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};await env.relay.alarm();
+  record=await env.ctx.storage.get<any>('room');assert.equal(record.serverRoom.continuation.stage,'results');assert.equal(record.serverRoom.game.round,2);assert(record.serverRoom.game.players.some((p:any)=>p.score>0));
+  assert.equal((await workerAction(env,peers[0]!,{type:'next'})).result.ok,false);
+  const version=record.serverRoom.version;
+  for(const [i,peer] of peers.entries()){
+    const action={type:'results-seen' as const,continuationId:c.id};const reply=await workerAction(env,peer,action,`seen-${i}`,{actionId:crypto.randomUUID(),expectedVersion:version,action});assert(reply.result.ok);
+    if(i===0)assert(await env.ctx.storage.get('room'));
+  }
+  assert.deepEqual([...env.ctx.storage.values.keys()],['closed']);assert(peers.every(p=>p.closeCode===4410));
+  const last=peers[1]!.sent;assert(last.findIndex(m=>m.requestId==='seen-1'&&m.type==='ack')<last.findIndex(m=>m.type==='room-closed'));
+}));
+
+test('worker refusal closes immediately and unread result screens eventually expire',async()=>controlledClock(async clock=>{
+  for(const refusal of [true,false]){
+    const {env,peers}=await continuationWorker();clock.now+=PERSONAL_ROOM_AWAY_MS;await env.relay.alarm();let record=await env.ctx.storage.get<any>('room');const c=record.serverRoom.continuation;
+    if(refusal)assert((await workerAction(env,peers[0]!,{type:'continue-vote',continuationId:c.id,continue:false})).result.ok);
+    else{
+      for(const peer of peers)assert((await workerAction(env,peer,{type:'continue-vote',continuationId:c.id,continue:true})).result.ok);
+      record=await env.ctx.storage.get<any>('room');record.serverRoom.game.phase='results';record.serverRoom.game.results.push({round:2,placements:[]});record.phase='results';await env.ctx.storage.put('room',record);
+      const restored=await instance(env.ctx.storage,env.ctx.sockets);await restored.relay.alarm();clock.now+=CONTINUE_RESULTS_MS;await restored.relay.alarm();
+    }
+    assert.equal((await env.ctx.storage.get<any>('closed')).reason,'host-away');assert(peers.every(p=>p.closeCode===4410));
+  }
 }));

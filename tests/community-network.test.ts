@@ -33,7 +33,7 @@ test('Node实时聊天在技能等待期间同步到玩家和观众、按房间�
   }finally{for(const socket of sockets)socket.disconnect();await app.close();}
 });
 
-for(const operation of ['chat-send','rename'] as const)test(`Node ${operation}提交与广播之间恰好过期会正常关闭，不抛异常或发布已关闭房间聊天`,async()=>{
+for(const operation of ['chat-send','rename'] as const)for(const playing of [false,true])test(`Node ${operation}提交与广播之间恰好过期：${playing?'未完成比赛进入续赛确认':'已完成比赛正常关闭'}`,async()=>{
   const app=createApplication(':memory:');let now=1_000;
   (app.rooms as {now:()=>number}).now=()=>now;
   await new Promise<void>(resolve=>app.http.listen(0,'127.0.0.1',resolve));
@@ -42,7 +42,7 @@ for(const operation of ['chat-send','rename'] as const)test(`Node ${operation}�
   const socket=io(origin,{auth:guest.identity,transports:['websocket'],reconnection:false,forceNew:true});
   try{
     await once<RoomView>(socket,'snapshot');
-    const expiresAt=app.rooms.get(code).hostLeftAt!+ROOM_OWNER_AWAY_MS;app.rooms.get(code).game.phase='race';
+    const expiresAt=app.rooms.get(code).hostLeftAt!+ROOM_OWNER_AWAY_MS;app.rooms.get(code).game.phase=playing?'race':'finished';
     // Advance only after the mutation is durably accepted. chat-send expires
     // in publishChat; rename first expires in its snapshot broadcast, so the
     // following publishChat encounters a room already removed from the map.
@@ -54,13 +54,19 @@ for(const operation of ['chat-send','rename'] as const)test(`Node ${operation}�
       app.rooms.rename=(...args)=>{const reply=rename(...args);if(reply.ok)now=expiresAt;return reply;};
     }
     let broadcasts=0;socket.on('chat',()=>broadcasts++);
-    const closed=once<{code:string;reason:string}>(socket,'room-closed'),disconnected=once(socket,'disconnect');
+    const voting=playing?once<RoomView>(socket,'snapshot'):undefined;
+    const closed=playing?undefined:once<{code:string;reason:string}>(socket,'room-closed'),disconnected=playing?undefined:once(socket,'disconnect');
     const reply=operation==='chat-send'
       ?await request<ChatReply>(socket,'chat-send',{clientMessageId:'expiry-race',text:'刚好截止前发送'})
       :await request<RenameReply>(socket,'rename',{requestId:'expiry-race',name:'截止前改名'});
-    assert.equal(reply.ok,true);assert.deepEqual(await closed,{code,closedAt:expiresAt,reason:'host-away'});await disconnected;
-    assert.equal(broadcasts,0);assert.equal(app.rooms.rooms.has(code),false);assert.equal(app.store.load().some(room=>room.code===code),false);
-    assert.equal(app.store.memberReceipt(code,guest.identity.playerId,operation==='chat-send'?'chat':'rename','expiry-race'),undefined);
+    assert.equal(reply.ok,true);
+    if(playing){
+      const room=await voting!;assert.equal(room.continuation?.stage,'voting');assert.equal(socket.connected,true);assert.equal(app.rooms.get(code).continuation?.id,room.continuation!.id);assert.equal(app.store.load().find(room=>room.code===code)?.continuation?.stage,'voting');
+    }else{
+      assert.deepEqual(await closed,{code,closedAt:expiresAt,reason:'host-away'});await disconnected;
+      assert.equal(broadcasts,0);assert.equal(app.rooms.rooms.has(code),false);assert.equal(app.store.load().some(room=>room.code===code),false);
+      assert.equal(app.store.memberReceipt(code,guest.identity.playerId,operation==='chat-send'?'chat':'rename','expiry-race'),undefined);
+    }
     assert.equal((await fetch(`${origin}/api/health`)).status,200);
   }finally{socket.disconnect();await app.close();}
 });

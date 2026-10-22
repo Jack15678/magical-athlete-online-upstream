@@ -53,6 +53,8 @@ jobs:
       - run: pnpm typecheck
       - name: Validate frozen schedules, long drafting, score audit and worker persistence
         run: pnpm exec tsx --test tests/competition.test.ts tests/schedule-review.test.ts tests/rules-version.test.ts tests/relay.test.ts
+      - name: Validate Scout playback and owner-absence room lifecycle
+        run: pnpm exec tsx --test tests/fan-expansions.test.ts tests/presentation.test.ts tests/room-continuation.test.ts tests/room-lifecycle.test.ts tests/community-network.test.ts
       - run: pnpm test
         if: steps.validation.outputs.suite == 'all'
       - run: pnpm test:abilities
@@ -66,6 +68,10 @@ jobs:
           CI: true
       - name: Validate home configuration and complete eight-race duo
         run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home,|finish 8|two browsers preserve|rematch"
+        env:
+          CI: true
+      - name: Validate owner-absence voting and current-race closure
+        run: pnpm exec playwright test tests/browser/room-continuation.spec.ts
         env:
           CI: true
       # Default to one eight-player race with reconnects. A validation trailer

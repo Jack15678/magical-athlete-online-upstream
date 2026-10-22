@@ -7,6 +7,7 @@ import { TRACKS } from '../src/shared/tracks.js';
 import { projectRoom } from '../src/shared/room-core.js';
 import { roomRules,SECOND_WIND_V2_RULES_VERSION } from '../src/engine/runtime.js';
 import type { GameState,Player,Room } from '../src/shared/types.js';
+import { createPlayback,receiveRoom } from '../src/client/presentation.js';
 const E=(id:string)=>`extra-mile-${id}`;
 function fixture(ids:string[],pos=ids.map((_,i)=>i*6)){
  const players:Player[]=ids.map((_,i)=>({id:`p${i}`,name:`玩家${i}`,seat:i,color:'#000',ready:true,connected:true,score:0,hand:[],used:[],selection:[]}));
@@ -36,6 +37,19 @@ test('EM Pooh responds to multiple completed abilities and immediately recovers 
 test('EM Saint Nick counts racer instances and waits for each affected controller after own movement',()=>{let s=fixture([E('saint-nick'),'legs','blimp','coach'],[4,5,5,25]);r(s,2).playerId='p1';move(s,0,1);assert.equal(r(s).position,7);assert.equal(s.pending?.racerId,'r1');assert.equal(s.pending?.playerId,'p1');s.flags.testDice=[2,5];choose(s,'roll');assert.equal(r(s,1).position,4);assert.equal(s.pending?.racerId,'r2');assert.equal(s.pending?.playerId,'p1');s=JSON.parse(JSON.stringify(s));choose(s,'roll');assert.equal(r(s,2).position,7);assert.deepEqual(s.logs.filter(x=>x.type==='ability-dice').map(x=>x.source),['r1','r2']);});
 test('EM School Bully tagged trips give explicit off-turn recovery roll and the PDF success move',()=>{const s=fixture([E('school-bully'),'legs','blimp'],[1,10,25]);begin(s);roll(s,3);assert(r(s,1).tripped);begin(s,1);assert.equal(s.pending?.kind,'em-bully-recover');s.flags.testDice=[2];choose(s,'roll');assert.equal(r(s,1).tripped,false);assert.equal(r(s,1).position,12);assert.equal(r(s).position,6);});
 test('EM Scout warp resolves before main movement and requires no second die',()=>{const s=fixture([E('scout'),'legs','blimp'],[1,20,25]);begin(s);roll(s,3);choose(s,'back');assert.equal(r(s).position,3);assert.equal(s.randomLog.length,1);assert.equal(s.logs.filter(x=>x.type==='warp').length,1);});
+for(const direction of ['forward','back','skip'])test(`Scout ${direction}: one visible throw across snapshots, batched events and refresh after teleport`,()=>{
+  const s=fixture([E('scout'),'legs','blimp'],[1,20,25]);begin(s);
+  const room:Room={code:'ABC234',hostId:'p0',version:1,createdAt:1,updatedAt:1,maxPlayers:3,timeoutSeconds:0,deadline:null,game:s};
+  const view=()=>structuredClone(projectRoom(room,'p0',{authorityId:'p0',authorityOnline:true}));
+  const baseline=createPlayback(view());roll(s,3);room.version++;
+  const thrown=receiveRoom(baseline,view());assert.equal(thrown.queue.filter(beat=>beat.kind==='dice').length,1);
+  choose(s,direction);room.version++;const final=view();
+  const split=receiveRoom(thrown,final),batched=receiveRoom(baseline,final);
+  for(const playback of [split,batched])assert.equal(playback.queue.filter(beat=>beat.kind==='dice').length,1);
+  assert.equal(s.randomLog.length,1);assert.equal(r(s).position,direction==='forward'?5:direction==='back'?3:4);
+  const warp=s.logs.find(event=>event.type==='warp');
+  if(warp){const restored=createPlayback({...final,version:final.version-1,logs:final.logs.filter(event=>event.id<=warp.id)});assert.equal(receiveRoom(restored,final).queue.filter(beat=>beat.kind==='dice').length,0);}
+});
 test('EM Snub stores draft-round pick count as main bonus',()=>{const s=fixture([E('snub'),'legs','blimp'],[1,20,25]);s.flags.fanDraftOrder={[E('snub')]:5};before(s);begin(s);roll(s,2);assert.equal(r(s).position,8);});
 test('EM Terrible Toddler prompts for an independent ability die and includes itself in trip range',()=>{const s=fixture([E('terrible-toddler'),'legs','blimp'],[5,7,25]);begin(s);roll(s,1);assert.equal(s.pending?.kind,'em-toddler-roll');s.flags.testDice=[2];choose(s,'roll');assert(r(s).tripped);assert(r(s,1).tripped);assert.equal(r(s).position,6);});
 test('EM Toll Troll marks one space and gains for each real stop',()=>{const s=fixture([E('toll-troll'),'legs','blimp'],[1,4,25]);before(s);choose(s,'5');move(s,1,1);assert.equal(s.players[0]!.score,1);});
