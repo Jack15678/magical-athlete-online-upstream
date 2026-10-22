@@ -1,5 +1,5 @@
 import { createGame, startGame } from '../engine/index.js';
-import { timeoutRoomAction, CURRENT_RULES_VERSION, LEGACY_RULES_VERSION, roomRules, rulesVersion, publicAbilityState } from '../engine/runtime.js';
+import { timeoutRoomAction, CURRENT_RULES_VERSION, LEGACY_RULES_VERSION, WURSTII_V1_RULES_VERSION, roomRules, rulesVersion, publicAbilityState } from '../engine/runtime.js';
 import { MAX_SPECTATORS, PLAYER_COLORS, RULES_STATUS } from './constants.js';
 import type { ActionEnvelope, GameAction, Player, Room, RoomView } from './types.js';
 import type { RelayMember, RelayMetadata } from './relay.js';
@@ -14,7 +14,7 @@ export function validateMetadata(meta: RelayMetadata): void {
   if (!meta) throw Error('房间元数据无效。');
   if (meta.config !== undefined) validateRoomConfig(meta.config);
   if (meta.configFrozen !== undefined && typeof meta.configFrozen !== 'boolean') throw Error('房间配置锁定状态无效。');
-  if (meta.characterPool !== undefined && !['original','second-wind','mixed'].includes(meta.characterPool)) throw Error('角色牌池无效。');
+  if (meta.characterPool !== undefined && !['original','second-wind','mixed','wurstii','all'].includes(meta.characterPool)) throw Error('角色牌池无效。');
   if (meta.mode !== undefined && !['multiplayer','practice','ai'].includes(meta.mode)) throw Error('比赛模式无效。');
   if (!/^[A-Z2-9]{6}$/.test(meta.code) || !Number.isSafeInteger(meta.createdAt) || meta.createdAt < 0) throw Error('房间元数据无效。');
   if (!Number.isInteger(meta.maxPlayers) || meta.maxPlayers < (meta.mode==='practice'?1:2) || meta.maxPlayers > 8) throw Error('房间人数范围无效。');
@@ -196,7 +196,8 @@ export function projectRoom(room: Room, playerId: string, options: ProjectionOpt
   const expiry=roomExpiry(room);
   // The original frozen engine only knows its 36 base cards, even in practice
   // or when a later client previously wrote a broader legacy pool hint.
-  const config=rulesVersion(g)===LEGACY_RULES_VERSION?legacyRoomConfig('original'):g.config??legacyRoomConfig(g.characterPool,room.mode==='practice');
+  const version=rulesVersion(g);
+  const config=version===LEGACY_RULES_VERSION?legacyRoomConfig('original'):version===WURSTII_V1_RULES_VERSION?legacyRoomConfig(room.mode==='practice'?'all':g.characterPool):g.config??legacyRoomConfig(g.characterPool,room.mode==='practice');
   return { config:structuredClone(config),configFrozen:g.phase==='finished'?false:room.configFrozen??g.phase!=='lobby',characterPool:g.characterPool??'original',rulesVersion:rulesVersion(g),chat:structuredClone(room.chat?.messages??[]),chatLatestId:room.chat?.latestId??0,renameRemaining:spectator?0:g.players.find(p=>p.id===playerId)?.renameUsed?0:1,role:spectator?'spectator':'player',spectators:structuredClone(room.spectators??[]),createdAt:room.createdAt,expiresAt:room.hostLeftAt===undefined?undefined:expiry,ownerId:room.ownerId??room.hostId,hostLeftAt:room.hostLeftAt,closeReason:room.closeReason,mode:room.mode??'multiplayer',turnStage:g.phase==='race'?(pending?'choice':g.flags.needsBegin?'starting':g.flags.awaitRoll?'roll':'resolving'):undefined, code:room.code, version:room.version, hostId:room.hostId, selfId:playerId, maxPlayers:room.maxPlayers, timeoutSeconds:room.timeoutSeconds, deadline:room.deadline,
     phase:g.phase, round:g.round, track:g.track, hosting:'browser', authorityId:options.authorityId, authorityOnline:room.closedAt === undefined && options.authorityOnline, ...(room.closedAt === undefined ? {} : {closedAt:room.closedAt}),
     players:g.players.map(({hand,selection,renameRequestId,...p}) => ({ ...p, handCount:hand.length, selected:selection.length>0, ...(p.id===playerId ? {hand:[...hand],selection:[...selection]} : {}) })),

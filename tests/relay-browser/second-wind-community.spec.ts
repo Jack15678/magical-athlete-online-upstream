@@ -2,6 +2,7 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { decideAI } from '../../src/engine/ai.js';
 import type { ActionReply, GameAction, RoomView } from '../../src/shared/types.js';
+import { createApplication } from '../../src/server/index.js';
 
 const url = process.env.RELAY_URL ?? 'http://127.0.0.1:8787';
 test.setTimeout(240_000);
@@ -14,9 +15,9 @@ async function probe(page: Page, code: string) {
     const identity = JSON.parse(localStorage.getItem(`magical-athlete:identity:${code}`)!);
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/browser/ws/${code}`);
     const waits = new Map<string, (reply: unknown) => void>();
-    const state: any = (window as any).__swProbe = {view:null,send: async (action: unknown) => {
+    const state: any = (window as any).__swProbe = {view:null,send: async (action: unknown, expectedVersion?:number) => {
       const requestId = crypto.randomUUID();
-      return new Promise((resolve,reject) => { const timer = setTimeout(() => {waits.delete(requestId);reject(Error('test action acknowledgement timeout'));},10000);waits.set(requestId,value=>{clearTimeout(timer);resolve(value);}); socket.send(JSON.stringify({type:'action',requestId,envelope:{actionId:crypto.randomUUID(),expectedVersion:state.view.version,action}})); });
+      return new Promise((resolve,reject) => { const timer = setTimeout(() => {waits.delete(requestId);reject(Error('test action acknowledgement timeout'));},10000);waits.set(requestId,value=>{clearTimeout(timer);resolve(value);}); socket.send(JSON.stringify({type:'action',requestId,envelope:{actionId:crypto.randomUUID(),expectedVersion:expectedVersion??state.view.version,action}})); });
     }};
     await new Promise<void>((resolve,reject) => {
       const timer = setTimeout(() => reject(Error('test socket snapshot timeout')),10000);
@@ -32,10 +33,10 @@ async function probe(page: Page, code: string) {
   },code);
 }
 async function view(page: Page): Promise<RoomView> { return page.evaluate(() => JSON.parse(JSON.stringify((window as any).__swProbe.view))); }
-async function action(page: Page, action: GameAction): Promise<ActionReply> { return page.evaluate(action => (window as any).__swProbe.send(action), action); }
+async function action(page: Page, action: GameAction,version?:number): Promise<ActionReply> { return page.evaluate(({action,version}) => (window as any).__swProbe.send(action,version), {action,version}); }
 
 for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: four races through authenticated relay; mobile chat, rename, privacy and reload`, async ({browser},testInfo) => {
-  const evidenceRoot=pool==='fans'?'docs/qa/fan-iteration':'docs/qa/second-wind';
+  const evidenceRoot=testInfo.outputPath('evidence');
   const contexts: BrowserContext[] = [], pages: Page[] = [], errors: string[] = [];
   let latestPublic: unknown; const summaries: unknown[] = [];mkdirSync(evidenceRoot,{recursive:true});
   try {
@@ -75,7 +76,7 @@ for (const pool of ['second-wind','mixed','fans'] as const) test(`${pool}: four 
         if(roundsCaptured===1){await send(mobile,'比赛技能等待时也可聊天');await expect(mobile.getByRole('log')).toContainText('比赛技能等待时也可聊天');const bounds=await mobile.evaluate(()=>{const button=document.querySelector('[data-testid=skill-choice] button')??document.querySelector('[data-testid=roll-button]');if(!button)return true;const b=button.getBoundingClientRect();return document.elementFromPoint(b.x+b.width/2,b.y+b.height/2)===button||button.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2));});expect(bounds,'expanded chat must leave game actions uncovered').toBe(true);await mobile.getByRole('button',{name:'收起聊天'}).click();for(const p of [host,mobile]){const skip=p.getByRole('button',{name:/跳过演出|跳过动画|跳过积压/});if(await skip.count())await skip.first().click();}await expect(host.getByTestId('board-3d')).toBeVisible();await expect.poll(async()=>Number(await host.getByTestId('board-3d').getAttribute('data-loaded-models'))).toBeGreaterThanOrEqual(latest.racers.length);await expect(host.getByTestId('board-3d')).toHaveAttribute('data-model-fallbacks','0');await expect(mobile.getByTestId('board-3d')).toHaveAttribute('data-model-fallbacks','0');await host.screenshot({path:`${evidenceRoot}/${pool}-game-desktop.png`});await mobile.screenshot({path:`${evidenceRoot}/${pool}-game-mobile.png`});}
       }
       let sent=false;
-      for(let seat=0;seat<3;seat++) {const v=views[seat]!;if(v.version!==latest.version)continue;const intent=decideAI(v);if(intent){const wait=200-(Date.now()-(sentAt.get(seat)??0));if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));sentAt.set(seat,Date.now());const result=await action(pages[seat]!,intent);if(!result.ok&&!/画面已更新|已有更新/.test(result.error??''))throw Error(`${intent.type}: ${result.error}`);sent=true;break;}}
+      for(let seat=0;seat<3;seat++) {const v=views[seat]!;if(v.version!==latest.version)continue;const intent=decideAI(v);if(intent){const wait=200-(Date.now()-(sentAt.get(seat)??0));if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));sentAt.set(seat,Date.now());const result=await action(pages[seat]!,intent,v.version);if(!result.ok&&!/画面已更新|已有更新/.test(result.error??''))throw Error(`${intent.type}: ${result.error}`);sent=true;break;}}
       if(!sent)await new Promise(resolve=>setTimeout(resolve,80));
     }
     expect(steps).toBeLessThan(3000);expect(roundsCaptured).toBe(4);expect(reloaded).toBe(true);
@@ -92,23 +93,41 @@ test('practice has 72 searchable cards and edition filters preserve four selecte
   await page.getByLabel('搜索角色').fill('');await page.getByLabel('角色版本筛选').selectOption('original');await expect(page.locator('.practice-pool .character-card')).toHaveCount(36);await page.locator('.practice-pool .character-art').nth(0).click();await page.locator('.practice-pool .character-art').nth(1).click();await page.locator('.practice-pool .character-art').nth(2).click();await expect(page.getByRole('status')).toContainText('已选 4 / 4 张');await page.getByRole('button',{name:'确认练习阵容',exact:true}).click();await expect(page.locator('.hand-selection .character-card')).toHaveCount(4);
 });
 
-test('mobile visual fixture shows were form and transferred mount with actionable skill and expanded chat',async({page})=>{
+for(const allPacks of [false,true])test(`explicit Wurstii practice has ${allPacks?151:102} cards and a 30-card Wurstii filter`,async({page})=>{
+  await page.goto(url);await page.getByRole('tab',{name:'自己练习',exact:true}).click();
+  await page.getByRole('checkbox',{name:/Wurstii/}).check();
+  if(allPacks){await page.getByRole('checkbox',{name:'Extra Mile',exact:true}).check();await page.getByRole('checkbox',{name:/Leaf/}).check();}
+  await page.getByRole('button',{name:'开始自己练习',exact:true}).click();await online(page);
+  await expect(page.locator('.practice-pool .character-card')).toHaveCount(allPacks?151:102);
+  await page.getByLabel('角色版本筛选').selectOption('wurstii');await expect(page.locator('.practice-pool .character-card')).toHaveCount(30);
+  await page.getByLabel('搜索角色').fill('Knuckles');await expect(page.locator('.practice-pool .character-card')).toHaveCount(1);
+  await page.locator('.practice-pool .character-pick').click();await expect(page.getByRole('status')).toContainText('已选 1 / 4 张');
+});
+
+test('Wurstii-only cannot start eight players with30 cards; two players require16',async({page})=>{
+  await page.goto(url);await page.getByRole('checkbox',{name:/基础角色包/}).uncheck();await page.getByRole('checkbox',{name:/Wurstii/}).check();
+  await page.getByLabel('房间人数上限').selectOption('8');
+  await expect(page.locator('.config-total')).toHaveText('当前牌池 30 位可用角色 · 本房间至少需要 32 位');
+  await expect(page.getByRole('alert')).toContainText('角色数量不足');await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
+  await page.getByLabel('房间人数上限').selectOption('2');await expect(page.locator('.config-total')).toContainText('至少需要 16 位');
+  await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeEnabled();
+});
+
+test('Node visual fixture: mobile were form and transferred mount retain actionable skill and expanded chat',async({page},testInfo)=>{
+  const fixtureApp=createApplication(':memory:');await new Promise<void>(resolve=>fixtureApp.http.listen(0,'127.0.0.1',resolve));const address=fixtureApp.http.address();if(!address||typeof address==='string')throw Error('fixture address');
+  try{
   await page.setViewportSize({width:390,height:844});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   await page.addInitScript(()=>{localStorage.setItem('magical-athlete:reduced-motion','true');localStorage.setItem('magical-athlete:muted','true');});
-  await page.goto(url);await page.getByRole('tab',{name:'自己练习',exact:true}).click();await page.getByRole('button',{name:'开始自己练习',exact:true}).click();await online(page);
+  await page.goto(`http://127.0.0.1:${address.port}`);await page.getByRole('tab',{name:'自己练习',exact:true}).click();await page.getByRole('button',{name:'开始自己练习',exact:true}).click();await online(page);
   const code=page.url().split('/').at(-1)!;
-  await page.evaluate(async code=>{
-    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open('magical-athlete-browser-authority-v1',1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-    await new Promise<void>((resolve,reject)=>{const tx=db.transaction('rooms','readwrite');tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);const store=tx.objectStore('rooms'),request=store.get(code);request.onsuccess=()=>{
-      const record=request.result,room=record.room,g=room.game,p=g.players[0];room.version++;room.deadline=null;g.phase='race';g.round=1;g.track='mild';g.turn=0;g.turnCount=1;g.currentRacerId='visual-bite';g.queue=[];g.logs=[];g.results=[];g.flags={awaitRoll:false};
+      const room=fixtureApp.rooms.get(code),g=room.game,p=g.players[0]!;room.version++;room.deadline=null;g.phase='race';g.round=1;g.track='mild';g.turn=0;g.turnCount=1;g.currentRacerId='visual-bite';g.queue=[];g.logs=[];g.results=[];g.flags={awaitRoll:false};
       g.racers=['bite-mark','hog-knight','coach','null'].map((characterId,i)=>({id:['visual-bite','visual-hog','visual-coach','visual-null'][i],identityPlayerId:p.id,playerId:p.id,characterId,position:[10,13,16,20][i],tripped:false,finished:false,eliminated:false,flags:i===0?{form:'were-mouth'}:i===2?{hogOwnerId:'visual-hog'}:{}}));g.baseTurnOrder=g.racers.map((r:any)=>r.id);
-      g.pending={id:'visual-choice',playerId:p.id,racerId:'visual-bite',kind:'kingtripper',title:'画面验收：选择目标',optional:true,options:[{id:'visual-hog',label:'猪骑士'},{id:'skip',label:'放弃'}],context:{}};store.put(record);
-    };});db.close();
-  },code);
+      g.pending={id:'visual-choice',playerId:p.id,racerId:'visual-bite',kind:'kingtripper',title:'画面验收：选择目标',optional:true,options:[{id:'visual-hog',label:'猪骑士'},{id:'skip',label:'放弃'}],context:{}};fixtureApp.store.save(room);
   await page.reload();await online(page);await expect(page.getByTestId('skill-choice')).toBeVisible();await expect.poll(async()=>Number(await page.getByTestId('board-3d').getAttribute('data-loaded-models'))).toBeGreaterThanOrEqual(5);await expect(page.getByTestId('board-3d')).toHaveAttribute('data-model-fallbacks','0');
   for(const selector of ['.floating-avatar .sw-avatar','.minimap-own-avatar .sw-avatar']){const avatars=page.locator(selector);expect(await avatars.count()).toBeGreaterThan(0);for(const avatar of await avatars.all()){await expect(avatar).toHaveCSS('border-radius','50%');await expect(avatar).toHaveCSS('clip-path','circle(50% at 50% 50%)');expect(await avatar.evaluate(element=>{const b=element.getBoundingClientRect(),p=element.parentElement!.getBoundingClientRect();return b.x>=p.x&&b.y>=p.y&&b.right<=p.right+.5&&b.bottom<=p.bottom+.5;})).toBe(true);}}
   await page.getByRole('button',{name:'总览',exact:true}).click();await send(page,'选择技能时也能聊天');await expect(page.getByRole('log')).toContainText('选择技能时也能聊天');await expect(page.getByTestId('skill-choice').getByRole('button',{name:'猪骑士',exact:true})).toBeEnabled();
   expect(await page.getByTestId('skill-choice').getByRole('button',{name:'猪骑士',exact:true}).evaluate(button=>{const rect=button.getBoundingClientRect();return button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2));})).toBe(true);
   await page.getByLabel('聊天消息',{exact:true}).fill('空格不会掷骰');await page.getByLabel('聊天消息',{exact:true}).press('Space');await expect(page.getByTestId('skill-choice')).toContainText('画面验收：选择目标');
-  await page.screenshot({path:'docs/qa/second-wind/were-mount-chat-mobile.png'});await page.getByRole('button',{name:'收起聊天'}).click();expect(await page.getByTestId('skill-choice').getByRole('button',{name:'猪骑士',exact:true}).evaluate(button=>{const rect=button.getBoundingClientRect();return button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2));})).toBe(true);await page.screenshot({path:'docs/qa/second-wind/were-mount-mobile.png'});expect(errors).toEqual([]);
+  await page.screenshot({path:testInfo.outputPath('were-mount-chat-mobile.png')});await page.getByRole('button',{name:'收起聊天'}).click();expect(await page.getByTestId('skill-choice').getByRole('button',{name:'猪骑士',exact:true}).evaluate(button=>{const rect=button.getBoundingClientRect();return button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2));})).toBe(true);await page.screenshot({path:testInfo.outputPath('were-mount-mobile.png')});expect(errors).toEqual([]);
+  }finally{await fixtureApp.close();}
 });

@@ -1,5 +1,6 @@
 import { FAN_CHARACTERS } from './fan-expansions.js';
 import { SECOND_WIND_CHARACTERS } from './second-wind.js';
+import { WURSTII_CHARACTERS } from './wurstii.js';
 import type { CharacterPool } from './types.js';
 /** CMYK 2025 base box, 36 racers. Chinese names are project translations.
  * Rule interpretations are pinned to IELLO FAQ v2.0 (2026-08-28).
@@ -7,7 +8,7 @@ import type { CharacterPool } from './types.js';
  */
 export interface CharacterSource { url: string; title: string; locator: string; accessed: string; version: string }
 export interface CharacterData {
-  edition?: 'original' | 'second-wind' | 'extra-mile' | 'leaf'; imageUrl?: string; verification?: string; limit?: string; adaptation?: string;
+  edition?: 'original' | 'second-wind' | 'extra-mile' | 'leaf' | 'wurstii'; imageUrl?: string; verification?: string; limit?: string; adaptation?: string;
   id: string; nameEn: string; nameZh: string; translation: '本项目译名'; ability: string;
   timing: string[]; optional: boolean; targets: string; scope: string; duration: string;
   statuses: string[]; sources: CharacterSource[]; testId: string; verified: boolean;
@@ -1249,7 +1250,13 @@ export const ORIGINAL_CHARACTERS: readonly CharacterData[] = [
     "verified": true
   }
 ];
-export const CHARACTERS: readonly CharacterData[] = [...ORIGINAL_CHARACTERS.map(c=>({...c,edition:'original' as const})),...SECOND_WIND_CHARACTERS,...FAN_CHARACTERS];
-export function characterPool(pool: CharacterPool = 'original') { return pool==='mixed'?[...ORIGINAL_CHARACTERS,...SECOND_WIND_CHARACTERS]:pool==='second-wind'?SECOND_WIND_CHARACTERS:ORIGINAL_CHARACTERS; }
+const TWO_EDITIONS = [...ORIGINAL_CHARACTERS.map(c=>({...c,edition:'original' as const})), ...SECOND_WIND_CHARACTERS];
+export const CHARACTERS: readonly CharacterData[] = [...TWO_EDITIONS, ...FAN_CHARACTERS, ...WURSTII_CHARACTERS];
+/** Legacy pool names retain their original meaning; current rooms use RoomConfig. */
+export function characterPool(pool: CharacterPool = 'original'): readonly CharacterData[] {
+  if (pool === 'all') return [...TWO_EDITIONS, ...WURSTII_CHARACTERS];
+  if (pool === 'wurstii') return [...ORIGINAL_CHARACTERS, ...WURSTII_CHARACTERS];
+  return pool === 'mixed' ? TWO_EDITIONS : pool === 'second-wind' ? SECOND_WIND_CHARACTERS : ORIGINAL_CHARACTERS;
+}
 export const CHARACTER_BY_ID: Readonly<Record<string, CharacterData>> = Object.fromEntries(CHARACTERS.map(character => [character.id, character]));
 export const CHARACTER_IDS = CHARACTERS.map(character => character.id);

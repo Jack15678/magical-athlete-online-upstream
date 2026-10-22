@@ -60,6 +60,9 @@ export function decideAI(view:RoomView):GameAction|undefined {
     const targets=available.map(id=>view.racers.find(r=>r.id===id)).filter((r):r is Racer=>!!r&&active(r));
     const others=targets.filter(t=>t.playerId!==self.id);
     switch(c.kind){
+      case 'wurstii-burt': pick=available[publicChoice(view,c.kind,available.length)];break;
+      case 'wurstii-pitfall-harry':if(has('use'))pick='use';break;
+      case 'wurstii-bart-simpson':case 'wurstii-lakitu':case 'wurstii-dr-wily':{const target=(others.length?others:targets).toSorted((a,b)=>b.position-a.position||value(b.characterId)-value(a.characterId))[0];if(target)pick=target.id;break;}
       case 'cheatah': case 'cheatah-guess': pick = available[publicChoice(view, c.kind, available.length)]; break;
       case 'mr-dice-pick': pick = available.toSorted((a,b) => Number(b)-Number(a))[0]; break;
       case 'show-off': if (has('stop')) pick = 'stop'; break;
@@ -77,7 +80,11 @@ export function decideAI(view:RoomView):GameAction|undefined {
       case 'suckerfish':if(has('use')&&r&&!repeatedFollow(view,r))pick='use';break;
       case 'rocket-scientist':if(has('use')&&(view.lastRoll?.face??0)>=3)pick='use';break;
       case 'genius':pick=has('4')?'4':pick;break;
-      case 'reroll':if((view.lastRoll?.face??6)<=3&&has('reroll'))pick='reroll';break;
+      case 'reroll':{
+        const face=view.lastRoll?.face??6;
+        const exact=r?.characterId==='wurstii-diddy-kong'&&r.position+face>TRACKS[view.track].finish;
+        if((face<=3||exact)&&has('reroll'))pick='reroll';break;
+      }
       case 'flip-flop':{const target=others.sort((a,b)=>b.position-a.position)[0];if(target&&r&&target.position>r.position+3)pick=target.id;break;}
       case 'hypnotist':{
         // Summoning an active Baba Yaga before my main move trips me, so an AI

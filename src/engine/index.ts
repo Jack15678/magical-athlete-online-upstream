@@ -291,8 +291,18 @@ function finish(s:GameState,r:Racer, forcedRank?:number) {
   }
   if(rank===2)endRace(s);
 }
-function endRace(s:GameState,cycleDraw=false) {
+function endRace(s:GameState,cycleDraw=false,awardsResolved=false) {
   if(s.phase!=='race')return;
+  if(s.flags.wilyAwardsPending&&!awardsResolved)return;
+  const runnerUp=currentPlacements(s).find(p=>p.rank===2)?.racerId;
+  if(!awardsResolved&&!cycleDraw&&runnerUp){
+    const winners=order(s,s.racers.filter(r=>r.flags.wilyPrediction===runnerUp&&!r.flags.wilyPaid&&hasPower(s,r,'wurstii-dr-wily')));
+    if(winners.length){
+      s.flags.wilyAwardsPending=true;s.flags.awaitRoll=false;
+      s.queue=[...winners.map(r=>({kind:'wurstiiAward',racerId:r.id,power:'wurstii-dr-wily'})),{kind:'wurstiiRaceEnd',cycleDraw}];return;
+    }
+  }
+  delete s.flags.wilyAwardsPending;
   leafRules.raceEnd(s,cycleDraw);fanRaceEnd(s,cycleDraw);
   if(!cycleDraw)for(const g of powers(s,'gloth'))if(g.position<=TRACKS[s.track].secondCorner)points(s,g,3,'葛洛斯未超过第二弯道');
   for(const r of s.racers)if(hasPower(s,r,'re-runner')||r.characterId==='re-runner'){const entries=(s.flags.reRunners??=[]) as {playerId:string;characterId:string}[];const id=r.playerId;if(!entries.some(x=>x.playerId===id&&x.characterId===r.characterId))entries.push({playerId:id,characterId:r.characterId});}
@@ -316,17 +326,20 @@ function eliminate(s:GameState,id:string,source:string) {
 }
 export function enqueueMove(s:GameState,racerId:string,distance:number,cause='test'):void { s.queue.push({kind:'move',racerId,distance,cause}); }
 export function enqueueWarp(s:GameState,racerId:string,position:number,cause='test'):void { s.queue.push({kind:'warp',racerId,position,cause}); }
-function previewMove(s:GameState,r:Racer,distance:number,departures:string[],power=effectivePower(s,r)) {
-  let count=Math.abs(distance);let end=r.position;let jumps=0;const direction=Math.sign(distance);
+function previewMove(s:GameState,r:Racer,distance:number,departures:string[],ps=effectivePowers(s,r)) {
+  let count=Math.abs(distance);let end=r.position;const jumps:string[]=[];const direction=Math.sign(distance);
   while(count>0){end+=direction;if(end<0){end=0;break;}if(end>=TRACKS[s.track].finish){end+=direction*(count-1);break;}
     const occupied=active(s).some(x=>x.id!==r.id&&!departures.includes(x.id)&&x.position===end);
-    if(power==='leaptoad'&&occupied){jumps++;continue;}count--;}
+    const jump=ps.find(p=>((p==='leaptoad'||p==='wurstii-mario')&&occupied)||(p==='wurstii-frogger'&&wurstiiMilestone(end)));
+    if(jump){jumps.push(jump);continue;}count--;}
   if(distance!==0){const glue=powers(s,em('gluebert')).filter(x=>x.id!==r.id&&!departures.includes(x.id)&&(r.position-x.position)*(end-x.position)<0);if(glue.length)end-=direction*Math.min(glue.length,Math.abs(end-r.position));}
   const blocked=end>TRACKS[s.track].finish?powers(s,'stickler').filter(x=>x.id!==r.id):[];
-  return{end:blocked.length?r.position:Math.max(0,end),jumps,blocked};
+  const capped=!blocked.length&&ps.includes('wurstii-diddy-kong')&&end>TRACKS[s.track].finish;
+  if(capped)end=TRACKS[s.track].finish-1;
+  return{end:blocked.length?r.position:Math.max(0,end),jumps,blocked,capped};
 }
 function followingPreview(s:GameState,lead:Racer,distance:number,departures:string[],cause:unknown) {
-  const preview=previewMove(s,lead,distance,departures,hasPower(s,lead,'leaptoad')?'leaptoad':effectivePower(s,lead));
+  const preview=previewMove(s,lead,distance,departures);
   const from=lead.position,to=Math.min(TRACKS[s.track].finish,preview.end),delta=to-from;
   const moveType=cause==='main'?'主要移动':cause==='track-arrow'?'赛道箭头额外移动':`${character(String(cause))?.nameZh??'技能'}额外移动`;
   return {...preview,from,to,delta,moveType};
@@ -341,7 +354,7 @@ function motion(s:GameState,t:Work) {
     for(const f of fish){const lead=moving.find(p=>!p.follow&&racer(s,p.racerId)!.position===f.position&&followingPreview(s,racer(s,p.racerId)!,p.distance??0,departures,t.cause).to!==f.position);if(lead){
       const leader=racer(s,lead.racerId)!,preview=followingPreview(s,leader,lead.distance??0,departures,t.cause);
       const progress=`${preview.delta>0?'前进':'后退'}${Math.abs(preview.delta)}格`;
-      const jumps=preview.jumps?`；移动${Math.abs(lead.distance??0)}步并跳过${preview.jumps}个占用格`:'';
+      const jumps=preview.jumps.length?`；移动${Math.abs(lead.distance??0)}步并跳过${preview.jumps.length}个${preview.jumps.includes('wurstii-frogger')?'技能跳过格':'占用格'}`:'';
       const next={...t,plans:moving,fishAsked:[...(t.fishAsked??[]),f.id]};
       ask(s,f,'suckerfish',`${name(f)}要跟随${owner(s,leader).name}的${name(leader)}吗？${preview.moveType}：第${preview.from}格 → 第${preview.to}格（${progress}${jumps}）`,yesNo,{motion:next,lead:lead.racerId},true);return;
     }}
@@ -349,18 +362,24 @@ function motion(s:GameState,t:Work) {
   const before=Object.fromEntries(active(s).map(r=>[r.id,r.position]));
   const powerSnapshot=Object.fromEntries(active(s).map(r=>[r.id,effectivePowers(s,r)]));
   const group=`g${(s.flags.motionSeq=Number(s.flags.motionSeq??0)+1)}`;
-  const destinations:Record<string,number>={};const jumpCounts:Record<string,number>={};
+  const destinations:Record<string,number>={};const jumpCounts:Record<string,string[]>={};
   const extra:Work[]=[];const movingIds=moving.filter(p=>p.follow||p.distance!==0||t.kind==='warp').map(p=>p.racerId);
   for(const p of moving){
     const r=racer(s,p.racerId)!;if(p.follow)continue;
-    let end=p.position??r.position;let jumps=0;
+    let end=p.position??r.position;let jumps:string[]=[];
     if(t.kind!=='warp'){
-      const projected=previewMove(s,r,p.distance??0,movingIds,powerSnapshot[r.id]?.includes('leaptoad')?'leaptoad':powerSnapshot[r.id]?.[0]);end=projected.end;jumps=projected.jumps;
+      const projected=previewMove(s,r,p.distance??0,movingIds,powerSnapshot[r.id]);end=projected.end;jumps=projected.jumps;
       if(projected.blocked.length) {log(s,'cancel',`${name(r)}超过精确终点距离，整次移动取消`,{source:r.id,cause:'stickler'});extra.push(...projected.blocked.map(x=>({kind:'powerDone',racerId:x.id,power:'stickler'})));}
+      if(projected.capped)extra.push({kind:'powerDone',racerId:r.id,power:'wurstii-diddy-kong'});
     }
     destinations[r.id]=Math.max(0,end);jumpCounts[r.id]=jumps;
   }
-  for(const p of moving.filter(p=>p.follow))destinations[p.racerId]=destinations[p.follow!]??before[p.racerId]!;
+  for(const p of moving.filter(p=>p.follow)){
+    const end=destinations[p.follow!]??before[p.racerId]!;
+    const capped=t.kind!=='warp'&&end>TRACKS[s.track].finish&&powerSnapshot[p.racerId]?.includes('wurstii-diddy-kong');
+    destinations[p.racerId]=capped?TRACKS[s.track].finish-1:end;
+    if(capped)extra.push({kind:'powerDone',racerId:p.racerId,power:'wurstii-diddy-kong'});
+  }
   const priority=order(s).map(r=>r.id);
   const movedCandidates=moving.filter(p=>destinations[p.racerId]!==before[p.racerId]||t.kind==='warp');
   const moved:typeof moving=[];
@@ -369,7 +388,7 @@ function motion(s:GameState,t:Work) {
   for(const p of moved)racer(s,p.racerId)!.position=Math.min(TRACKS[s.track].finish,destinations[p.racerId]!);
   log(s,t.kind==='warp'?'warp':'move',moved.map(p=>`${name(racer(s,p.racerId)!)} ${before[p.racerId]} → ${racer(s,p.racerId)!.position}`).join('，')||'没有产生移动',{source:t.racerId,targets:moved.map(p=>p.racerId),before:moved.map(p=>before[p.racerId]!),after:moved.map(p=>racer(s,p.racerId)!.position),group,cause:t.cause});
   // Rank the followed racer before followers while preserving simultaneous arrival.
-  for(const p of moved){const r=racer(s,p.racerId)!;if((hasPower(s,r,em('doc-paradox'))?r.position<=0:r.position>=TRACKS[s.track].finish)){finish(s,r);if(s.phase!=='race')return;}}
+  for(const p of moved){const r=racer(s,p.racerId)!;if((hasPower(s,r,em('doc-paradox'))?r.position<=0:r.position>=TRACKS[s.track].finish)){finish(s,r);if(s.phase!=='race'||s.flags.wilyAwardsPending)return;}}
   const passEffects:Work[]=[];
   if(t.kind!=='warp')for(const p of moved){const r=racer(s,p.racerId)!;const start=before[r.id]!;const end=destinations[r.id]!;
     const crossed=active(s).filter(x=>!movingIds.includes(x.id)&&(start-before[x.id]!)*(end-before[x.id]!)<0).sort((a,b)=>(before[a.id]!-before[b.id]!)*Math.sign(end-start));
@@ -382,7 +401,7 @@ function motion(s:GameState,t:Work) {
     if(powerSnapshot[r.id]?.includes('bite-mark')&&r.flags.form==='were-mouth')for(const target of crossed)passEffects.push({kind:'ability',racerId:r.id,power:'bite-mark',effects:[{kind:'eliminate',racerId:target.id,source:r.id}]});
     if(r.flags.magicPassTrip)for(const target of crossed)passEffects.push({kind:'ability',racerId:r.id,power:'magical-athlete',effects:[{kind:'trip',racerId:target.id,source:r.id}]});
     if(crossed.length&&powerSnapshot[r.id]?.includes('streaker'))passEffects.push({kind:'ability',racerId:r.id,power:'streaker',effects:[{kind:'gain',racerId:r.id,amount:1}]});
-    for(let i=0;i<(jumpCounts[r.id]??0);i++)extra.push({kind:'powerDone',racerId:r.id,power:'leaptoad'});
+    for(const power of jumpCounts[r.id]??[])extra.push({kind:'powerDone',racerId:r.id,power});
   }
   const arrivals=moved.filter(p=>live(racer(s,p.racerId)!)).map(p=>p.racerId);
   // Huge Baby's exclusion is a replacement placement, not an extra movement.
@@ -430,6 +449,12 @@ function beforeRace(s:GameState,r:Racer) {
   // start window. An independent permanent acquisition of the same text can.
   if(!(base!=='copycat'&&base===power||permanentPowers(r).includes(power)&&power!=='copycat'))return;
   if(leafRules.beforeRace(s,r,power)||fanBeforeRace(s,r,power)||secondWindBeforeRace(s,r,power))return;const prepared=(r.flags.preparedPowers??=[]) as string[];if(prepared.includes(power))return;prepared.push(power);
+  if(power==='wurstii-hoagie'||power==='wurstii-tails'){
+    r.position=power==='wurstii-hoagie'?24:8;
+    log(s,'place',`${name(r)}从${r.position}格出发`,{source:r.id,targets:[r.id],after:[r.position],cause:power});
+    push(s,{kind:'powerDone',racerId:r.id,power});
+  }
+  if(power==='wurstii-dr-wily')askTarget(s,r,power,'预测本场亚军',active(s));
   if(power==='sisyphus'){points(s,r,4,'西西弗斯赛前奖励');push(s,{kind:'powerDone',racerId:r.id,power});}
   if(power==='egg'){
     const cards=drawUnchosen(s,3);
@@ -448,6 +473,7 @@ function beforeRace(s:GameState,r:Racer) {
 function beginTurn(s:GameState,r:Racer) {
   if(!live(r)){advance(s,r);return;}leafRules.turnBoundary(s,r);if(forcedCycle(s,r))return;s.currentRacerId=r.id;s.turn=s.racers.indexOf(r);s.turnCount++;s.flags.awaitRoll=false;s.flags.loopSeen=[];r.flags.turnStart=r.position;r.flags.turnPower=effectivePower(s,r);r.flags.rerolls={};r.flags.geniusGuess=undefined;r.flags.mainBonus=0;
   r.flags.turnsTaken=Number(r.flags.turnsTaken??0)+1;
+  r.flags.burtAsked=false;r.flags.burtGuess=undefined;r.flags.wurstiiFace=undefined;
   const power=effectivePower(s,r);r.flags.mainRolled=false;r.flags.mainDirection=undefined;r.flags.magicPassTrip=false;r.flags.showOffPrevious=undefined;r.flags.showOffTotal=0;r.flags.mainSelection=undefined;r.flags.criticAsked=[];r.flags.fanMainDistance=0;r.flags.emAsked=[];r.flags.headsFinal=false;r.flags.scoutFinal=false;r.flags.witchAllocated=false;r.flags.fanTax=0;r.flags.skipMain=hasPower(s,r,'hare')&&!(s.mode==='practice'&&active(s).length===1)&&active(s).every(x=>x.id===r.id||x.position<r.position);r.flags.blimpBonus=r.position<TRACKS[s.track].secondCorner?3:-1;
   s.flags.fanTurnPowerCount=0;
   log(s,'turn',`轮到${owner(s,r).name}的${name(r)}`,{source:r.id});
@@ -455,6 +481,7 @@ function beginTurn(s:GameState,r:Racer) {
 }
 function turnStartPower(s:GameState,r:Racer) {
   const power=effectivePower(s,r);if(leafRules.turnStart(s,r,power)||fanTurnStart(s,r,power)||secondWindTurnStart(s,r,power))return;
+  if(wurstiiTurnStart(s,r,power))return;
   if(power==='lovable-loser'&&active(s).every(x=>x.id===r.id||x.position>r.position))usePower(s,r,[{kind:'gain',racerId:r.id,amount:1}]);
   if(power==='party-animal')usePower(s,r,[{kind:'move',plans:active(s).filter(x=>x.id!==r.id).map(x=>({racerId:x.id,distance:Math.sign(r.position-x.position)})),cause:power}]);
   if(power==='cheerleader')ask(s,r,power,'要为末位角色加油吗？',yesNo,{},true);
@@ -471,9 +498,15 @@ function mainReady(s:GameState,r:Racer) {
   if(r.tripped&&r.flags.bullySource){ask(s,r,'em-bully-recover','校园恶霸：请掷恢复骰，1～3起身并移动，否则只起身',[{id:'roll',label:'掷恢复骰'}],{source:r.flags.bullySource,sourceId:r.flags.bullySource});return;}
   if(r.tripped&&!hasPower(s,r,'penguin')){r.tripped=false;log(s,'recover',`${name(r)}起身，代替主移动`,{source:r.id});leafRules.recover(s,r);return;}
   if(leafRules.mainReady(s,r))return;
-  const mainPowers=effectivePowers(s,r).filter(p=>['genius','legs','flip-flop','mole','cheatah','mr-dice-guy'].includes(p));
+  const mainPowers=effectivePowers(s,r).filter(p=>['genius','legs','flip-flop','mole','cheatah','mr-dice-guy','wurstii-hoagie','wurstii-pitfall-harry','wurstii-burt'].includes(p)||(p==='wurstii-eric'&&wurstiiMilestone(Number(r.flags.turnStart))));
   if(mainPowers.length>1&&!r.flags.mainSelection){ask(s,r,'main-ability','选择本次主移动使用的能力',mainPowers.map(p=>({id:p,label:character(p)?.nameZh??p})),{});return;}
   const power=String(r.flags.mainSelection??mainPowers[0]??effectivePower(s,r));if(secondWindMainReady(s,r,power))return;
+  if(power==='wurstii-hoagie'||(power==='wurstii-eric'&&wurstiiMilestone(Number(r.flags.turnStart)))){usePower(s,r,[{kind:'mainMove',racerId:r.id,base:power==='wurstii-hoagie'?1:6}],power);return;}
+  if(power==='wurstii-pitfall-harry'&&!r.flags.mainAsked){
+    r.flags.mainAsked=true;const position=nearestAhead(s,r);
+    if(position!==undefined){ask(s,r,power,`传送到前方最近的第${position}格，代替主骰？`,yesNo,{position},true);return;}
+  }
+  if(power==='wurstii-burt'&&!r.flags.burtAsked){r.flags.burtAsked=true;ask(s,r,power,'预测本次主骰的最终点数',Array.from({length:6},(_,i)=>({id:String(i+1),label:String(i+1)})),{});push(s,{kind:'mainReady',racerId:r.id});return;}
   if(power==='genius'&&!r.flags.geniusAsked){r.flags.geniusAsked=true;ask(s,r,'genius','预测主移动骰面',[...Array.from({length:6},(_,i)=>({id:String(i+1),label:String(i+1)})),{id:'skip',label:'不预测'}],{},true);push(s,{kind:'mainReady',racerId:r.id});return;}
   if(power==='legs'&&!r.flags.mainAsked){r.flags.mainAsked=true;ask(s,r,'legs','要直接以5作为主移动基础距离吗？',yesNo,{},true);return;}
   if(power==='flip-flop'&&!r.flags.mainAsked){r.flags.mainAsked=true;ask(s,r,'flip-flop','交换位置代替主移动？',[...targetOptions(s,active(s).filter(x=>x.id!==r.id).map(x=>x.id)),{id:'skip',label:'正常掷骰'}],{},true);return;}
@@ -484,7 +517,8 @@ function rerollWindow(s:GameState,r:Racer,face:number) {
   const critics=powers(s,'critic').filter(c=>c.id!==r.id&&r.position>c.position&&!((r.flags.criticAsked??[]) as string[]).includes(c.id));
   if(critics.length){const c=critics[0]!;r.flags.criticAsked=[...((r.flags.criticAsked??[]) as string[]),c.id];ask(s,c,'critic',`要让${name(r)}重掷主移动吗？`,yesNo,{target:r.id,face},true);return;}
   const counts=(r.flags.rerolls??={}) as Record<string,number>;
-  const sources=order(s).flatMap(x=>effectivePowers(s,x).filter(power=>(power==='dicemonger'&&(counts[`${x.id}:${power}`]??0)<1)||(x.id===r.id&&power==='magician'&&(counts[`${x.id}:${power}`]??0)<2)).map(power=>({racerId:x.id,power,key:`${x.id}:${power}`})));
+  const rerollLimits:Record<string,number>={magician:2,'wurstii-diddy-kong':3,'wurstii-dixie-kong':1};
+  const sources=order(s).flatMap(x=>effectivePowers(s,x).filter(power=>(power==='dicemonger'&&(counts[`${x.id}:${power}`]??0)<1)||(x.id===r.id&&(counts[`${x.id}:${power}`]??0)<(rerollLimits[power]??0))).map(power=>({racerId:x.id,power,key:`${x.id}:${power}`})));
   if(sources.length){ask(s,r,'reroll',`掷出${face}，要重掷吗？`,[{id:'reroll',label:'重掷'},{id:'keep',label:'保留'}],{face,sources},true);}
   else push(s,{kind:'finalRoll',racerId:r.id,face});
 }
@@ -494,6 +528,8 @@ function finalRoll(s:GameState,r:Racer,face:number) {
   if(leafRules.finalRoll(s,r,face,firstTasks)||fanFinalRoll(s,r,face,firstTasks))return;
   if(secondWindFinalRoll(s,r,face,firstTasks))return;
   s.lastRoll={racerId:r.id,face,distance:face};log(s,'roll',`${name(r)}最终骰面为${face}`,{source:r.id,faces:[face],cause:'main',rollKind:'main'});
+  r.flags.wurstiiFace=face;
+  if(r.flags.burtGuess===face&&hasPower(s,r,'wurstii-burt'))push(s,{kind:'wurstiiBurtBonus',racerId:r.id});
   if(r.flags.geniusGuess===face)firstTasks.push({kind:'ability',racerId:r.id,power:'genius',effects:[emStep(r,'extra-turn')]});
   if(face===1){for(const skipper of powers(s,'skipper'))firstTasks.push({kind:'ability',racerId:skipper.id,effects:[{kind:'setNext',racerId:skipper.id}]});}
   if(face===6){for(const lackey of powers(s,'lackey').filter(x=>x.id!==r.id))firstTasks.push({kind:'ability',racerId:lackey.id,effects:[{kind:'move',racerId:lackey.id,distance:2,cause:'lackey'}]});}
@@ -503,14 +539,26 @@ function finalRoll(s:GameState,r:Racer,face:number) {
   if(worms.length){push(s,...firstTasks,...worms.map(x=>({kind:'ability',racerId:x.id,effects:[{kind:'move',racerId:x.id,distance:1,cause:'inchworm'}]})));return;}
   const power=effectivePower(s,r);
   if(hasPower(s,r,'sisyphus')&&face===6){push(s,{kind:'ability',racerId:r.id,effects:[{kind:'warp',racerId:r.id,position:0,cause:power},{kind:'gain',racerId:r.id,amount:-1}]},...firstTasks);return;}
+  if(hasPower(s,r,'wurstii-lizzie')&&face<=2){push(s,...firstTasks,{kind:'wurstiiLizzie',racerId:r.id,face});return;}
   if(hasPower(s,r,'alchemist')&&face<=2){push(s,...firstTasks,{kind:'baseChoice',racerId:r.id,face,power:'alchemist'});return;}
   if(hasPower(s,r,'rocket-scientist')){push(s,...firstTasks,{kind:'baseChoice',racerId:r.id,face,power:'rocket-scientist'});return;}
   push(s,...firstTasks,{kind:'mainMove',racerId:r.id,base:face});
+}
+function wurstiiMainBonus(s:GameState,r:Racer,power:string):number {
+  if(power==='wurstii-bart-simpson'){const target=racer(s,String(r.flags.bartTarget));return target&&live(target)&&target.position>r.position?2:0;}
+  if(power==='wurstii-chip-n-dale')return Number(r.flags.wurstiiFace)>=5?2:0;
+  if(power==='wurstii-falco-lombardi')return active(s).filter(x=>x.position>r.position).length;
+  if(power==='wurstii-rockford')return active(s).filter(x=>Math.abs(x.position-r.position)<=1).length;
+  return 0;
 }
 function mainMove(s:GameState,r:Racer,base:number) {
   if(!live(r))return;
   let distance=Number(r.flags.showOffDistance??r.flags.fanBase??base);r.flags.showOffDistance=undefined;delete r.flags.fanBase;const effects:Work[]=[];const power=effectivePower(s,r);
   distance=secondWindDistance(s,r,distance);
+  for(const p of effectivePowers(s,r)){
+    const bonus=wurstiiMainBonus(s,r,p);
+    if(bonus){distance+=bonus;effects.push({kind:'powerDone',racerId:r.id,power:p});}
+  }
   if(hasPower(s,r,'blimp')){distance+=Number(r.flags.blimpBonus??(r.position<15?3:-1));effects.push({kind:'powerDone',racerId:r.id,power});}
   if(hasPower(s,r,'hare')){distance+=2;effects.push({kind:'powerDone',racerId:r.id,power});}
   if(hasPower(s,r,'party-animal')){const bonus=active(s).filter(x=>x.id!==r.id&&x.position===r.position).length;distance+=bonus;if(bonus)effects.push({kind:'powerDone',racerId:r.id,power});}
@@ -534,11 +582,13 @@ function endTurn(s:GameState,r:Racer) {
   leafRules.endTurn(s,r);s.flags.fanPreviousDistance=r.flags.fanMainDistance??0;
   s.flags.awaitRoll=false;r.flags.mainAsked=false;r.flags.geniusAsked=false;
   const tasks:Work[]=[];if(live(r))tasks.push(...effectivePowers(s,r).map(power=>({kind:'swEndTurn',racerId:r.id,power})));if(live(r)&&Math.abs(r.position-Number(r.flags.turnStart??r.position))<=1)for(const h of powers(s,'heckler'))tasks.push({kind:'ability',racerId:h.id,effects:[{kind:'move',racerId:h.id,distance:2,cause:'heckler'}]});
-  push(s,...tasks,{kind:'advance',racerId:r.id});
+  const wurstiiTasks=wurstiiEndTasks(s,r);
+  push(s,...(wurstiiTasks.length?orderEffectTasks(s,[...tasks,...wurstiiTasks]):tasks),{kind:'advance',racerId:r.id});
 }
 function advance(s:GameState,r:Racer) {
   if(s.phase!=='race')return;
   const overrides=(s.flags.nextOverride??[]) as string[];let next=overrides.shift();s.flags.nextOverride=overrides;
+  if(!next&&live(r)&&Number(r.flags.wurstiiExtraTurns)>0){next=r.id;r.flags.wurstiiExtraTurns=Number(r.flags.wurstiiExtraTurns)-1;}
   if(!next&&r.flags.extraTurn&&live(r))next=r.id;r.flags.extraTurn=false;
   if(!next){const fixed=baseOrder(s);for(let i=1;i<=fixed.length;i++){const candidate=racer(s,fixed[(fixed.indexOf(r.id)+i)%fixed.length]!);if(candidate&&live(candidate)){next=candidate.id;break;}}}
   if(!next){endRace(s);return;}
@@ -550,6 +600,11 @@ function advance(s:GameState,r:Racer) {
 
 function processChoice(s:GameState,c:PendingChoice,id:string) {
   const r=racer(s,c.racerId!)!;const ctx=c.context as Record<string,any>;
+  if(c.kind==='wurstii-bart-simpson'){r.flags.bartTarget=id;log(s,'target',`${name(r)}指定${name(racer(s,id)!)}`,{source:r.id,targets:[id],cause:c.kind});push(s,{kind:'powerDone',racerId:r.id,power:c.kind});return;}
+  if(c.kind==='wurstii-dr-wily'){r.flags.wilyPrediction=id;log(s,'prediction',`${name(r)}预测${name(racer(s,id)!)}获得亚军`,{source:r.id,targets:[id],cause:c.kind});push(s,{kind:'powerDone',racerId:r.id,power:c.kind});return;}
+  if(c.kind==='wurstii-burt'){r.flags.burtGuess=Number(id);log(s,'prediction',`${name(r)}预测主骰为${id}`,{source:r.id,cause:c.kind});return;}
+  if(c.kind==='wurstii-lakitu'){usePower(s,r,[{kind:'warp',racerId:id,position:r.position,cause:c.kind}],c.kind);return;}
+  if(c.kind==='wurstii-pitfall-harry'){if(id==='use')usePower(s,r,[{kind:'warp',racerId:r.id,position:ctx.position,cause:c.kind}],c.kind);else push(s,{kind:'mainReady',racerId:r.id});return;}
   if(leafRules.choice(s,r,c,id)||fanChoice(s,r,c,id)||secondWindChoice(s,r,c,id))return;
   if(c.kind==='copycat'){
     if(!copyCandidates(s,r).some(target=>target.id===id)){push(s,{kind:'refreshCopies'});return;}
@@ -615,6 +670,13 @@ function processChoice(s:GameState,c:PendingChoice,id:string) {
 function rawTask(s:GameState,t:Work) {
   const r=racer(s,String(t.racerId??''));
   switch(t.kind){
+    case 'wurstiiEnd':if(r&&live(r))dispatch(s,r,t.power,()=>wurstiiEnd(s,r,t));break;
+    case 'wurstiiSpotFollow':if(r&&live(r)&&hasPower(s,r,'wurstii-spot')){const target=racer(s,t.targetId);if(target&&live(target)&&target.position>r.position)push(s,{kind:'move',racerId:r.id,distance:2,cause:'wurstii-spot'});}break;
+    case 'wurstiiBurtBonus':if(r&&live(r)&&hasPower(s,r,'wurstii-burt'))usePower(s,r,[{kind:'move',racerId:r.id,distance:5,cause:'wurstii-burt'}],'wurstii-burt');break;
+    case 'wurstiiLizzie':if(r&&live(r)){const position=nearestAhead(s,r);if(position!==undefined&&hasPower(s,r,'wurstii-lizzie'))usePower(s,r,[{kind:'warp',racerId:r.id,position,cause:'wurstii-lizzie'}],'wurstii-lizzie',[{kind:'mainMove',racerId:r.id,base:t.face}]);else push(s,{kind:'mainMove',racerId:r.id,base:t.face});}break;
+    case 'wurstiiExtraTurns':if(r&&live(r))r.flags.wurstiiExtraTurns=Number(r.flags.wurstiiExtraTurns??0)+Number(t.amount);break;
+    case 'wurstiiAward':if(r&&!r.flags.wilyPaid){r.flags.wilyPaid=true;if(hasPower(s,r,'wurstii-dr-wily')){log(s,'power',`${name(r)}猜中亚军`,{source:r.id,cause:'wurstii-dr-wily'});points(s,r,3,'威利博士猜中亚军');}}break;
+    case 'wurstiiRaceEnd':endRace(s,Boolean(t.cycleDraw),true);break;
     case 'activate':if(r&&live(r)){log(s,'power',`${name(r)}发动「${character(t.power)?.nameZh??t.power}」`,{source:r.id,cause:t.power});push(s,...t.effects,{kind:'powerDone',racerId:r.id,power:t.power});}break;
     case 'fan':if(r&&live(r))fanTask(s,r,t);break;
     case 'leaf':if(r&&live(r))leafRules.task(s,r,t);break;
@@ -648,7 +710,7 @@ function rawTask(s:GameState,t:Work) {
       // Every individual power activation generates its own response, including
       // separate Leaptoad skipped spaces and distinct passive modifier uses.
       if(t.power==='leaf-lonely-wolf')break;
-      for(const sc of powers(s,'scoocher').filter(x=>x.id!==t.racerId).toReversed())push(s,{kind:'ability',racerId:sc.id,effects:[{kind:'move',racerId:sc.id,distance:1,cause:'scoocher'}]});
+      for(const sc of order(s).filter(x=>x.id!==t.racerId).toReversed())for(const power of effectivePowers(s,sc).filter(p=>p==='scoocher'||p==='wurstii-mr-game-and-watch').toReversed())push(s,{kind:'ability',racerId:sc.id,power,effects:[{kind:'move',racerId:sc.id,distance:1,cause:power}]});
       break;
     case 'board':if(r&&live(r)){
       const special=TRACKS[s.track].specials[r.position];if(!special)break;
@@ -685,11 +747,16 @@ export function resolveTasks(s:GameState):void {
     if(diagnostic.events>=9000){s.phase='paused';s.flags.ruleHold={kind:'resolution-diagnostic',message:'连锁超过独立诊断保护阈值，本房间已暂停。已保存完整状态、随机种子和待处理事件；请保留房间供排查后恢复，未判定循环或胜负。',...diagnostic};s.flags.continuation=true;save();log(s,'engine-paused',String((s.flags.ruleHold as {message:string}).message),{cause:'diagnostic-budget'});return;}
     if(++budget>3000){s.flags.continuation=true;save();return;}
     diagnostic.events++;
-    const signature=resolutionSignature(s),earlier=seen.get(signature);
-    if(earlier&&s.queue.length>earlier.queueLength){
+    // Project ruling for the mutual Game & Watch / Scoocher reaction: repeated
+    // star income alone cannot keep an otherwise identical forced branch alive.
+    // Check only their reaction boundary, never ordinary moves or resource tasks.
+    const next=s.queue[0] as Work;
+    const scoreCycle=next.kind==='ability'&&['scoocher','wurstii-mr-game-and-watch'].includes(String(next.power))&&powers(s,'scoocher').length>0&&powers(s,'wurstii-mr-game-and-watch').length>0;
+    const signature=(scoreCycle?'score-cycle:':'')+resolutionSignature(s,scoreCycle),earlier=seen.get(signature);
+    if(earlier&&(s.queue.length>earlier.queueLength||scoreCycle&&s.queue.length===earlier.queueLength)){
       const tailLength=earlier.queueLength-1,tail=tailLength?s.queue.slice(-tailLength):[];
       if(JSON.stringify(tail)===earlier.tail){
-        log(s,'loop','同一连锁的完整规则状态与待处理效果重现，保留已经完成的一遍结算，在重复分支开始前停止；其他效果继续。');
+        log(s,'loop',scoreCycle?'游戏与观看先生／蹭蹭怪的同一强制反应环重现，仅重复星格收入发生变化；保留已完成的一圈积分，停止重复分支，其他效果继续。':'同一连锁的完整规则状态与待处理效果重现，保留已经完成的一遍结算，在重复分支开始前停止；其他效果继续。');
         s.queue=tail;seen.clear();historyBytes=0;continue;
       }
     }
@@ -698,9 +765,13 @@ export function resolveTasks(s:GameState):void {
       const bytes=signature.length+checkpoint.tail.length;
       // Forgetting a checkpoint may miss a very long cycle but cannot invent
       // one. Bound diagnostic scratch space independently of legal chain size.
-      if(bytes<=96000){while(seen.size&&(seen.size>=256||historyBytes+bytes>96000)){const oldest=seen.keys().next().value!;const entry=seen.get(oldest)!;historyBytes-=oldest.length+entry.tail.length;seen.delete(oldest);}seen.set(signature,checkpoint);historyBytes+=bytes;}
+      if(bytes<=96000){while(seen.size&&(seen.size>=256||historyBytes+bytes>96000)){const oldest=[...seen.keys()].find(key=>!key.startsWith('score-cycle:'))??seen.keys().next().value!;const entry=seen.get(oldest)!;historyBytes-=oldest.length+entry.tail.length;seen.delete(oldest);}seen.set(signature,checkpoint);historyBytes+=bytes;}
     }
+    const scores=s.players.map(p=>p.score);
     task(s,s.queue.shift()! as Work);
+    // Score can also be a consumable resource. Any expenditure starts a new
+    // income-only interval, so a finite paid chain is never truncated as a ring.
+    if(s.players.some((p,i)=>p.score<scores[i]!))for(const [key,entry] of seen)if(key.startsWith('score-cycle:')){historyBytes-=key.length+entry.tail.length;seen.delete(key);}
     if(s.flags.awaitRoll)break;
   }
   s.flags.continuation=false;
@@ -741,7 +812,11 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
   if(s.phase!=='race')throw Error('当前没有正在进行的比赛');
   if(action.type==='choose'){
     const pending=s.pending;if(!pending||pending.id!==action.choiceId)throw Error('该选择已经过期');if(pending.playerId!==playerId)throw Error('这个选择需要对应玩家操作');if(!pending.options.some(o=>o.id===action.optionId))throw Error('不合法的技能选项');
-    delete s.flags.resolutionSeen;delete s.flags.resolutionSeenScores;delete s.flags.resolutionSuppressed;s.pending=undefined;processChoice(s,pending,action.optionId);resolveTasks(s);return;
+    // Follow/decline resumes this same movement branch. Retain its checkpoints:
+    // real movement/resource changes distinguish progress, but returning the
+    // whole group to the identical state must not hide a loop behind a prompt.
+    if(pending.kind!=='suckerfish')delete s.flags.resolutionSeen;
+    delete s.flags.resolutionSeenScores;delete s.flags.resolutionSuppressed;s.pending=undefined;processChoice(s,pending,action.optionId);resolveTasks(s);return;
   }
   if(action.type==='roll'){
     const r=racer(s,s.currentRacerId!);if(!r||r.playerId!==playerId)throw Error('还没有轮到你的角色');if(s.pending)throw Error('请先完成待处理选择');
@@ -768,6 +843,63 @@ export function systemAction(s:GameState):{playerId:string;action:GameAction}|un
   if(s.phase==='race'&&!s.pending&&(s.flags.continuation||s.flags.needsBegin))return{playerId:s.players[0]!.id,action:{type:'next'}};
 }
 /** A die belongs to an on-board racer. Stunner changes the result, never the RNG log. */
+function wurstiiMilestone(position:number):boolean { return position>=5&&position<=25&&position%5===0; }
+function nearestAhead(s:GameState,r:Racer):number|undefined {
+  const ahead=active(s).filter(x=>x.position>r.position);
+  return ahead.length?Math.min(...ahead.map(x=>x.position)):undefined;
+}
+function wurstiiTurnStart(s:GameState,r:Racer,power:string):boolean {
+  if(power==='wurstii-bart-simpson'){
+    if(r.flags.turnsTaken===1)askTarget(s,r,power,'指定本场要追赶的选手',active(s).filter(x=>x.id!==r.id));
+    return true;
+  }
+  if(power==='wurstii-lakitu'){askTarget(s,r,power,'选择必须召唤到自己所在格的选手',active(s).filter(x=>x.id!==r.id));return true;}
+  if(power==='wurstii-olaf'&&(r.position===5||r.position===10)){usePower(s,r,[{kind:'warp',racerId:r.id,position:20,cause:power}],power);return true;}
+  const someoneFinished=currentPlacements(s).some(p=>p.racerId!==r.id);
+  if(power==='wurstii-bullet-bill'&&someoneFinished&&!r.flags.bulletUsed){r.flags.bulletUsed=true;usePower(s,r,[{kind:'move',racerId:r.id,distance:8,cause:power}],power);return true;}
+  if(power==='wurstii-fluffin-puffins'&&someoneFinished&&Number(r.flags.puffinUses??0)<3){r.flags.puffinUses=Number(r.flags.puffinUses??0)+1;usePower(s,r,[{kind:'gain',racerId:r.id,amount:1}],power);return true;}
+  return false;
+}
+/** Capture one end-of-turn event before any reacting character moves its target. */
+function wurstiiEndTasks(s:GameState,ending:Racer):Work[] {
+  if(!live(ending))return [];
+  const tasks:Work[]=[];
+  const milestone=wurstiiMilestone(ending.position);
+  for(const source of order(s))for(const power of effectivePowers(s,source)){
+    const own=source.id===ending.id,other=!own,ahead=ending.position>source.position;
+    const triggers=(power==='wurstii-bucky-ohare'&&other&&milestone)
+      ||(power==='wurstii-dry-bones'&&other&&milestone)
+      ||(power==='wurstii-jason-vorhees'&&other&&[28,29].includes(ending.position))
+      ||(power==='wurstii-knuckles'&&own&&ending.flags.turnsTaken===1&&!ending.flags.knucklesUsed)
+      ||(power==='wurstii-olaf'&&own&&[5,10].includes(ending.position))
+      ||(power==='wurstii-simon-belmont'&&own&&milestone)
+      ||(power==='wurstii-yoshi'&&active(s).some(x=>x.id!==ending.id&&x.position===ending.position))
+      ||(power==='wurstii-rollercoaster-tycoon-guest'&&own&&milestone)
+      ||(other&&ahead&&milestone&&(power==='wurstii-spot'||power==='wurstii-piranha-plant'));
+    if(triggers)tasks.push({kind:'wurstiiEnd',racerId:source.id,power,targetId:ending.id,position:ending.position});
+  }
+  return tasks;
+}
+function wurstiiEnd(s:GameState,r:Racer,t:Work) {
+  const power=String(t.power),target=racer(s,String(t.targetId));
+  if(!target)return;
+  const effects:Work[]=[];
+  if(power==='wurstii-bucky-ohare')effects.push({kind:'move',racerId:r.id,distance:1,cause:power});
+  if(power==='wurstii-dry-bones'){
+    const seen=(r.flags.dryBonesTargets??=[]) as string[];
+    if(seen.includes(target.id))return;seen.push(target.id);
+    effects.push({kind:'gain',racerId:target.id,amount:-1});
+  }
+  if(power==='wurstii-jason-vorhees'&&live(target))effects.push({kind:'warp',racerId:target.id,position:20,cause:power});
+  if(power==='wurstii-knuckles'){r.flags.knucklesUsed=true;effects.push({kind:'wurstiiExtraTurns',racerId:r.id,amount:2});}
+  if(power==='wurstii-olaf')effects.push({kind:'warp',racerId:r.id,position:20,cause:power});
+  if(power==='wurstii-simon-belmont')effects.push({kind:'wurstiiExtraTurns',racerId:r.id,amount:1});
+  if(power==='wurstii-yoshi')effects.push({kind:'move',racerId:r.id,distance:2,cause:power});
+  if(power==='wurstii-rollercoaster-tycoon-guest')effects.push({kind:'gain',racerId:r.id,amount:1});
+  if(power==='wurstii-spot'&&live(target))effects.push({kind:'warp',racerId:target.id,position:Math.max(0,target.position-5),cause:power},{kind:'wurstiiSpotFollow',racerId:r.id,targetId:target.id});
+  if(power==='wurstii-piranha-plant')effects.push({kind:'warp',racerId:r.id,position:Number(t.position),cause:power});
+  usePower(s,r,effects,power);
+}
 function rollFor(s:GameState,r:Racer,reason:string):number {
   const stunners=stunnerSources(s,r);
   const raw=random(s,reason,6,stunners.length>0&&!powers(s,'leaf-triangle-man').length);r.flags.secretLeafLastRaw=raw;
@@ -1004,7 +1136,21 @@ function fanChoice(s:GameState,r:Racer,c:PendingChoice,id:string):boolean{
   const ctx=c.context as Record<string,any>;
   if(c.kind==='em-fox'){
     const pending=ctx.task as Work,source=racer(s,String(ctx.sourceId));
-    if(id==='block'&&live(r)&&hasPower(s,r,em('mr-fox'))&&Number(r.flags.foxUsed??0)<3&&source&&live(source)){
+    // Pre-fix fan-v3 saves can be at the old direct end window, or at its
+    // redundant empty activation after the effect was prematurely credited.
+    // Normalize only those two shapes; new/frozen-version continuations differ.
+    if(source&&['wurstii-knuckles','wurstii-simon-belmont'].includes(String(pending.power))){
+      const amount=pending.power==='wurstii-knuckles'?2:1;
+      if(pending.kind==='wurstiiEnd'||pending.kind==='activate'&&pending.effects?.length===0){
+        if(pending.kind==='activate'){
+          if(amount===2)source.flags.wurstiiExtraTurns=Math.max(0,Number(source.flags.wurstiiExtraTurns??0)-2);
+          else source.flags.extraTurn=false;
+        }
+        if(amount===2)source.flags.knucklesUsed=true;
+        pending.kind='activate';pending.effects=[{kind:'wurstiiExtraTurns',racerId:source.id,amount}];pending.fallback=[];
+      }
+    }
+    if(id==='block'&&live(r)&&hasPower(s,r,em('mr-fox'))&&Number(r.flags.foxUsed??0)<3&&source&&(live(source)||pending.kind==='wurstiiAward')){
       r.flags.foxUsed=Number(r.flags.foxUsed??0)+1;pending.reactionBlocked=[...(pending.reactionBlocked??[]),ctx.key];
       log(s,'block',`${owner(s,r).name}的${name(r)}阻止${name(source)}本次「${character(ctx.power)?.nameZh??ctx.power}」（本场剩余${3-Number(r.flags.foxUsed)}次）`,{source:r.id,targets:[source.id],cause:em('mr-fox')});
       pending.reactionChecked=[...(pending.reactionChecked??[]),ctx.key];push(s,pending,{kind:'powerDone',racerId:r.id,power:em('mr-fox')});
@@ -1123,12 +1269,13 @@ function fanRaceEnd(s:GameState,draw:boolean){
   }
   delete s.flags.fanSecrets;
 }
-/** Only bookkeeping fields are omitted. Scores, owners, resources, powers and
- * the continuation remain in the signature, so progressing chains never stop. */
-function resolutionSignature(s:GameState):string{
+/** Ordinary detection retains scores and all rule state. The explicit mutual
+ * reaction ruling also normalizes income; expenditures invalidate those entries. */
+function resolutionSignature(s:GameState,scoreCycle=false):string{
   const flags={...s.flags};for(const key of ['choiceSeq','motionSeq','loopSeen','forcedCycleTrace','resolutionSeen','resolutionSeenScores','resolutionSuppressed','continuation','resolutionDiagnostic'])delete flags[key];
   if(Number(flags.fanTurnPowerCount)>=2)flags.fanTurnPowerCount=2;
-  return JSON.stringify({players:s.players.map(p=>({id:p.id,score:p.score,hand:p.hand,used:p.used,selection:p.selection})),racers:s.racers.map(r=>({...r,flags:semanticRacerFlags(s,r)})),phase:s.phase,round:s.round,turn:s.turn,current:s.currentRacerId,baseTurnOrder:s.baseTurnOrder,deck:s.deck,discard:s.discard,flags,next:s.queue[0],random:[s.rngState,s.randomStream]},(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value);
+  if(scoreCycle){delete flags.fanIncome;if(!powers(s,em('pooh')).length)delete flags.fanTurnPowerCount;}
+  return JSON.stringify({players:s.players.map(p=>({id:p.id,score:scoreCycle?0:p.score,hand:p.hand,used:p.used,selection:p.selection})),racers:s.racers.map(r=>{const racerFlags=semanticRacerFlags(s,r);if(scoreCycle)delete racerFlags.leafRaceIncome;return {...r,flags:racerFlags};}),phase:s.phase,round:s.round,turn:s.turn,current:s.currentRacerId,baseTurnOrder:s.baseTurnOrder,deck:s.deck,discard:s.discard,flags,next:s.queue[0],random:[s.rngState,s.randomStream]},(_key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value);
 }
 
 /** Reaction windows belong to one persisted activation, not to a character name
@@ -1138,9 +1285,11 @@ function reactionActivations(s:GameState,t:Work):{racerId:string;power:string}[]
   const add=(source:Racer,power:string)=>{if(power!==em('mr-fox')&&!result.some(x=>x.racerId===source.id&&x.power===power))result.push({racerId:source.id,power});};
   if(!r)return result;
   if(t.kind==='activate'){add(r,String(t.power));return result;}
+  // Wily's explicit end-of-race exception includes finished/eliminated owners.
+  if(t.kind==='wurstiiAward'&&!r.flags.wilyPaid&&hasPower(s,r,'wurstii-dr-wily')){add(r,'wurstii-dr-wily');return result;}
   const directWindows:Record<string,string[]>={
-    beforeRacePower:['sisyphus','egg','twin','hog-knight','nepo-baby','soulmate','understudy',em('doc-paradox'),em('dom-and-gary'),em('honey-pot'),em('toll-troll'),em('snake-eyes'),em('thief'),'leaf-loan-shark','leaf-filmmaker'],
-    turnStartOne:['speed-demon','spoilsport','mastermind'],
+    beforeRacePower:['sisyphus','egg','twin','hog-knight','nepo-baby','soulmate','understudy',em('doc-paradox'),em('dom-and-gary'),em('honey-pot'),em('toll-troll'),em('snake-eyes'),em('thief'),'leaf-loan-shark','leaf-filmmaker','wurstii-hoagie','wurstii-tails','wurstii-dr-wily'],
+    turnStartOne:['speed-demon','spoilsport','mastermind','wurstii-bart-simpson'],
     swEndTurn:['hopfrog','switcharoo'],
     swRollEffect:['bite-mark','icarus','mush'],
   };
@@ -1156,7 +1305,7 @@ function reactionActivations(s:GameState,t:Work):{racerId:string;power:string}[]
       if(source.id===r.id){
         const always=['blimp','hare','gloth','icarus',em('doc-paradox'),'leaf-crash-dummy','leaf-lonely-wolf'];
         const enabled=always.includes(p)||p==='party-animal'&&active(s).some(x=>x.id!==r.id&&x.position===r.position)||p==='blunderdog'&&Boolean(r.flags.mainRolled)||p==='penguin'&&r.tripped&&Boolean(r.flags.mainRolled)||p==='overtaker'&&active(s).some(x=>x.position>r.position)||p==='speed-demon'&&owner(s,r).score>0||[em('oddball'),em('silly-goose')].includes(p)&&Boolean(r.flags.mainRolled)||p===em('gingy')&&Number(r.flags.gingyLives??4)<4||p===em('snub')&&Number(r.flags.snubBonus??0)>0||p===em('dom-and-gary')&&Boolean(r.flags.domCaught)||p===em('doctor-dice')&&Number(r.flags.doctorBonus??0)>0||p==='leaf-dark-horse'&&r.flags.leafDarkTurn===s.turnCount||p==='leaf-nepo-baby'&&s.results.some(result=>result.placements.some(place=>place.playerId===r.playerId))||p==='leaf-sole-survivor'&&Number(r.flags.leafRaceIncome??0)>0;
-        if(enabled)add(source,p);
+        if(enabled||wurstiiMainBonus(s,r,p)>0)add(source,p);
       }
       if(p==='coach'&&source.position===r.position||p==='gunk'&&source.id!==r.id&&!(s.players.length===2&&source.playerId===r.playerId)||p==='null'&&r.position>source.position||p==='stepdad'&&stepdadTarget(s,source)?.id===r.id||p===em('gluebert')&&source.id!==r.id&&source.position===r.position)add(source,p);
     }
@@ -1173,6 +1322,11 @@ function reactionActivations(s:GameState,t:Work):{racerId:string;power:string}[]
     for(const source of order(s))for(const p of effectivePowers(s,source)){
       if(p==='huge-baby'&&plans.some(plan=>{const target=racer(s,plan.racerId);return target&&target.id!==source.id&&(plan.position??target.position+Number(plan.distance??0))===source.position;}))add(source,p);
       if(p==='leaptoad'&&t.kind==='move'&&plans.some(plan=>plan.racerId===source.id&&active(s).some(x=>x.id!==source.id&&(x.position-source.position)*Math.sign(Number(plan.distance))>0&&Math.abs(x.position-source.position)<=Math.abs(Number(plan.distance)))))add(source,p);
+      if(['wurstii-mario','wurstii-frogger','wurstii-diddy-kong'].includes(p)&&t.kind==='move'&&plans.some(plan=>{
+        if(plan.racerId!==source.id)return false;
+        const preview=previewMove(s,source,Number(plan.distance??0),plans.filter(x=>Number(x.distance)!==0).map(x=>x.racerId));
+        return p==='wurstii-diddy-kong'?preview.capped:preview.jumps.includes(p);
+      }))add(source,p);
       if(p==='stickler'&&t.kind==='move'&&plans.some(plan=>{const target=racer(s,plan.racerId);return target&&target.id!==source.id&&target.position+Number(plan.distance??0)>TRACKS[s.track].finish;}))add(source,p);
       if(p===em('gluebert')&&t.kind==='move'&&plans.some(plan=>{const target=racer(s,plan.racerId);return target&&target.id!==source.id&&(target.position-source.position)*(target.position+Number(plan.distance??0)-source.position)<0;}))add(source,p);
     }

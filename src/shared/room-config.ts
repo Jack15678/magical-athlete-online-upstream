@@ -2,25 +2,25 @@ import { CHARACTERS } from './characters.js';
 import type { CharacterPool } from './types.js';
 
 export const ROOM_CONFIG_VERSION = 'room-config-v1' as const;
-export const CHARACTER_PACK_IDS = ['original', 'second-wind', 'extra-mile', 'leaf-fan'] as const;
+export const CHARACTER_PACK_IDS = ['original', 'second-wind', 'extra-mile', 'leaf-fan', 'wurstii'] as const;
 export type CharacterPackId = typeof CHARACTER_PACK_IDS[number];
 export interface RoomConfig {
   version: typeof ROOM_CONFIG_VERSION;
-  characterPacks: Record<CharacterPackId, boolean>;
+  characterPacks: Record<Exclude<CharacterPackId, 'wurstii'>, boolean> & { wurstii?: boolean }; // Older v1 saves omit Wurstii.
   /** No independent optional scoring variants have been verified yet. */
   optionalRules: [];
 }
 export function legacyRoomConfig(pool: CharacterPool = 'original', practice = false): RoomConfig {
-  return { version: ROOM_CONFIG_VERSION, characterPacks: { original: practice || pool !== 'second-wind', 'second-wind': practice || pool !== 'original', 'extra-mile': false, 'leaf-fan': false }, optionalRules: [] };
+  return { version: ROOM_CONFIG_VERSION, characterPacks: { original: practice || pool !== 'second-wind', 'second-wind': practice || ['second-wind','mixed','all'].includes(pool), 'extra-mile': false, 'leaf-fan': false, wurstii: pool === 'wurstii' || pool === 'all' }, optionalRules: [] };
 }
 export function validateRoomConfig(value: unknown): RoomConfig {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('角色包配置无效。');
   const config = value as Record<string, unknown>, packs = config.characterPacks;
   if (Object.keys(config).some(key => !['version','characterPacks','optionalRules'].includes(key)) || config.version !== ROOM_CONFIG_VERSION || !packs || typeof packs !== 'object' || Array.isArray(packs)) throw Error('角色包配置版本或字段无效。');
   const flags = packs as Record<string, unknown>;
-  if (Object.keys(flags).length !== CHARACTER_PACK_IDS.length || CHARACTER_PACK_IDS.some(id => typeof flags[id] !== 'boolean') || Object.keys(flags).some(id => !CHARACTER_PACK_IDS.includes(id as CharacterPackId))) throw Error('角色包开关无效。');
+  if (CHARACTER_PACK_IDS.some(id => !(id === 'wurstii' && flags[id] === undefined) && typeof flags[id] !== 'boolean') || Object.keys(flags).some(id => !CHARACTER_PACK_IDS.includes(id as CharacterPackId))) throw Error('角色包开关无效。');
   if (!Array.isArray(config.optionalRules) || config.optionalRules.length) throw Error('没有已核实的独立可选玩法，请勿提交未知玩法。');
-  const result:RoomConfig = {version:ROOM_CONFIG_VERSION,characterPacks:Object.fromEntries(CHARACTER_PACK_IDS.map(id=>[id,flags[id]])) as Record<CharacterPackId,boolean>,optionalRules:[]};
+  const result:RoomConfig = {version:ROOM_CONFIG_VERSION,characterPacks:Object.fromEntries(CHARACTER_PACK_IDS.map(id=>[id,flags[id] === true])) as Record<CharacterPackId,boolean>,optionalRules:[]};
   if (!enabledCharacterIds(result).length) throw Error('请至少启用一个含已完成角色的角色包。');
   return result;
 }

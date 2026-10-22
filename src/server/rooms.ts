@@ -65,7 +65,7 @@ export class Rooms {
     if(!['multiplayer','practice','ai'].includes(mode))throw Error('比赛模式无效。');
     if(mode==='ai'&&(!Number.isInteger(aiCount)||aiCount<1||aiCount>7))throw Error('AI人数需为1～7。');
     if(mode!=='multiplayer')maxPlayers=mode==='practice'?1:aiCount+1;
-    if(!['original','second-wind','mixed'].includes(characterPool))throw Error('角色牌池无效。');
+    if(!['original','second-wind','mixed','wurstii','all'].includes(characterPool))throw Error('角色牌池无效。');
     if(requestId!==undefined&&!/^[a-zA-Z0-9_-]{16,100}$/.test(requestId))throw Error('建房请求编号无效。');
     const rules=validateRoomConfigForPlayers(config??legacyRoomConfig(characterPool,mode==='practice'),maxPlayers,mode==='practice');
     if(config)characterPool=legacyPoolForConfig(rules);

@@ -3,6 +3,7 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { AnimationMixer, LoopOnce, LoopRepeat, Mesh, MeshStandardMaterial, type AnimationClip, type Group } from 'three';
 import { SECOND_WIND_CHARACTERS } from '../../shared/second-wind.js';
+import { WURSTII_CHARACTERS } from '../../shared/wurstii.js';
 import { toyResources } from './pawn-materials.js';
 import { AssetRecovery } from './asset-recovery.js';
 import { expansionModels } from './expansion-models.js';
@@ -34,6 +35,7 @@ const createRecovery = (url: string) => new AssetRecovery({
 const modelRecovery = createRecovery(MODEL_URL);
 const economyRecovery = createRecovery(ECONOMY_URL);
 const secondWind = new Set(SECOND_WIND_CHARACTERS.map(character => character.id));
+const wurstii = new Set(WURSTII_CHARACTERS.map(character => character.id));
 const additionalRecovery = new Map<string, AssetRecovery>();
 function recoveryFor(url: string) {
   if (url === MODEL_URL) return modelRecovery;
@@ -139,7 +141,7 @@ function Sculpture({ characterId, color, lowQuality = false, castShadow = true, 
 export function ToyCharacter({ characterId, color, lowQuality = false, castShadow = true, form, mount, animation, motionEnabled }: ToyCharacterProps) {
   const geometry = toyResources.baseGeometry(lowQuality);
   const modelId = characterId === 'bite-mark' && form === 'were-mouth' ? 'bite-mark-were' : characterId;
-  const url = characterId==='banana' ? `/models/banana/${lowQuality?'banana-economy':'banana'}.glb?v=reference-mouth-v2-20261022` : expansionModels[characterId] ?? (secondWind.has(characterId) ? `/models/second-wind/${modelId}.glb?v=mouth-surface-v2-20261022` : lowQuality ? ECONOMY_URL : MODEL_URL);
+  const url = wurstii.has(characterId) ? `/models/wurstii/${characterId}.glb` : characterId==='banana' ? `/models/banana/${lowQuality?'banana-economy':'banana'}.glb?v=reference-mouth-v2-20261022` : expansionModels[characterId] ?? (secondWind.has(characterId) ? `/models/second-wind/${modelId}.glb?v=mouth-surface-v2-20261022` : lowQuality ? ECONOMY_URL : MODEL_URL);
   return <group name={`racer-model-${characterId}`} userData={{racerModel:true}}>
     <mesh geometry={geometry.body} material={toyResources.baseMaterial(color, lowQuality)} receiveShadow={!lowQuality} castShadow={castShadow && !lowQuality} dispose={null} />
     <mesh geometry={geometry.cap} material={toyResources.baseMaterial(color, lowQuality, true)} receiveShadow={!lowQuality} dispose={null} />

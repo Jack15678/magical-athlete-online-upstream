@@ -1,5 +1,9 @@
 import * as rulesV2 from './rules-v2.js';
 import * as current from './index.js';
+import * as wurstiiV1 from './wurstii-v1.js';
+import { WURSTII_V1_RULES_VERSION } from '../shared/rules-versions.js';
+export { WURSTII_V1_RULES_VERSION };
+export { SECOND_WIND_RULES_VERSION } from '../shared/rules-versions.js';
 import * as legacy from './legacy-v1.js';
 import * as secondWindV1 from './second-wind-v1.js';
 import { CHARACTERS } from '../shared/characters.js';
@@ -12,9 +16,10 @@ export const SECOND_WIND_V2_RULES_VERSION = 'cmyk-base-aug2026-sw-transcript-v2'
 export const SECOND_WIND_V1_RULES_VERSION = 'cmyk-base-aug2026-sw-transcript-v1';
 export const LEGACY_RULES_VERSION = 'legacy-base-v1';
 export function rulesVersion(game: GameState): string { return game.rulesVersion ?? LEGACY_RULES_VERSION; }
-export function hasRoomRules(game:GameState):boolean { return [CURRENT_RULES_VERSION,SECOND_WIND_V2_RULES_VERSION,SECOND_WIND_V1_RULES_VERSION,LEGACY_RULES_VERSION].includes(rulesVersion(game)); }
+export function hasRoomRules(game:GameState):boolean { return [CURRENT_RULES_VERSION,WURSTII_V1_RULES_VERSION,SECOND_WIND_V2_RULES_VERSION,SECOND_WIND_V1_RULES_VERSION,LEGACY_RULES_VERSION].includes(rulesVersion(game)); }
 export function roomRules(game: GameState): Pick<typeof current, 'startGame' | 'applyGameAction' | 'automaticAction' | 'systemAction'> {
   const version = rulesVersion(game);
+  if (version === WURSTII_V1_RULES_VERSION) return wurstiiV1;
   if (version === LEGACY_RULES_VERSION) return legacy;
   if (version === SECOND_WIND_V1_RULES_VERSION) return secondWindV1;
   if (version === SECOND_WIND_V2_RULES_VERSION) return rulesV2;
@@ -27,6 +32,7 @@ export function automaticRoomAction(game: GameState) {
 }
 export function systemRoomAction(game: GameState) {
   if (!hasRoomRules(game)) return;
+  if (game.mode !== 'practice' && game.phase === 'draft' && game.draft?.market.length === 1) return automaticRoomAction(game);
   return roomRules(game).systemAction(game);
 }
 
@@ -35,7 +41,7 @@ const publicPowerIds=(value:unknown):string[]=>Array.isArray(value)?[...new Set(
 const publicString=(value:unknown):string|undefined=>typeof value==='string'?value:undefined;
 const publicCard=(value:unknown):string|undefined=>typeof value==='string'&&publicCardIds.has(value)?value:undefined;
 export function publicAbilityState(game:GameState,racer:Racer):PublicAbilityState {
-  const raw=rulesVersion(game)===SECOND_WIND_V1_RULES_VERSION ? secondWindV1.abilityState(game,racer) : rulesVersion(game)===SECOND_WIND_V2_RULES_VERSION?rulesV2.abilityState(game,racer):current.abilityState(game,racer);
+  const raw=rulesVersion(game)===WURSTII_V1_RULES_VERSION ? wurstiiV1.abilityState(game,racer) : rulesVersion(game)===SECOND_WIND_V1_RULES_VERSION ? secondWindV1.abilityState(game,racer) : rulesVersion(game)===SECOND_WIND_V2_RULES_VERSION?rulesV2.abilityState(game,racer):current.abilityState(game,racer);
   // Frozen engines retain their original flag shapes. Project a typed allowlist
   // rather than leaking arbitrary stored metadata into a new detail component.
   const state:Record<string,unknown>=raw;

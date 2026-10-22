@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { CHARACTERS, type CharacterData } from '../shared/characters.js';
 import type { CharacterPool } from '../shared/types.js';
 
-export const POOL_LABELS: Record<CharacterPool, string> = {original: '原作', 'second-wind': 'Second Wind', mixed: '两代混合'};
-export const EDITION_LABELS = { original:'基础角色包', 'second-wind':'Second Wind', 'extra-mile':'Extra Mile', leaf:'Leaf’s Fan Expansion' } as const;
+export const POOL_LABELS: Record<CharacterPool, string> = {original: '原作', 'second-wind': 'Second Wind', mixed: '两代混合', wurstii:'原作＋Wurstii A', all:'原作＋Second Wind＋Wurstii A'};
+export const EDITION_LABELS = { original:'基础角色包', 'second-wind':'Second Wind', 'extra-mile':'Extra Mile', leaf:'Leaf’s Fan Expansion', wurstii:'Wurstii A' } as const;
 export const isSecondWind = (character?: CharacterData) => character?.edition === 'second-wind';
-export function EditionBadge({ character }: {character?: CharacterData}) { const edition=character?.edition??'original'; return <span className={`edition-badge ${edition}`}>{EDITION_LABELS[edition]}{['extra-mile','leaf'].includes(edition)&&' · 非官方粉丝扩展'}</span>; }
+export function EditionBadge({ character }: {character?: CharacterData}) { const edition=character?.edition??'original'; return <span className={`edition-badge ${edition}`}>{EDITION_LABELS[edition]}{['extra-mile','leaf','wurstii'].includes(edition)&&' · 非官方粉丝扩展'}</span>; }
 export function useCharacterFilter() {
   const [edition, setEdition] = useState<keyof typeof EDITION_LABELS | 'all'>('all'), [query, setQuery] = useState('');
   const filter = (ids: readonly string[]) => ids.filter(id => {
