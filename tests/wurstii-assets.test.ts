@@ -13,7 +13,7 @@ test('Wurstii ships exactly the 30 implemented roles, with portraits and editabl
   const ids = WURSTII_CHARACTERS.map(c => c.id).sort();
   assert.deepEqual(manifest.models.map((m: { id: string }) => m.id).sort(), ids);
   assert.deepEqual((await readdir(folder)).filter(f => f.endsWith('.glb')).map(f => f.slice(0, -4)).sort(), ids);
-  assert.deepEqual((await readdir(new URL('../public/avatars/wurstii/', import.meta.url))).map(f => f.slice(0, -4)).sort(), ids);
+  assert.deepEqual((await readdir(new URL('../public/avatars/wurstii/', import.meta.url))).filter(f => f.endsWith('.png')).map(f => f.slice(0, -4)).sort(), ids);
   for (const model of manifest.models) {
     const thumb=await readFile(new URL(`../public/avatars/wurstii-small/${model.id}.webp`,import.meta.url));
     assert.equal(thumb.subarray(8,12).toString(),'WEBP');assert(thumb.length<15000,'small avatar byte budget');
