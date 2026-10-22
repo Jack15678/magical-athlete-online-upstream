@@ -123,5 +123,5 @@ export function RenameForm({ room, community, connection, onSuccess }: { room: R
     try { const reply = await connection.rename(request.current!); if (reply.ok && reply.name) onSuccess(reply.name); else { setError(reply.error ?? '修改未成功，请重试。'); request.current = null; } }
     catch (cause) { setError(cause instanceof Error ? cause.message : '尚未确认修改，请重试。'); }
     finally { setBusy(false); }
-  }}><p>当前昵称：<strong>{current}</strong></p><p>{remaining ? '每局完整对局可修改一次，四场比赛共用。重名时自动追加最小可用数字。' : '本局已修改过昵称'}</p><label>新昵称<input autoComplete="nickname" autoFocus maxLength={20} disabled={!remaining || busy} value={name} onChange={event => setName(event.target.value)} /></label>{error && <p role="alert" className="form-error">{error}</p>}<button className="button" disabled={!remaining || busy || !name.trim() || name.trim() === current}>{busy ? '修改中…' : '确认修改昵称'}</button></form>;
+  }}><p>当前昵称：<strong>{current}</strong></p><p>{remaining ? '每局完整对局可修改一次，全部场次共用。重名时自动追加最小可用数字。' : '本局已修改过昵称'}</p><label>新昵称<input autoComplete="nickname" autoFocus maxLength={20} disabled={!remaining || busy} value={name} onChange={event => setName(event.target.value)} /></label>{error && <p role="alert" className="form-error">{error}</p>}<button className="button" disabled={!remaining || busy || !name.trim() || name.trim() === current}>{busy ? '修改中…' : '确认修改昵称'}</button></form>;
 }

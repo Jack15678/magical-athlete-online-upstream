@@ -20,7 +20,7 @@ test('room config preserves legacy pools, rejects unsupported options and never 
 test('independent fan pools enforce complete-game card counts for the configured room size',()=>{
   const leaf=legacyRoomConfig();leaf.characterPacks.original=false;leaf.characterPacks['leaf-fan']=true;
   assert.equal(requiredCharacterCount(2),16);assert.equal(requiredCharacterCount(8),32);assert.equal(requiredCharacterCount(1,true),4);
-  assert.equal(validateRoomConfigForPlayers(leaf,4).characterPacks['leaf-fan'],true);assert.throws(()=>validateRoomConfigForPlayers(leaf,5),/18名.*20名/);
+  assert.throws(()=>validateRoomConfigForPlayers(leaf,4),/技能抽牌预留/);assert.throws(()=>validateRoomConfigForPlayers(leaf,5),/技能抽牌预留/);assert(validateRoomConfigForPlayers(leaf,1,true));
   const extra=legacyRoomConfig();extra.characterPacks.original=false;extra.characterPacks['extra-mile']=true;
   assert(validateRoomConfigForPlayers(extra,7));assert.throws(()=>validateRoomConfigForPlayers(extra,8),/31名.*32名/);
 });

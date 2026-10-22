@@ -68,8 +68,14 @@ export interface RoomView { role?: RoomRole; spectators?: Spectator[]; createdAt
 export interface Player { renameUsed?: boolean; renameRequestId?: string; }
 export interface GameState { characterPool?: CharacterPool; rulesVersion?: string; }
 export interface GameState { config?: import('./room-config.js').RoomConfig; }
+export interface GameState { matchPlan?: import('./competition.js').MatchPlan; }
+export interface ScoreBreakdown { playerId:string; placement:number; map:number; skill:number; event:number; total:number; }
+export interface GameState { scoreLedger?: ScoreBreakdown[]; }
+export interface RaceResult { scores?: ScoreBreakdown[]; }
 export interface Room { configFrozen?: boolean; }
 export interface RoomView { config?: import('./room-config.js').RoomConfig; configFrozen?: boolean; }
+export interface RoomView { matchPlan?: import('./competition.js').MatchPlan; }
+export interface RoomSummary { visibility?: 'public' | 'private'; }
 export interface RoomView { waitingPrompt?: {playerId:string; racerId?:string; kind:string}; }
 export interface Room { chat?: ChatState; }
 export interface RoomView { characterPool?: CharacterPool; rulesVersion?: string; chat?: ChatMessage[]; chatLatestId?: number; renameRemaining?: number; }

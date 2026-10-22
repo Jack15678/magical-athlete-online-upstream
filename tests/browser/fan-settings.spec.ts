@@ -10,7 +10,7 @@ test.afterAll(async()=>{await app.close();});
 test('independent character packs persist, synchronize to peers, reset readiness and freeze at drafting',async({browser})=>{
   const contexts=await Promise.all([browser.newContext({viewport:{width:1280,height:900}}),browser.newContext({viewport:{width:390,height:844}})]),pages=await Promise.all(contexts.map(context=>context.newPage()));
   const [host,guest]=pages;try{
-    await host!.goto(url);await expect(host!.getByRole('checkbox',{name:'基础角色包',exact:true})).toBeChecked();
+    await host!.goto(url);await host!.getByRole('tab',{name:'创建房间',exact:true}).click();await expect(host!.getByRole('checkbox',{name:'基础角色包',exact:true})).toBeChecked();
     for(const name of ['Second Wind','Extra Mile','Leaf’s Fan Expansion'])await expect(host!.getByRole('checkbox',{name,exact:true})).not.toBeChecked();
     await host!.getByLabel('你的昵称').fill('配置房主');await host!.getByLabel('房间人数上限').selectOption('2');await host!.getByLabel('每次操作时限').selectOption('0');await host!.getByRole('checkbox',{name:'Extra Mile',exact:true}).check();
     await host!.getByRole('button',{name:'创建房间，召集朋友',exact:true}).click();await expect(host!.locator('.connection.is-online')).toBeVisible();const code=host!.url().split('/').at(-1)!;
@@ -31,7 +31,7 @@ test('practice can choose four completed racers across enabled packs and complet
   await page.setViewportSize({width:390,height:844});await page.goto(url);await page.getByRole('tab',{name:'自己练习',exact:true}).click();
   for(const name of ['Extra Mile','Leaf’s Fan Expansion'])await page.getByRole('checkbox',{name,exact:true}).check();
   await page.getByRole('button',{name:'开始自己练习',exact:true}).click();await expect(page.locator('.connection.is-online')).toBeVisible();
-  await expect(page.locator('.practice-pool .character-card')).toHaveCount(CHARACTERS.length);
+  await expect(page.locator('.practice-pool .character-card')).toHaveCount(CHARACTERS.filter(card=>card.edition!=='wurstii').length);
   const selected=[CHARACTERS.find(card=>!card.edition||card.edition==='original')!,CHARACTERS.find(card=>card.edition==='second-wind')!,CHARACTERS.find(card=>card.edition==='extra-mile')!,CHARACTERS.find(card=>card.edition==='leaf')!];
   for(const card of selected){await page.getByLabel('搜索角色',{exact:true}).fill(card.nameEn);await page.getByRole('button',{name:`选择${card.nameZh}`,exact:true}).click();}
   await page.getByLabel('搜索角色',{exact:true}).fill('');await page.getByRole('button',{name:'确认练习阵容',exact:true}).click();await expect(page.locator('.hand-selection .character-card')).toHaveCount(4);

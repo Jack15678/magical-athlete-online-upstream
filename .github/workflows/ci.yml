@@ -51,6 +51,8 @@ jobs:
           REQUESTED_SUITE: ${{ inputs.browser_suite }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - run: pnpm typecheck
+      - name: Validate frozen schedules, long drafting, score audit and worker persistence
+        run: pnpm exec tsx --test tests/competition.test.ts tests/schedule-review.test.ts tests/rules-version.test.ts tests/relay.test.ts
       - run: pnpm test
         if: steps.validation.outputs.suite == 'all'
       - run: pnpm test:abilities
@@ -58,6 +60,10 @@ jobs:
       - run: pnpm build
       - run: pnpm exec wrangler deploy --dry-run
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Validate home configuration and complete eight-race duo
+        run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home,|finish 8|two browsers preserve|rematch"
+        env:
+          CI: true
       # Default to one eight-player race with reconnects. A validation trailer
       # can select focused ability checks; broad suites stay manual.
       - run: pnpm exec playwright test tests/browser/three-scene.spec.ts --grep "3D dice settles|3D simultaneous"

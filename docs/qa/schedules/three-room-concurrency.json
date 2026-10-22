@@ -1,0 +1,47 @@
+{
+  "rooms": 3,
+  "transport": "real local Node HTTP + WebSocket, no browser rendering",
+  "progress": [
+    {
+      "raceCount": 4,
+      "seed": 5400,
+      "actions": 60,
+      "phase": "race",
+      "round": 2
+    },
+    {
+      "raceCount": 6,
+      "seed": 5401,
+      "actions": 60,
+      "phase": "race",
+      "round": 2
+    },
+    {
+      "raceCount": 8,
+      "seed": 5402,
+      "actions": 60,
+      "phase": "race",
+      "round": 2
+    }
+  ],
+  "elapsedMs": 17278.229799999997,
+  "acknowledgements": 189,
+  "p50Ms": 5.658500000000004,
+  "p95Ms": 15.57300000000032,
+  "maxMs": 23.526600000001054,
+  "before": {
+    "rss": 126214144,
+    "heapTotal": 57307136,
+    "heapUsed": 39206008,
+    "external": 6066321,
+    "arrayBuffers": 2160221
+  },
+  "after": {
+    "rss": 176668672,
+    "heapTotal": 100823040,
+    "heapUsed": 53060816,
+    "external": 7153969,
+    "arrayBuffers": 2901344
+  },
+  "limits": "Single Windows host; no 30-room performance claim, no production load, no new maps available for comparison."
+}

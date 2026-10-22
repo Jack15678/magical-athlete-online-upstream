@@ -1,5 +1,7 @@
 import { installLeaf } from './leaf-expansion.js';
-import { enabledCharacterIds } from '../shared/room-config.js';
+import { enabledCharacterIds, validateRoomConfigForPlayers } from '../shared/room-config.js';
+import { createMatchPlan, matchRaceCount } from '../shared/competition.js';
+import { SCHEDULE_RULES_VERSION } from '../shared/rules-versions.js';
 import { CHARACTERS, characterPool } from '../shared/characters.js';
 import { TRACKS, RACE_POINTS } from '../shared/tracks.js';
 import { createRandomStream, nextRandomWord, secureRandomSeed, uniformInteger, type RandomSeed } from '../shared/random.js';
@@ -169,6 +171,7 @@ function dispatch(s:GameState,r:Racer,power:string,run:()=>void){ if(!hasPower(s
 
 function points(s: GameState, r: Racer, delta: number, cause: string) {
   const p = owner(s,r); const previous = p.score; p.score = Math.max(0,p.score+delta);if(p.score>previous)fanTrackIncome(s,r,p.score-previous);
+  const entry=s.scoreLedger?.find(entry=>entry.playerId===p.id);if(entry){entry[cause==='赛道星格'?'map':'skill']+=p.score-previous;entry.total+=p.score-previous;}
   log(s, 'score', `${p.name} ${p.score >= previous ? '+' : ''}${p.score-previous}分（${cause}）`, { source:r.id });
 }
 function ask(s: GameState, r: Racer, kind: string, title: string, options: {id:string;label:string}[], context: Record<string,any>, optional = false) {
@@ -177,7 +180,7 @@ function ask(s: GameState, r: Racer, kind: string, title: string, options: {id:s
   // evidence of a forced cycle, including an optional single-option prompt.
   if (optional || options.length > 1) breakForcedCycle(s);
   const seq = Number(s.flags.choiceSeq ?? 0)+1; s.flags.choiceSeq = seq;
-  s.pending = { id:`c${seq}`, playerId:r.playerId, racerId:r.id, title, kind, options, optional, context };
+  s.pending = { id:`r${s.round}:c${seq}`, playerId:r.playerId, racerId:r.id, title, kind, options, optional, context };
 }
 function breakForcedCycle(s:GameState) { delete s.flags.forcedCycleTrace; }
 interface ForcedCycleTrace {version:2;stunnerDraws:number;expectedRandom:string;states:{rules:string;random:string;stunnerDraws:number}[]}
@@ -227,7 +230,7 @@ function usePower(s: GameState, r: Racer, tasks: Work[], power = effectivePower(
 }
 
 export function createGame(players: Player[], seed: RandomSeed = secureRandomSeed(), mode: GameMode = 'multiplayer', pool: CharacterPool = 'original'): GameState {
-  return { mode, characterPool:pool, rulesVersion:'cmyk-base-aug2026-fan-v3', phase:'lobby', round:0, players:structuredClone(players), deck:[], discard:[], racers:[], turn:0, turnCount:0, queue:[], logs:[], results:[], rngState:(typeof seed==='number'?seed>>>0:0)||0x9e3779b9,...(typeof seed==='number'?{}:{randomStream:createRandomStream(seed)}), randomLog:[], track:'mild', flags:{} };
+  return { mode, characterPool:pool, rulesVersion:SCHEDULE_RULES_VERSION, phase:'lobby', round:0, players:structuredClone(players), deck:[], discard:[], racers:[], turn:0, turnCount:0, queue:[], logs:[], results:[], rngState:(typeof seed==='number'?seed>>>0:0)||0x9e3779b9,...(typeof seed==='number'?{}:{randomStream:createRandomStream(seed)}), randomLog:[], track:'mild', flags:{} };
 }
 function snake(s: GameState, first: string, twice = false) {
   const i=s.players.findIndex(p=>p.id===first); const ids=s.players.map((_,j)=>s.players[(i+j)%s.players.length]!.id);
@@ -235,31 +238,36 @@ function snake(s: GameState, first: string, twice = false) {
 }
 export function startGame(s: GameState): void {
   if (s.phase!=='lobby' || s.players.length<(s.mode==='practice'?1:2) || s.players.length>8 || (s.mode==='practice'&&s.players.length!==1)) throw Error('需要2～8名玩家才能开始；自己练习需要1名玩家');
+  if(s.config)validateRoomConfigForPlayers(s.config,s.players.length,s.mode==='practice');
+  s.matchPlan=createMatchPlan(s.config);
   s.players.forEach(p=>{p.score=0;p.hand=[];p.used=[];p.selection=[];}); s.round=1;s.results=[];s.logs=[];s.racers=[];s.queue=[];s.pending=undefined;
   s.rulesVersion??='cmyk-base-aug2026-sw-transcript-v1';s.deck=shuffle(s,enabledCharacterIds(s.config,s.characterPool,s.mode==='practice'));s.discard=[];
   if(s.mode==='practice'){
     s.draft={market:enabledCharacterIds(s.config,s.characterPool,true),order:[s.players[0]!.id],cursor:0,batch:0};s.phase='draft';
-    log(s,'phase','自己练习：从完整角色牌池自由选择4张不同角色牌');
+    log(s,'phase',`自己练习：从完整角色牌池自由选择${matchRaceCount(s)}张不同角色牌`);
     log(s,'house-rule','自己练习：每场单独出场；没有其他选手时，野兔正常移动以便练习。');return;
   }
   const first=rollOff(s,s.players.map(p=>p.id));s.flags.draftFirst=first;
-  s.draft={market:s.deck.splice(0,s.players.length===2?8:s.players.length*2),order:snake(s,first,s.players.length===2),cursor:0,batch:0};s.phase='draft';
+  const classicDuo=s.players.length===2&&matchRaceCount(s)===4;
+  s.draft={market:s.deck.splice(0,classicDuo?8:s.players.length*2),order:snake(s,first,classicDuo),cursor:0,batch:0};s.phase='draft';
   log(s,'phase',s.players.length>6?'7～8人扩展选秀开始':'选秀开始');
 }
 function beginSelection(s: GameState) {
   s.phase='selection';s.draft=undefined;s.pending=undefined;s.queue=[];s.baseTurnOrder=undefined;s.players.forEach(p=>p.selection=[]);
-  log(s,'phase',`第${s.round}场：${s.round%2?'温和一英里':'狂野荒野'}，请暗选${s.players.length===2?2:1}名角色`);
+  s.track=s.matchPlan?.races[s.round-1]?.map??(s.round%2?'mild':'wild');
+  log(s,'phase',`第${s.round}场：${TRACKS[s.track].name}，请暗选${s.players.length===2?2:1}名角色`);
 }
 function prepareRace(s: GameState) {
   breakForcedCycle(s);
   if(s.round===1) s.flags.firstPlayer=rollOff(s,s.players.map(p=>p.id));
   delete s.flags.fanIncome;delete s.flags.fanSecrets;delete s.flags.honeyPot;delete s.flags.fanPreviousDistance;
   s.flags.roundStartScores=Object.fromEntries(s.players.map(p=>[p.id,p.score]));
+  s.scoreLedger=s.players.map(p=>({playerId:p.id,placement:0,map:0,skill:0,event:0,total:0}));
   s.racers=s.players.flatMap(p=>p.selection.map((id,i)=>({id:`${p.id}:${s.round}:${i}`,identityPlayerId:p.id,playerId:p.id,characterId:id,position:0,tripped:false,finished:false,eliminated:false,flags:{}})));
   for(const extra of ((s.flags.reRunners??[]) as {playerId:string;characterId:string}[])){const p=s.players.find(p=>p.id===extra.playerId);if(p)s.racers.push({id:`${p.id}:${s.round}:extra:${s.racers.length}`,identityPlayerId:p.id,playerId:p.id,characterId:extra.characterId,position:0,tripped:false,finished:false,eliminated:false,flags:{reRunnerExtra:true}} as Racer);}
   s.racers.sort((a,b)=>s.players.findIndex(p=>p.id===a.playerId)-s.players.findIndex(p=>p.id===b.playerId));
   for(const p of s.players){ for(const id of p.selection){p.hand.splice(p.hand.indexOf(id),1);p.used.push(id);} }
-  s.track=s.round%2?'mild':'wild';s.phase='race';s.turnCount=0;s.flags.placements=[];s.flags.eliminations=[];s.flags.nextOverride=[];s.flags.loopSeen=[];
+  s.track=s.matchPlan?.races[s.round-1]?.map??(s.round%2?'mild':'wild');s.phase='race';s.turnCount=0;s.flags.placements=[];s.flags.eliminations=[];s.flags.nextOverride=[];s.flags.loopSeen=[];
   const first=s.players.find(p=>p.id===s.flags.firstPlayer)??s.players[0]!;
   const initial=s.racers.find(r=>r.playerId===first.id)!;s.currentRacerId=initial.id;s.turn=s.racers.indexOf(initial);
   const start=s.racers.indexOf(initial);s.baseTurnOrder=[...s.racers.slice(start),...s.racers.slice(0,start)].map(r=>r.id);
@@ -275,7 +283,8 @@ function finish(s:GameState,r:Racer, forcedRank?:number) {
   const championPower=printedPower(s,r);
   r.finished=true;r.rank??=rank;r.position=hasPower(s,r,em('doc-paradox'))?0:TRACKS[s.track].finish;
   for(const step of powers(s,'stepdad'))if(stepdadTarget(s,step)?.id===r.id&&rank===1)points(s,step,3,`继父：${name(r)}获得冠军`);
-  const value=r.flags.gary?0:RACE_POINTS[Math.max(0,s.round-1)]?.[rank-1]??0;owner(s,r).score+=value;fanTrackIncome(s,r,value);
+  const value=r.flags.gary?0:(s.matchPlan?.races[s.round-1]?.rewards??RACE_POINTS[Math.max(0,s.round-1)])?.[rank-1]??0;owner(s,r).score+=value;fanTrackIncome(s,r,value);
+  const entry=s.scoreLedger?.find(entry=>entry.playerId===r.playerId);if(entry){entry.placement+=value;entry.total+=value;}
   placements.push({racerId:r.id,playerId:r.playerId,characterId:r.characterId,rank,points:value});
   if(rank===1){
     const history=(s.flags.historyPowers??={}) as Record<string,string>;history[r.characterId]=championPower;
@@ -306,7 +315,7 @@ function endRace(s:GameState,cycleDraw=false,awardsResolved=false) {
   leafRules.raceEnd(s,cycleDraw);fanRaceEnd(s,cycleDraw);
   if(!cycleDraw)for(const g of powers(s,'gloth'))if(g.position<=TRACKS[s.track].secondCorner)points(s,g,3,'葛洛斯未超过第二弯道');
   for(const r of s.racers)if(hasPower(s,r,'re-runner')||r.characterId==='re-runner'){const entries=(s.flags.reRunners??=[]) as {playerId:string;characterId:string}[];const id=r.playerId;if(!entries.some(x=>x.playerId===id&&x.characterId===r.characterId))entries.push({playerId:id,characterId:r.characterId});}
-  s.results.push({round:s.round,placements:structuredClone(currentPlacements(s)),...(cycleDraw?{drawReason:'forced-cycle' as const}:{})});
+  s.results.push({round:s.round,placements:structuredClone(currentPlacements(s)),...(s.scoreLedger?{scores:structuredClone(s.scoreLedger)}:{}),...(cycleDraw?{drawReason:'forced-cycle' as const}:{})});
   if(s.players.length===2){
     const scores=s.flags.roundStartScores as Record<string,number>??{};const min=Math.min(...s.players.map(p=>p.score-(scores[p.id]??0)));const tied=s.players.filter(p=>p.score-(scores[p.id]??0)===min);
     s.flags.firstPlayer=tied.length===1?tied[0]!.id:rollOff(s,tied.map(p=>p.id));
@@ -315,9 +324,9 @@ function endRace(s:GameState,cycleDraw=false,awardsResolved=false) {
     const back=candidates.length?Math.min(...candidates.map(r=>r.position)):0;const tied=[...new Set(candidates.filter(r=>r.position===back).map(r=>r.playerId))];
     s.flags.firstPlayer=tied.length===1?tied[0]:tied.length?rollOff(s,tied):s.players[0]!.id;
   }
-  leafRules.releaseCards(s);s.phase=s.round>=4?'finished':'results';s.queue=[];s.pending=undefined;s.flags.awaitRoll=false;
+  leafRules.releaseCards(s);s.phase=s.round>=matchRaceCount(s)?'finished':'results';s.queue=[];s.pending=undefined;s.flags.awaitRoll=false;
   s.flags.needsBegin=false;breakForcedCycle(s);
-  log(s,'phase',s.phase==='finished'?'四场比赛结束，按累计分数结算；同分共享胜利':`第${s.round}场结束`);
+  log(s,'phase',s.phase==='finished'?`${matchRaceCount(s)}场比赛结束，按累计分数结算；同分共享胜利`:`第${s.round}场结束`);
 }
 function checkOnlyRacer(s:GameState) { if(s.phase!=='race')return;const remaining=active(s);if(remaining.length===1){finish(s,remaining[0]!);if(s.phase==='race')endRace(s);}if(!remaining.length&&s.phase==='race')endRace(s); }
 function eliminate(s:GameState,id:string,source:string) {
@@ -783,7 +792,7 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
   if(action.type==='start'){startGame(s);return;}
   if(action.type==='practice-team'){
     if(s.mode!=='practice'||s.phase!=='draft'||s.round!==1||s.players.length!==1)throw Error('现在不能选择练习阵容');
-    if(action.characterIds.length!==4||new Set(action.characterIds).size!==4||action.characterIds.some(id=>!enabledCharacterIds(s.config,s.characterPool,true).includes(id)))throw Error('请从完整牌池选择4张不同角色牌');
+    if(action.characterIds.length!==matchRaceCount(s)||new Set(action.characterIds).size!==matchRaceCount(s)||action.characterIds.some(id=>!enabledCharacterIds(s.config,s.characterPool,true).includes(id)))throw Error(`请从完整牌池选择${matchRaceCount(s)}张不同角色牌`);
     p.hand=[...action.characterIds];s.flags.fanDraftOrder=Object.fromEntries(action.characterIds.map((id,i)=>[id,i]));
     // Earlier practice saves can be midway through a two-batch draft. Replace
     // that incomplete hand atomically and return every unchosen printed card
@@ -793,10 +802,17 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
     log(s,'practice-team',`${p.name}的练习阵容：${p.hand.map(id=>character(id)!.nameZh).join('、')}`);beginSelection(s);return;
   }
   if(action.type==='draft'){
-    if(s.mode==='practice')throw Error('请从完整牌池一次确认4张练习角色牌');
+    if(s.mode==='practice')throw Error(`请从完整牌池一次确认${matchRaceCount(s)}张练习角色牌`);
     if(s.phase!=='draft'||!s.draft)throw Error('现在不是选秀阶段');const d=s.draft;if(d.order[d.cursor]!==playerId)throw Error('还没有轮到你选秀');
     const index=d.market.indexOf(action.characterId);if(index<0)throw Error('这张角色牌不在候选区');d.market.splice(index,1);p.hand.push(action.characterId);((s.flags.fanDraftOrder??={}) as Record<string,number>)[action.characterId]=d.cursor;d.cursor++;log(s,'draft',`${p.name}选择${character(action.characterId)?.nameZh}`,{cause:action.characterId});
-    if(d.cursor===d.order.length){if(d.batch===0){const fi=s.players.findIndex(x=>x.id===s.flags.draftFirst);const first=s.players[(fi+1)%s.players.length]!.id;d.batch=1;d.cursor=0;d.order=snake(s,first,s.players.length===2);d.market=s.deck.splice(0,s.players.length===2?8:s.players.length*2);}else beginSelection(s);}return;
+    if(d.cursor===d.order.length){
+      const rounds=matchRaceCount(s),classicDuo=s.players.length===2&&rounds===4;
+      const batches=classicDuo?2:rounds*(s.players.length===2?2:1)/2;
+      if(d.batch+1<batches){
+        d.batch++;const fi=s.players.findIndex(x=>x.id===s.flags.draftFirst),first=s.players[(fi+d.batch)%s.players.length]!.id;
+        d.cursor=0;d.order=snake(s,first,classicDuo);d.market=s.deck.splice(0,classicDuo?8:s.players.length*2);
+      }else beginSelection(s);
+    }return;
   }
   if(action.type==='select'){
     if(s.phase!=='selection')throw Error('现在不是暗选阶段');if(p.selection.length)throw Error('暗选已确认，等待所有玩家揭示');const n=s.players.length===2?2:1;
@@ -827,7 +843,7 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
 }
 /** Pure scheduling policy: no mutation, RNG calls, or information reveal. */
 export function automaticAction(s:GameState):{playerId:string;action:GameAction}|undefined {
-  if(s.mode==='practice'&&s.phase==='draft'&&s.draft)return{playerId:s.players[0]!.id,action:{type:'practice-team',characterIds:s.draft.market.slice(0,4)}};
+  if(s.mode==='practice'&&s.phase==='draft'&&s.draft)return{playerId:s.players[0]!.id,action:{type:'practice-team',characterIds:s.draft.market.slice(0,matchRaceCount(s))}};
   if(s.phase==='draft'&&s.draft){const id=s.draft.order[s.draft.cursor],card=s.draft.market[0];if(id&&card)return{playerId:id,action:{type:'draft',characterId:card}};}
   if(s.phase==='selection'){const n=s.players.length===2?2:1;const p=s.players.find(x=>x.selection.length!==n);if(p)return{playerId:p.id,action:{type:'select',characterIds:p.hand.slice(0,n)}};}
   if(s.phase==='results')return{playerId:s.players[0]!.id,action:{type:'next'}};

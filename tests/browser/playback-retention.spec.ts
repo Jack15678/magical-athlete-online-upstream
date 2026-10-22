@@ -28,7 +28,7 @@ async function pair(browser: Browser, fast = false) {
   }, { fast });
   const [host, guest] = await Promise.all(contexts.map(context => context.newPage())) as [Page, Page];
   for (const page of [host, guest]) page.on('pageerror', error => errors.push(error.stack ?? error.message));
-  await host.goto(url); await host.getByLabel('你的昵称').fill('动画顺序验收');
+  await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click(); await host.getByLabel('你的昵称').fill('动画顺序验收');
   await host.getByLabel('房间人数上限').selectOption('2'); await host.getByLabel('每次操作时限').selectOption('0');
   await host.getByRole('button', { name: '创建房间，召集朋友', exact: true }).click();
   await expect(host.locator('.connection.is-online')).toBeVisible(); const code = host.url().split('/').at(-1)!;

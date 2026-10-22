@@ -50,7 +50,7 @@ export class Rooms {
   get(code: string): Room { code=code.toUpperCase();this.expire(code);const room = this.rooms.get(code); if(!room) {const closed=this.closed(code);throw Error(closed?.reason==='host-away'?'房主离线保留期限已到，房间已关闭。':closed?'房间已关闭。请创建或加入其他房间。':'房间不存在或已过期，请检查房间码。');} return room; }
   list(now=this.now()):RoomSummary[] {
     for(const code of this.rooms.keys())this.expire(code,now);
-    return [...this.rooms.values()].filter(room=>room.closedAt===undefined&&room.mode!=='practice').sort((a,b)=>b.createdAt-a.createdAt).map(room=>({
+    return [...this.rooms.values()].filter(room=>room.closedAt===undefined&&room.mode!=='practice'&&room.game.config?.visibility!=='private').sort((a,b)=>b.createdAt-a.createdAt).map(room=>({
       code:room.code,hostName:room.game.players.find(p=>p.id===(room.ownerId??room.hostId))?.name??'房主',phase:room.game.phase,
       playerCount:room.game.players.length,maxPlayers:room.maxPlayers,spectatorCount:room.spectators?.filter(p=>p.connected).length??0,
       createdAt:room.createdAt,expiresAt:roomExpiry(room),authorityOnline:true,mode:room.mode??'multiplayer',

@@ -38,7 +38,7 @@ async function pair(browser: Browser, mobile = false, recordVideo = false) {
     page.on('pageerror', error => errors.push(error.stack ?? error.message));
   }
   const [host, guest] = pages as [Page, Page];
-  await host.goto(url);
+  await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click();
   await host.getByLabel('你的昵称').fill('立体房主');
   await host.getByLabel('房间人数上限').selectOption('2');
   await host.getByLabel('每次操作时限').selectOption('0');

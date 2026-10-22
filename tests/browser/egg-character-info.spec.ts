@@ -32,7 +32,7 @@ async function setup(browser: Browser) {
   });
   const pages = await Promise.all(contexts.map(context => context.newPage()));
   const [host, guest, spectator] = pages as [Page, Page, Page];
-  await host.goto(url); await host.getByLabel('你的昵称').fill('蛋的玩家');
+  await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click(); await host.getByLabel('你的昵称').fill('蛋的玩家');
   await host.getByLabel('房间人数上限').selectOption('2'); await host.getByLabel('每次操作时限').selectOption('0');
   await host.getByRole('button', { name: '创建房间，召集朋友' }).click();
   await expect(host.locator('.connection.is-online')).toBeVisible();

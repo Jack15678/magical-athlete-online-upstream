@@ -1,0 +1,74 @@
+2026-10-22 validation at base 54cdd2f + the task working tree.
+The first browser run was stopped after the successful four- and six-race cases; the final eight-race case ran separately.
+Regression initially had one stale count assertion; its focused rerun is recorded separately.
+
+schedule-full-tests.txt
+✔ CHAR-05 Centaur pushes passed racers back two (3.5468ms)
+✔ COPY-01 Copycat cannot reopen an already passed first-turn prediction window (3.4197ms)
+✔ eight failed sculptures share three bounded retries and clear only on an actual retry (1.9365ms)
+✔ close: a failed receipt write rolls back dissolution and allows the same close request to retry (5.4128ms)
+✔ invalid and unavailable combinations fail closed without altering the input (2.192ms)
+✔ multiple mandatory legal targets clear the trace even when no pass exists (0.8767ms)
+✔ LEAF01 Catfish prevents trips and responds only to a strict forward pass (10.322ms)
+✔ relay close requires the exact authorized pending receipt and failed intent unlocks the room (8.1576ms)
+✔ personal relay dismissal enforces owner control without an authority, atomically clears work and retries a failed close safely (8.4154ms)
+✔ global admission immediately reclaims a failed create and reaps an abandoned reservation after reconstruction (6.8865ms)
+✔ worker commits a rule action and resend receipt atomically; failed storage neither consumes the action nor acknowledges success (6.1178ms)
+✔ Node admission is shared by stale server instances, idempotent, excludes solo modes and recovers failed creation (115.6004ms)
+✔ SW01 Bite Mark transforms and eliminates a passed racer, preserving its own instance (17.5654ms)
+✔ SW24 Penguin is tripped by a pass and takes doubled main roll instead of losing move (3.8538ms)
+✔ a tripped racer stands instead of rolling; main-roll predictions and replacements cannot bypass recovery (18.965ms)
+ℹ tests 883
+ℹ pass 883
+ℹ fail 0
+ℹ duration_ms 17508.617
+
+schedule-typecheck.txt
+$ tsc --noEmit && tsc -p tsconfig.worker.json --noEmit
+
+schedule-build.txt
+✓ built in 8.21s
+✓ built in 7.42s
+
+schedule-browser.txt
+Running 4 tests using 1 worker
+  ok 1 tests\browser\competition.spec.ts:26:1 › home, preserved draft, exact presets, invalid rotation and desktop/mobile layout (1.5s)
+  ok 2 tests\browser\competition.spec.ts:54:54 › 2 independent browsers finish 4 races with UI actions, reconnect and score audit (3.3m)
+  ok 3 tests\browser\competition.spec.ts:54:54 › 3 independent browsers finish 6 races with UI actions, reconnect and score audit (5.0m)
+
+schedule-browser-final.txt
+Running 2 tests using 1 worker
+  ok 1 tests\browser\competition.spec.ts:26:1 › home, preserved draft, exact presets, invalid rotation and desktop/mobile layout (1.8s)
+  ok 2 tests\browser\competition.spec.ts:54:54 › 2 independent browsers finish 8 races with UI actions, reconnect and score audit (6.4m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  2 passed (6.5m)
+
+schedule-packets.txt
+  ok 1 tests\browser\competition.spec.ts:56:1 › two browsers preserve a pending choice and reject both duplicate and previous-round packets (2.1s)
+  1 passed (5.1s)
+
+schedule-relay-stable.txt
+Running 2 tests using 1 worker
+  ok 1 tests\relay-browser\second-wind-community.spec.ts:41:61 › mixed: 6 races through authenticated relay; mobile chat, rename, privacy and reload (54.3s)
+  ok 2 tests\relay-browser\second-wind-community.spec.ts:111:1 › Wurstii-only cannot start eight players with30 cards; two players require16 (888ms)
+  2 passed (59.7s)
+
+schedule-regression.txt
+Running 6 tests using 1 worker
+  ok 1 tests\browser\ai-room-exit.spec.ts:8:34 › AI top exit exposes dismissal, retains refresh identity and closes permanently on Node desktop (15.6s)
+  ok 2 tests\browser\ai-room-exit.spec.ts:8:34 › AI top exit exposes dismissal, retains refresh identity and closes permanently on Node mobile layout (14.9s)
+  ok 3 tests\browser\fan-settings.spec.ts:10:1 › independent character packs persist, synchronize to peers, reset readiness and freeze at drafting (2.4s)
+  x  4 tests\browser\fan-settings.spec.ts:30:1 › practice can choose four completed racers across enabled packs and complete public logs remain reviewable (11.2s)
+  ok 5 tests\browser\wurstii-review.spec.ts:13:1 › three players and spectator see one Fox response across reconnect, with high/low models and failure fallback (9.6s)
+  ok 6 tests\browser\wurstii-review.spec.ts:71:1 › all expansion pickers use flat SVG at desktop and mobile sizes without rendered-image requests (2.1s)
+    Error: expect(locator).toHaveCount(expected) failed
+    .local\schedule-regression\fan-settings-practice-can--48ccc-blic-logs-remain-reviewable\test-failed-1.png
+  1 failed
+  5 passed (1.0m)
+
+schedule-regression-fixed.txt
+  ok 1 tests\browser\fan-settings.spec.ts:30:1 › practice can choose four completed racers across enabled packs and complete public logs remain reviewable (3.3s)
+  1 passed (7.1s)
+
+schedule-worker-dry-run.txt
+--dry-run: exiting now.

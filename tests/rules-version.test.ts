@@ -8,6 +8,7 @@ import { Rooms } from '../src/server/rooms.js';
 import { immediateRoomAction } from '../src/shared/automation.js';
 import { Store } from '../src/server/store.js';
 import type { Player, Room } from '../src/shared/types.js';
+import { FAN_V3_RULES_VERSION } from '../src/shared/rules-versions.js';
 
 const players:Player[]=Array.from({length:2},(_,seat)=>({id:`p${seat}`,name:`玩家${seat}`,seat,color:'#000',ready:true,connected:true,score:0,hand:[],used:[],selection:[]}));
 function room():Room { return {code:'ABC234',hostId:'p0',createdAt:1,updatedAt:1,version:1,maxPlayers:2,timeoutSeconds:0,deadline:null,game:createGame(players,71)}; }
@@ -63,7 +64,7 @@ test('SQLite恢复会持久锁定旧规则且不会悄悄更新到新规则',()=
 });
 
 test('新旧规则的每批选秀最后一张自动分配，关闭超时和恢复存档也无需玩家确认',()=>{
-  for(const version of [CURRENT_RULES_VERSION,LEGACY_RULES_VERSION,SECOND_WIND_V1_RULES_VERSION,SECOND_WIND_V2_RULES_VERSION,WURSTII_V1_RULES_VERSION])for(const count of [2,3,4,5,6,7,8]){
+  for(const version of [CURRENT_RULES_VERSION,FAN_V3_RULES_VERSION,LEGACY_RULES_VERSION,SECOND_WIND_V1_RULES_VERSION,SECOND_WIND_V2_RULES_VERSION,WURSTII_V1_RULES_VERSION])for(const count of [2,3,4,5,6,7,8]){
     let current=room();
     current.maxPlayers=count;
     current.game.players=Array.from({length:count},(_,seat)=>({...structuredClone(players[0]!),id:`p${seat}`,seat}));

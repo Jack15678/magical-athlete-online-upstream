@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
 import type { ActionEnvelope, Identity, RoomView } from '../src/shared/types.js';
 import { legacyRoomConfig } from '../src/shared/room-config.js';
+import { presetCompetition } from '../src/shared/competition.js';
+import { FAN_V3_RULES_VERSION } from '../src/shared/rules-versions.js';
+import { automaticRoomAction, roomRules } from '../src/engine/runtime.js';
+import { createGame } from '../src/engine/index.js';
 import type { RelayJoinReply } from '../src/shared/relay.js';
 import { MAX_SPECTATORS } from '../src/shared/constants.js';
 import { PERSONAL_ROOM_AWAY_MS, ownerAwayMs } from '../src/shared/room-lifecycle.js';
@@ -426,6 +430,15 @@ async function namespace(){
   return {env,instances,hooks};
 }
 async function listedRooms(env:any){const response=await worker.default.fetch(new Request('https://game.test/api/browser/rooms'),env);assert.equal(response.status,200);return (await response.json()).rooms as import('../src/shared/types.js').RoomSummary[];}
+test('private worker rooms remain joinable by code and count against capacity without directory disclosure',async()=>{
+  const ns=await namespace(),config={...legacyRoomConfig(),visibility:'private' as const};
+  const response=await worker.default.fetch(new Request('https://game.test/api/browser/rooms',{method:'POST',body:JSON.stringify({name:'私密房主',maxPlayers:2,config})}),ns.env);
+  assert.equal(response.status,201);const created=await response.json() as RelayJoinReply;
+  assert.deepEqual(await listedRooms(ns.env),[]);
+  assert.equal((await ns.instances.get('__room_directory__')!.ctx.storage.list({prefix:'capacity:'})).size,1);
+  const joined=await worker.default.fetch(new Request(`https://game.test/api/browser/rooms/${created.identity.roomCode}/join`,{method:'POST',body:JSON.stringify({name:'持码加入'})}),ns.env);
+  assert.equal(joined.status,201);assert.deepEqual(await listedRooms(ns.env),[]);
+});
 function deferred(){let resolve!:()=>void;const promise=new Promise<void>(done=>{resolve=done;});return {promise,resolve};}
 async function bounded<T>(operation:Promise<T>):Promise<T>{let timeout:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([operation,new Promise<never>((_,reject)=>{timeout=setTimeout(()=>reject(Error('directory operation deadlocked')),1000);})]);}finally{clearTimeout(timeout);}}
 
@@ -755,6 +768,77 @@ async function modern(mode:'multiplayer'|'practice'|'ai'='multiplayer',config=le
   const response=await env.relay.fetch(new Request('https://room.internal/create/ABC234',{method:'POST',body:JSON.stringify({name:'服务端房主',mode,aiCount:1,maxPlayers:mode==='practice'?1:2,timeoutSeconds:0,config,authorityMode:'worker'})}));
   assert.equal(response.status,201);return {...env,created:await response.json() as RelayJoinReply};
 }
+
+test('worker resumes a pre-schedule fan-v3 Leaf-only save through authentication and an actual draft action',async()=>{
+  let env=await modern();const guest=await join(env);
+  const record=await env.ctx.storage.get<any>('room'),config=legacyRoomConfig();
+  config.characterPacks.original=false;config.characterPacks['leaf-fan']=true;
+  record.config=config;record.serverRoom.game.config=config;record.serverRoom.game.rulesVersion=FAN_V3_RULES_VERSION;
+  // This was a valid 16-card duo draft before schedule-v1 added skill reserves.
+  roomRules(record.serverRoom.game).startGame(record.serverRoom.game);
+  record.phase='draft';record.configFrozen=true;record.serverRoom.configFrozen=true;
+  await env.ctx.storage.put('room',record);
+  env={...await instance(env.ctx.storage),created:env.created};
+  const host=await authenticate(env),peer=await authenticate(env,guest.identity);
+  assert.equal(host.sent.findLast(m=>m.type==='snapshot')?.room.phase,'draft');
+  const pick=automaticRoomAction(record.serverRoom.game)!;
+  const socket=pick.playerId===env.created.identity.playerId?host:peer;
+  const acted=await workerAction(env,socket,pick.action);assert.equal(acted.result.ok,true);
+  const restored=await env.ctx.storage.get<any>('room');
+  assert.equal(restored.serverRoom.game.rulesVersion,FAN_V3_RULES_VERSION);
+  assert.equal(restored.serverRoom.game.players.find((p:any)=>p.id===pick.playerId).hand.length,1);
+});
+
+test('worker serializes simultaneous long-duo selections and rolls, then preserves scores and receipts through restart',async()=>{
+  const config={...legacyRoomConfig('mixed'),competition:{...presetCompetition(),preset:'custom' as const,raceCount:6 as const}};
+  let env=await modern('multiplayer',config);const guest=await join(env);
+  let host=await authenticate(env),peer=await authenticate(env,guest.identity);
+  for(const socket of [host,peer])assert((await workerAction(env,socket,{type:'ready',ready:true})).result.ok);
+  assert((await workerAction(env,host,{type:'start'})).result.ok);
+  // Use the real draft reducer, without generating unnecessary socket traffic.
+  const saved=await env.ctx.storage.get<any>('room');
+  saved.serverRoom.game=createGame(saved.serverRoom.game.players,5678);saved.serverRoom.game.config=config;
+  roomRules(saved.serverRoom.game).startGame(saved.serverRoom.game);
+  while(saved.serverRoom.game.phase==='draft'){
+    const a=automaticRoomAction(saved.serverRoom.game)!;roomRules(saved.serverRoom.game).applyGameAction(saved.serverRoom.game,a.playerId,a.action);saved.serverRoom.version++;
+  }
+  saved.phase='selection';await env.ctx.storage.put('room',saved);
+  env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};
+  host=await authenticate(env);peer=await authenticate(env,guest.identity);
+  await env.relay.webSocketMessage(host,JSON.stringify({type:'sync',requestId:'selection-view'}));
+  const version=host.sent.findLast(m=>m.type==='snapshot').room.version;
+  const selections=saved.serverRoom.game.players.map((p:any)=>({actionId:crypto.randomUUID(),expectedVersion:version,action:{type:'select',characterIds:p.hand.slice(0,2)}}));
+  await Promise.all([host,peer].map((socket,i)=>env.relay.webSocketMessage(socket,JSON.stringify({type:'action',requestId:`select-${i}`,envelope:selections[i]}))));
+  const replies=[host,peer].map((socket,i)=>socket.sent.findLast(m=>m.type==='ack'&&m.requestId===`select-${i}`).result);
+  assert.equal(replies.filter(r=>r.ok).length,1);assert.equal(replies.filter(r=>!r.ok).length,1);
+  const rejected=replies.findIndex(r=>!r.ok);
+  assert((await workerAction(env,[host,peer][rejected]!,selections[rejected].action)).result.ok);
+  let state=(await env.ctx.storage.get<any>('room')).serverRoom.game;
+  assert.equal(state.phase,'race');assert.equal(state.round,1);assert(state.players.every((p:any)=>p.hand.length===10&&p.used.length===2));
+  // Advance only required start prompts to reach a real roll; the final intent
+  // is delivered concurrently twice with one operation id.
+  for(let i=0;i<50;i++){
+    if(!state.pending&&state.flags.awaitRoll)break;
+    const c=state.pending,a=c?{playerId:c.playerId,action:{type:'choose' as const,choiceId:c.id,optionId:c.options[0].id}}:automaticRoomAction(state);assert(a);
+    const socket=a.playerId===env.created.identity.playerId?host:peer;
+    assert((await workerAction(env,socket,a.action)).result.ok);
+    state=(await env.ctx.storage.get<any>('room')).serverRoom.game;
+  }
+  assert.equal(state.flags.awaitRoll,true);
+  const actor=state.racers.find((r:any)=>r.id===state.currentRacerId).playerId,roller=actor===env.created.identity.playerId?host:peer;
+  await env.relay.webSocketMessage(roller,JSON.stringify({type:'sync',requestId:'roll-view'}));
+  const envelope:ActionEnvelope={actionId:crypto.randomUUID(),expectedVersion:roller.sent.findLast(m=>m.type==='snapshot').room.version,action:{type:'roll'}};
+  await Promise.all(['roll-a','roll-b'].map(requestId=>env.relay.webSocketMessage(roller,JSON.stringify({type:'action',requestId,envelope}))));
+  const rollReplies=['roll-a','roll-b'].map(id=>roller.sent.findLast(m=>m.type==='ack'&&m.requestId===id).result);
+  assert(rollReplies.every(r=>r.ok));assert.equal(rollReplies.filter(r=>r.duplicate).length,1);
+  const before=(await env.ctx.storage.get<any>('room')).serverRoom.game;
+  env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};
+  const returned=await authenticate(env,actor===env.created.identity.playerId?env.created.identity:guest.identity);
+  const repeat=await workerAction(env,returned,envelope.action,'restored-roll',envelope);assert.equal(repeat.result.duplicate,true);
+  const late=await workerAction(env,returned,envelope.action,'late-roll',{...envelope,actionId:crypto.randomUUID()});assert.equal(late.result.ok,false);
+  assert.deepEqual((await env.ctx.storage.get<any>('room')).serverRoom.game,before);
+  for(const p of before.players){const e=before.scoreLedger.find((e:any)=>e.playerId===p.id);assert.equal(e.total,p.score-before.flags.roundStartScores[p.id]);}
+});
 test('new worker rooms settle authoritatively without a browser computer, reject forged results and preserve private drafting',async()=>{
   const env=await modern(),host=await authenticate(env),guest=await join(env),peer=await authenticate(env,guest.identity);
   assert.equal(env.created.meta.authorityMode,'worker');assert.equal(env.created.room.hosting,'worker');
@@ -762,13 +846,14 @@ test('new worker rooms settle authoritatively without a browser computer, reject
   const forbidden=await authenticate(env,env.created.identity,true);assert.equal(forbidden.closeCode,4401);
   assert.equal((await workerAction(env,host,{type:'ready',ready:true})).result.ok,true);
   assert.equal((await workerAction(env,peer,{type:'ready',ready:true})).result.ok,true);
-  const config=legacyRoomConfig('mixed');
+  const config={...legacyRoomConfig('mixed'),competition:{version:'points-v1' as const,mode:'points' as const,preset:'custom' as const,raceCount:8 as const,rotation:['wild' as const,'mild' as const,'mild' as const],thrillingThirds:{enabled:false,rounds:[]}}};
   const change=await workerAction(env,host,{type:'configure',config});assert.equal(change.result.ok,true);
   assert((await env.ctx.storage.get<any>('room')).serverRoom.game.players.every((player:any)=>!player.ready));
   const repeated=await workerAction(env,host,{type:'configure',config},crypto.randomUUID(),change.envelope);assert.equal(repeated.result.duplicate,true);
   for(const socket of [host,peer])assert.equal((await workerAction(env,socket,{type:'ready',ready:true})).result.ok,true);
   assert.equal((await workerAction(env,host,{type:'start'})).result.ok,true);
   let record=await env.ctx.storage.get<any>('room');assert.equal(record.serverRoom.game.phase,'draft');assert.equal(record.configFrozen,true);
+  const frozen=structuredClone(record.serverRoom.game.matchPlan);assert.equal(frozen.raceCount,8);assert.deepEqual(frozen.races.map((race:any)=>race.map),['wild','mild','mild','wild','mild','mild','wild','mild']);
   const draft=record.serverRoom.game.draft,actor=draft.order[draft.cursor],socket=actor===env.created.identity.playerId?host:peer;
   assert.equal((await workerAction(env,socket,{type:'draft',characterId:draft.market[0]})).result.ok,true);
   record=await env.ctx.storage.get<any>('room');
@@ -782,6 +867,7 @@ test('new worker rooms settle authoritatively without a browser computer, reject
   const restored=await instance(env.ctx.storage,env.ctx.sockets),returned=await authenticate({...restored,created:env.created});
   assert.equal(returned.sent.find(message=>message.type==='auth-ok').authorityOnline,true);
   assert.equal(returned.sent.filter(message=>message.type==='snapshot').at(-1).room.phase,'draft');
+  assert.deepEqual(returned.sent.filter(message=>message.type==='snapshot').at(-1).room.matchPlan,frozen);
   assert.equal((await restored.ctx.storage.get<any>('room')).serverRoom.game.randomStream.algorithm,'chacha20-v1');
 });
 test('worker commits a rule action and resend receipt atomically; failed storage neither consumes the action nor acknowledges success',async()=>{
@@ -850,7 +936,7 @@ test('worker background rule exception persists a diagnostic pause instead of re
 test('worker refuses an insufficient independent role pool before reserving capacity or persisting a ghost room',async()=>{
   const ns=await namespace(),config=legacyRoomConfig();config.characterPacks.original=false;config.characterPacks['leaf-fan']=true;
   const response=await worker.default.fetch(new Request('https://game.test/api/browser/rooms',{method:'POST',headers:{'CF-Connecting-IP':'insufficient-role-pool'},body:JSON.stringify({name:'资料验证',maxPlayers:8,config,requestId:crypto.randomUUID()})}),ns.env);
-  assert.equal(response.status,400);assert.match((await response.json()).error,/至少需要32名/);assert.equal(ns.instances.size,0);
+  assert.equal(response.status,400);assert.match((await response.json()).error,/选秀32名，技能抽牌预留23名/);assert.equal(ns.instances.size,0);
 });
 
 test('directory returns JSON 400 and 409 across a DO boundary that strips uncaught exception types',async()=>{
