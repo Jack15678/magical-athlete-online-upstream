@@ -60,12 +60,20 @@ jobs:
       - run: pnpm build
       - run: pnpm exec wrangler deploy --dry-run
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Validate home entries and player/spectator admission
+        run: pnpm exec playwright test tests/browser/home-entry.spec.ts
+        env:
+          CI: true
       - name: Validate home configuration and complete eight-race duo
         run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home,|finish 8|two browsers preserve|rematch"
         env:
           CI: true
       # Default to one eight-player race with reconnects. A validation trailer
       # can select focused ability checks; broad suites stay manual.
+      - name: Validate room-list admission and spectating
+        run: pnpm exec playwright test -c playwright.relay.config.ts tests/relay-browser/room-directory.spec.ts --grep "^directory:"
+        env:
+          CI: true
       - run: pnpm exec playwright test tests/browser/three-scene.spec.ts --grep "3D dice settles|3D simultaneous"
         if: steps.validation.outputs.suite == 'all'
         env:
