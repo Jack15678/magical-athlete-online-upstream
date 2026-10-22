@@ -33,7 +33,7 @@ interface CharacterDetail { id: string; racerId?: string; roomCode?: string; rou
 const phaseLabels = { lobby: '赛前集合', draft: '组建你的队伍', selection: '秘密选择运动员', race: '比赛进行中', results: '单场成绩', finished: '总成绩', paused: '比赛已暂停' };
 function currentCode() { return /^\/room\/([a-z0-9-]+)/i.exec(location.pathname)?.[1]?.toUpperCase() ?? ''; }
 const setting = (key: string, fallback: boolean) => { try { const value = localStorage.getItem(`magical-athlete:${key}`); return value === null ? fallback : value === 'true'; } catch { return fallback; } };
-function Icon({ kind, size = 22 }: { kind: 'dice' | 'flag' | 'copy' | 'sound' | 'mute' | 'arrow' | 'trophy'; size?: number }) {
+function Icon({ kind, size = 22 }: { kind: 'dice' | 'flag' | 'copy' | 'sound' | 'mute' | 'arrow' | 'trophy' | 'people' | 'bot'; size?: number }) {
   const paths: Record<string, ReactNode> = {
     dice: <><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="8" cy="8" r="1" /><circle cx="16" cy="8" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="8" cy="16" r="1" /><circle cx="16" cy="16" r="1" /></>,
     flag: <><path d="M5 22V3m0 1c5-5 9 5 15 0v11c-6 5-10-5-15 0" /><path d="M10 3v10m5-8v10" /></>,
@@ -42,6 +42,8 @@ function Icon({ kind, size = 22 }: { kind: 'dice' | 'flag' | 'copy' | 'sound' | 
     mute: <><path d="M3 9h4l5-5v16l-5-5H3zM16 9l6 6m0-6-6 6" /></>,
     arrow: <path d="M3 12h17M14 5l7 7-7 7" />,
     trophy: <><path d="M7 3h10v6c0 7-10 7-10 0V3zm0 2H3v3q0 5 5 5m9-8h4v3q0 5-5 5m-4 2v6m-5 0h10" /></>,
+    people: <><circle cx="9" cy="8" r="3" /><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v2" /></>,
+    bot: <><rect x="5" y="7" width="14" height="14" rx="3" /><path d="M12 3v4M2 12v5m20-5v5M9 17h6" /><circle cx="9" cy="12" r=".6" /><circle cx="15" cy="12" r=".6" /></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
 }
@@ -185,17 +187,34 @@ function Home({ code, onEnter, onResume, onHome, onDetail }: { code: string; onE
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'create' | 'join' | 'practice' | 'ai'>(code ? 'join' : 'create');
+  const [entryFocus, setEntryFocus] = useState(mode);
   const [role, setRole] = useState<RoomRole>('player');
+  const setupHeading = useRef<HTMLHeadingElement>(null);
   const draftKind=mode==='join'?'create':mode,roomConfig=configDrafts[draftKind];
   const setRoomConfig=(config:ReturnType<typeof legacyRoomConfig>)=>setConfigDrafts(previous=>({...previous,[draftKind]:config}));
-  useEffect(() => { setJoinCode(code); if (code) {setMode('join');setConfiguring(true);} }, [code]);
+  useEffect(() => { setJoinCode(code); if (code) {setMode('join');setEntryFocus('join');setConfiguring(true);} }, [code]);
+  useEffect(() => { if (configuring) setupHeading.current?.focus(); }, [configuring, mode]);
+  function closeSetup() {
+    setConfiguring(false); setError('');
+    if (code) onHome();
+    document.getElementById(`${mode}-tab`)?.focus();
+  }
+  function navigateEntries(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+    const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const current = tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if (current < 0 || busy) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[next]?.focus();
+  }
   async function enterSelected(selectedCode?: string, selectedRole = role) {
     if (busy) return; setBusy(true); setError('');
     try {
       const nickname = name.trim() || (mode === 'practice' || mode === 'ai' ? '胡闹选手' : '');
       if (!nickname) { document.querySelector<HTMLInputElement>('[name="name"]')?.focus(); throw new Error('先给自己取个昵称，再选择房间。'); }
       const targetCode = mode === 'join' ? (selectedCode ?? joinCode).trim().toUpperCase() : null;
-      if (mode === 'join' && !targetCode) throw new Error('请选择下方房间，或输入朋友发来的房间码。');
+      if (mode === 'join' && !targetCode) throw new Error('请选择列表中的房间，或输入朋友发来的房间码。');
       const saved = targetCode ? readIdentity(targetCode, selectedRole) : null;
       if (saved) { onResume(saved); return; }
       const creation={ name: nickname, maxPlayers, timeoutSeconds: mode === 'practice' || mode === 'ai' ? 0 : timeoutSeconds, mode: mode === 'practice' || mode === 'ai' ? mode : 'multiplayer' as const, aiCount, characterPool: legacyPoolForConfig(roomConfig), config:roomConfig, ...(mode === 'join' ? { role: selectedRole } : {}) };
@@ -209,16 +228,23 @@ function Home({ code, onEnter, onResume, onHome, onDetail }: { code: string; onE
   }
   function submit(event: React.FormEvent) { event.preventDefault(); void enterSelected(); }
   const heroIds = ['banana', 'rocket-scientist', 'egg', 'huge-baby', 'centaur'];
+  const roomDirectory = <RoomDirectory busy={busy} onJoin={(roomCode, nextRole) => { setJoinCode(roomCode); setRole(nextRole); void enterSelected(roomCode, nextRole); }} />;
   return <main className="home">
     <OwnedRoomReturn onResume={onResume} />
     <section className="hero"><div className="hero-title"><span>各就各位，</span><h1>胡闹<br />运动会<span className="title-star">✦</span></h1><p>选个怪咖，掷个骰子。<br />和朋友一起，认真地胡闹一场。</p></div><div className="hero-art" aria-hidden="true"><div className="hero-orbit" /><div className="hero-finish"><Icon kind="flag" size={58} /></div>{heroIds.map((id, index) => <div className={`hero-racer hero-racer-${index}`} key={id}><Avatar id={id} /></div>)}<div className="hero-stamp">1～8 人<br /><strong>随时开跑!</strong></div></div></section>
     <section className={`entry-panel${configuring?' configuring':''}`}>
-      <div className="entry-tabs" role="tablist" aria-label="进入游戏方式">{([['create', '创建房间'], ['join', '加入朋友'], ['practice', '自己练习'], ['ai', '人机对战']] as const).map(([value, label]) => <button key={value} id={`${value}-tab`} role="tab" aria-controls="entry-form" aria-selected={mode === value} onClick={() => { setMode(value);setConfiguring(true);setError(''); }}>{label}</button>)}<button type="button" onClick={()=>{setMode('join');setRole('spectator');setConfiguring(true);}}>观战</button></div>
-      {!configuring&&<div className="home-intro"><strong>选一个入口，准备开跑。</strong><p>经典四场默认就绪。创建房间后邀请朋友；也可以先练习，认识角色的奇妙能力。</p></div>}
-      {configuring&&<form id="entry-form" className={mode === 'join' ? 'join-entry-form' : undefined} aria-labelledby={`${mode}-tab`} onSubmit={submit}>
-        <button type="button" className="text-button setup-back" onClick={()=>{setConfiguring(false);setError('');}}>← 返回首页（保留设置）</button><h2>{mode === 'practice' ? '一个人，也能尽情胡闹。' : mode === 'ai' ? '对手已就位，随时开跑。' : mode === 'create' ? '这场运动会，你来召集。' : code ? `朋友在 ${code} 等你` : '朋友的赛场在哪儿？'}</h2>
+      <div className="entry-heading"><h2>今天，怎么开跑？</h2><p>召集朋友，或去现有房间入座、观战。</p></div>
+      <div className="entry-tabs" role="tablist" aria-label="进入游戏方式" onKeyDown={navigateEntries}>{([
+        ['create', '创建房间', '邀请朋友，一起开跑', 'flag'],
+        ['join', '现有房间', '加入比赛，或坐下观战', 'people'],
+        ['practice', '自己练习', '慢慢试，认识每位怪咖', 'dice'],
+        ['ai', '人机对战', '电脑陪你，随时来一场', 'bot'],
+      ] as const).map(([value, label, description, icon]) => <button type="button" key={value} id={`${value}-tab`} role="tab" aria-label={label} aria-controls={configuring && mode === value ? 'entry-content' : undefined} aria-selected={configuring && mode === value} tabIndex={entryFocus === value ? 0 : -1} disabled={busy} onFocus={() => setEntryFocus(value)} onClick={() => { setMode(value);setConfiguring(true);setError(''); }}><span className="entry-icon" aria-hidden="true"><Icon kind={icon} size={26} /></span><strong>{label}</strong><small>{description}</small><span className="entry-arrow" aria-hidden="true"><Icon kind="arrow" size={19} /></span></button>)}</div>
+      {configuring&&<div id="entry-content" role="tabpanel" aria-labelledby={`${mode}-tab`}><form id="entry-form" className={mode === 'join' ? 'join-entry-form' : undefined} aria-labelledby={`${mode}-tab`} onSubmit={submit}>
+        <div className="setup-heading"><button type="button" className="text-button setup-back" disabled={busy} onClick={closeSetup}>← 返回首页（保留设置）</button><h2 ref={setupHeading} tabIndex={-1}>{mode === 'practice' ? '一个人，也能尽情胡闹。' : mode === 'ai' ? '对手已就位，随时开跑。' : mode === 'create' ? '这场运动会，你来召集。' : code ? `房间 ${code} · 参赛或观战` : '加入现有房间'}</h2><p>{mode === 'join' ? code ? '填好昵称，选择参赛或观战，即可进入朋友的房间。' : '先填昵称，在列表选择参赛或观战；也可输入朋友发来的房间码。' : '先取个昵称，按你的节奏准备这场运动会。'}</p></div>
         <label>你的昵称<input name="name" placeholder={mode === 'practice' || mode === 'ai' ? '胡闹选手（可直接开始）' : '比如：跑不动同学'} autoComplete="nickname" maxLength={20} value={name} onChange={event => setName(event.target.value)} required={mode === 'create' || mode === 'join'} /></label>
-        {mode === 'join' ? <><fieldset className="join-role"><legend>加入身份</legend><label><input type="radio" name="roomRole" value="player" checked={role === 'player'} onChange={() => setRole('player')} /><span>作为选手<small>入座并参与比赛</small></span></label><label><input type="radio" name="roomRole" value="spectator" checked={role === 'spectator'} onChange={() => setRole('spectator')} /><span>作为观战者<small>满员或开赛后也能观看</small></span></label></fieldset><label>房间码<input name="roomCode" className="room-code-input" placeholder="输入房间码，或选择下方房间" autoCapitalize="characters" maxLength={12} value={joinCode} onChange={event => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))} required /></label></> : mode === 'practice' ? <div className="solo-intro"><strong>专属练习赛道</strong><p>从完整角色牌池中自由选择 {matchRaceCount({config:roomConfig})} 张，再选人、掷骰、体验技能。不限时。</p></div> : mode === 'ai' ? <label>AI 人数<select aria-label="AI 人数" value={aiCount} onChange={event => setAiCount(Number(event.target.value))}>{Array.from({ length: 7 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} 位 AI{n === 1 ? ' · 两人双角色' : n >= 6 ? ' · 扩展规则' : ''}</option>)}</select></label> : <div className="form-split"><label>房间人数上限<select value={maxPlayers} onChange={event => setMaxPlayers(Number(event.target.value))}>{Array.from({ length: 7 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n} 人{n >= 7 ? ' · 扩展规则' : n === 2 ? ' · 双角色' : ' · 标准'}</option>)}</select></label><label>每次操作时限<select value={timeoutSeconds} onChange={event => setTimeoutSeconds(Number(event.target.value))}><option value={0}>不限时</option><option value={60}>60 秒</option><option value={90}>90 秒</option><option value={120}>120 秒</option><option value={180}>180 秒</option></select></label></div>}
+        {mode === 'join' && !code && <>{roomDirectory}<div className="join-code-heading"><h3>用房间码加入</h3><p>私密房间也可凭房间码进入，选择你的加入身份。</p></div></>}
+        {mode === 'join' ? <><fieldset className="join-role"><legend>加入身份</legend><label><input type="radio" name="roomRole" value="player" checked={role === 'player'} onChange={() => setRole('player')} /><span>作为选手<small>入座并参与比赛</small></span></label><label><input type="radio" name="roomRole" value="spectator" checked={role === 'spectator'} onChange={() => setRole('spectator')} /><span>作为观战者<small>满员或开赛后也能观看</small></span></label></fieldset><label>房间码<input name="roomCode" className="room-code-input" placeholder="输入朋友发来的房间码" autoCapitalize="characters" maxLength={12} value={joinCode} onChange={event => setJoinCode(event.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))} required /></label></> : mode === 'practice' ? <div className="solo-intro"><strong>专属练习赛道</strong><p>从完整角色牌池中自由选择 {matchRaceCount({config:roomConfig})} 张，再选人、掷骰、体验技能。不限时。</p></div> : mode === 'ai' ? <label>AI 人数<select aria-label="AI 人数" value={aiCount} onChange={event => setAiCount(Number(event.target.value))}>{Array.from({ length: 7 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} 位 AI{n === 1 ? ' · 两人双角色' : n >= 6 ? ' · 扩展规则' : ''}</option>)}</select></label> : <div className="form-split"><label>房间人数上限<select value={maxPlayers} onChange={event => setMaxPlayers(Number(event.target.value))}>{Array.from({ length: 7 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n} 人{n >= 7 ? ' · 扩展规则' : n === 2 ? ' · 双角色' : ' · 标准'}</option>)}</select></label><label>每次操作时限<select value={timeoutSeconds} onChange={event => setTimeoutSeconds(Number(event.target.value))}><option value={0}>不限时</option><option value={60}>60 秒</option><option value={90}>90 秒</option><option value={120}>120 秒</option><option value={180}>180 秒</option></select></label></div>}
         {mode === 'create' && <label>房间可见性<select aria-label="房间可见性" value={roomConfig.visibility??'public'} onChange={e=>setRoomConfig({...roomConfig,visibility:e.target.value as 'public'|'private'})}><option value="public">公开 · 可从房间列表加入或观战</option><option value="private">私密 · 仅凭链接或房间码进入</option></select></label>}
         {mode !== 'join' && <RoomConfigFields config={roomConfig} onChange={setRoomConfig} disabled={busy} players={mode==='practice'?1:mode==='ai'?aiCount+1:maxPlayers} practice={mode==='practice'} />}
         {maxPlayers >= 7 && mode === 'create' && <p className="form-note">7～8 人使用本项目扩展规则，初始选牌唯一；平衡性未经官方验证。</p>}
@@ -226,9 +252,8 @@ function Home({ code, onEnter, onResume, onHome, onDetail }: { code: string; onE
         <Button type="submit" disabled={busy||(mode!=='join'&&!!roomConfigError(roomConfig,mode==='ai'?aiCount+1:mode==='practice'?1:maxPlayers,mode==='practice'))}>{busy ? '正在进入…' : mode === 'practice' ? '开始自己练习' : mode === 'ai' ? '开始人机对战' : mode === 'create' ? '创建房间，召集朋友' : role === 'spectator' ? '进入房间观战' : '加入这场胡闹'}<Icon kind="arrow" /></Button>
         <p className="form-note">{mode === 'practice' ? '无需等待 · 随时练习 · 自动保存' : mode === 'ai' ? 'AI 自动选秀与行动 · 遵守相同规则' : '无需注册 · 链接邀请 · 电脑手机都能玩'}</p>
         <p className="form-note room-lifetime-note">房主在线时保留；最后一个房主标签页离线后，个人练习保留 10 分钟，人机与好友房保留 30 分钟。</p>
-        {mode === 'join' && <RoomDirectory busy={busy} onJoin={(roomCode, nextRole) => { setJoinCode(roomCode); setRole(nextRole); void enterSelected(roomCode, nextRole); }} />}
-        {code && <button type="button" className="text-button" onClick={onHome}>返回首页</button>}
-      </form>}
+        {mode === 'join' && code && roomDirectory}
+      </form></div>}
     </section>
     <section className="meet-racers"><div className="section-intro"><h2>谁说运动员<br />一定要会运动？</h2><p>两代各怀绝技的怪咖。<br />点开头像，先认识几位。</p></div><div className="sample-racers">{characters.slice(0, 6).map(character => <button key={character.id} onClick={() => onDetail(character.id)}><Avatar id={character.id} /><strong>{character.nameZh}</strong></button>)}</div></section>
   </main>;
