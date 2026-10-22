@@ -24,7 +24,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-bart-simpson.png",
+      "avatar": "/avatars/wurstii/wurstii-bart-simpson.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-bucky-ohare",
@@ -45,7 +48,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-bucky-ohare.png",
+      "avatar": "/avatars/wurstii/wurstii-bucky-ohare.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-bullet-bill",
@@ -66,7 +72,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-bullet-bill.png",
+      "avatar": "/avatars/wurstii/wurstii-bullet-bill.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-chip-n-dale",
@@ -87,7 +96,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-chip-n-dale.png",
+      "avatar": "/avatars/wurstii/wurstii-chip-n-dale.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-diddy-kong",
@@ -108,7 +120,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-diddy-kong.png",
+      "avatar": "/avatars/wurstii/wurstii-diddy-kong.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-dixie-kong",
@@ -129,7 +144,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-dixie-kong.png",
+      "avatar": "/avatars/wurstii/wurstii-dixie-kong.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-dr-wily",
@@ -150,7 +168,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-dr-wily.png",
+      "avatar": "/avatars/wurstii/wurstii-dr-wily.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-dry-bones",
@@ -171,7 +192,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-dry-bones.png",
+      "avatar": "/avatars/wurstii/wurstii-dry-bones.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-eric",
@@ -192,7 +216,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-eric.png",
+      "avatar": "/avatars/wurstii/wurstii-eric.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-falco-lombardi",
@@ -213,7 +240,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-falco-lombardi.png",
+      "avatar": "/avatars/wurstii/wurstii-falco-lombardi.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-frogger",
@@ -234,7 +264,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-frogger.png",
+      "avatar": "/avatars/wurstii/wurstii-frogger.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-hoagie",
@@ -255,7 +288,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-hoagie.png",
+      "avatar": "/avatars/wurstii/wurstii-hoagie.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-jason-vorhees",
@@ -276,7 +312,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-jason-vorhees.png",
+      "avatar": "/avatars/wurstii/wurstii-jason-vorhees.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-knuckles",
@@ -297,7 +336,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-knuckles.png",
+      "avatar": "/avatars/wurstii/wurstii-knuckles.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-lakitu",
@@ -318,7 +360,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-lakitu.png",
+      "avatar": "/avatars/wurstii/wurstii-lakitu.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-lizzie",
@@ -339,7 +384,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-lizzie.png",
+      "avatar": "/avatars/wurstii/wurstii-lizzie.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-magikarp",
@@ -360,7 +408,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-magikarp.png",
+      "avatar": "/avatars/wurstii/wurstii-magikarp.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-mario",
@@ -381,7 +432,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-mario.png",
+      "avatar": "/avatars/wurstii/wurstii-mario.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-mr-game-and-watch",
@@ -402,7 +456,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-mr-game-and-watch.png",
+      "avatar": "/avatars/wurstii/wurstii-mr-game-and-watch.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-olaf",
@@ -423,7 +480,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-olaf.png",
+      "avatar": "/avatars/wurstii/wurstii-olaf.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-pitfall-harry",
@@ -444,7 +504,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-pitfall-harry.png",
+      "avatar": "/avatars/wurstii/wurstii-pitfall-harry.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-simon-belmont",
@@ -465,7 +528,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-simon-belmont.png",
+      "avatar": "/avatars/wurstii/wurstii-simon-belmont.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-tails",
@@ -486,7 +552,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-tails.png",
+      "avatar": "/avatars/wurstii/wurstii-tails.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-yoshi",
@@ -507,7 +576,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-yoshi.png",
+      "avatar": "/avatars/wurstii/wurstii-yoshi.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-rollercoaster-tycoon-guest",
@@ -528,7 +600,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-rollercoaster-tycoon-guest.png",
+      "avatar": "/avatars/wurstii/wurstii-rollercoaster-tycoon-guest.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-spot",
@@ -549,7 +624,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-spot.png",
+      "avatar": "/avatars/wurstii/wurstii-spot.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-rockford",
@@ -570,7 +648,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-rockford.png",
+      "avatar": "/avatars/wurstii/wurstii-rockford.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-burt",
@@ -591,7 +672,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-burt.png",
+      "avatar": "/avatars/wurstii/wurstii-burt.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-piranha-plant",
@@ -612,7 +696,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-piranha-plant.png",
+      "avatar": "/avatars/wurstii/wurstii-piranha-plant.svg",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "wurstii-fluffin-puffins",
@@ -633,7 +720,10 @@
         "idle",
         "move",
         "skill"
-      ]
+      ],
+      "modelPreview": "/avatars/wurstii/wurstii-fluffin-puffins.png",
+      "avatar": "/avatars/wurstii/wurstii-fluffin-puffins.svg",
+      "avatarStyle": "flat-cartoon-svg"
     }
   ]
 }

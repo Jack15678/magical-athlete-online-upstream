@@ -39,7 +39,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "blue catfish, curled upright tail, pale belly and long white whiskers",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-catfish.png"
+      "avatar": "/avatars/leaf/leaf-catfish.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-catfish.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-crash-dummy",
@@ -70,8 +72,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange segmented crash dummy with black calibration target and articulated joints",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-crash-dummy.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-crash-dummy.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-crash-dummy.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-dark-horse",
@@ -102,7 +106,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "blue four-legged horse with long face, black mane/tail and dark hooves",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-dark-horse.png"
+      "avatar": "/avatars/leaf/leaf-dark-horse.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-dark-horse.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-filmmaker",
@@ -133,8 +139,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "green-haired filmmaker in white shirt/light-blue jeans, yellow boots and volumetric grey movie camera",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-filmmaker.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-filmmaker.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-filmmaker.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-kangaroo",
@@ -165,7 +173,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange kangaroo, tall ears, cream pouch, long support tail and large feet",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-kangaroo.png"
+      "avatar": "/avatars/leaf/leaf-kangaroo.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-kangaroo.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-loan-shark",
@@ -196,7 +206,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "blue upright shark, red fedora and broad orange-toothed grin",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-loan-shark.png"
+      "avatar": "/avatars/leaf/leaf-loan-shark.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-loan-shark.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-lonely-wolf",
@@ -227,7 +239,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "grey quadruped wolf, pointed ears, black nose and pale chest ruff",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-lonely-wolf.png"
+      "avatar": "/avatars/leaf/leaf-lonely-wolf.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-lonely-wolf.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-nepo-baby",
@@ -258,8 +272,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink baby with pink knit cap, gold necklace, orange pacifier and white diaper; distinct Leaf version",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-nepo-baby.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-nepo-baby.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-nepo-baby.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-philanthropist",
@@ -290,8 +306,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "brown narrow philanthropist, powder-blue waistcoat/top hat and pink hat band",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-philanthropist.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-philanthropist.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-philanthropist.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-race-car",
@@ -322,7 +340,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "red Formula racing car with four black tyres, front wing, rear spoiler and windshield eyes",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-race-car.png"
+      "avatar": "/avatars/leaf/leaf-race-car.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-race-car.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-revolutionary",
@@ -353,8 +373,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink revolutionary in purple coat and long floppy hat, black boots and walking staff",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-revolutionary.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-revolutionary.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-revolutionary.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-sole-survivor",
@@ -385,8 +407,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange survivor, olive helmet, long striped moustache, grass skirt and spear",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-sole-survivor.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-sole-survivor.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-sole-survivor.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-sore-loser",
@@ -417,8 +441,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange angry athlete with enormous nose, blue shorts and raised clenched fists",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-sore-loser.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-sore-loser.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-sore-loser.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-spiteful-spirit",
@@ -449,7 +475,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange living flame, multiple curved flame tips, glowing narrow eyes and jagged red mouth",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-spiteful-spirit.png"
+      "avatar": "/avatars/leaf/leaf-spiteful-spirit.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-spiteful-spirit.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-thespian",
@@ -480,8 +508,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "crowned orange stage actor, red cape, white ruff, brown beard and separate blue tragedy mask",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-thespian.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-thespian.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-thespian.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-toucan",
@@ -512,7 +542,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink toucan, bright yellow face patch and oversized blue beak with orange tip",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-toucan.png"
+      "avatar": "/avatars/leaf/leaf-toucan.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-toucan.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-triangle-man",
@@ -543,7 +575,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "solid yellow triangular prism with green sides, pink bow tie, short legs and black shoes",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-triangle-man.png"
+      "avatar": "/avatars/leaf/leaf-triangle-man.svg",
+      "modelPreview": "/models/leaf/avatars/leaf-triangle-man.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "leaf-zombie",
@@ -574,8 +608,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "green zombie, exposed pink brain patch, torn blue shirt, brown trousers and outstretched arms",
       "inferred": "Author transparent gamepiece PNGs inform silhouettes/colors/props. Unseen back and side details and joints are project interpretations, not author-approved exact sculpts.",
-      "avatar": "/models/leaf/avatars/leaf-zombie.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/leaf/leaf-zombie.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/leaf/avatars/leaf-zombie.png",
+      "avatarStyle": "flat-cartoon-svg"
     }
   ],
   "totalBytes": 902664,

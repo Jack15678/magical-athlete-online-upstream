@@ -1,10 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { WURSTII_CHARACTERS } from '../shared/wurstii.js';
 import { SECOND_WIND_CHARACTERS } from '../shared/second-wind.js';
 import { FAN_CHARACTERS } from '../shared/fan-expansions.js';
 import { SECOND_WIND_PORTRAITS_A } from './second-wind-portraits-a.js';
 import { SECOND_WIND_PORTRAITS_B } from './second-wind-portraits-b.js';
 import { SECOND_WIND_PORTRAITS_C } from './second-wind-portraits-c.js';
+import { EXTRA_MILE_PORTRAITS } from './extra-mile-portraits.js';
+import { LEAF_PORTRAITS } from './leaf-portraits.js';
+import { WURSTII_PORTRAITS } from './wurstii-portraits.js';
 
 // Original geometric portraits. These paths are not traced from the game artwork.
 const yellow = '#ffda27', red = '#f44735', blue = '#254de4', pink = '#f6a8d0', green = '#b5d66b', paper = '#fffdf4', ink = '#191919';
@@ -52,13 +55,9 @@ const portraits: Record<string, ReactNode> = {
 };
 
 const secondWindIds = new Set(SECOND_WIND_CHARACTERS.map(character => character.id));
-const allPortraits = { ...portraits, ...SECOND_WIND_PORTRAITS_A, ...SECOND_WIND_PORTRAITS_B, ...SECOND_WIND_PORTRAITS_C };
-const fanAvatarPacks=new Map(FAN_CHARACTERS.map(character=>[character.id,character.edition==='leaf'?'leaf':'extra-mile']));
-export const AVATAR_IDS = [...Object.keys(allPortraits),...fanAvatarPacks.keys(),...WURSTII_CHARACTERS.map(c=>c.id)];
+const allPortraits = { ...portraits, ...SECOND_WIND_PORTRAITS_A, ...SECOND_WIND_PORTRAITS_B, ...SECOND_WIND_PORTRAITS_C, ...EXTRA_MILE_PORTRAITS, ...LEAF_PORTRAITS, ...WURSTII_PORTRAITS };
+const fanIds = new Set([...FAN_CHARACTERS, ...WURSTII_CHARACTERS].map(character => character.id));
+export const AVATAR_IDS = Object.keys(allPortraits);
 export function Avatar({ id, className = '' }: { id: string; className?: string }) {
-  const [failedId,setFailedId]=useState<string>();
-  if (failedId!==id&&WURSTII_CHARACTERS.some(c=>c.id===id)) return <img className={`avatar ${className}`} src={`/avatars/wurstii-small/${id}.webp`} width="256" height="256" style={{ objectFit: 'contain' }} loading="lazy" decoding="async" draggable={false} alt="" aria-hidden="true" onError={()=>setFailedId(id)} />;
-  const pack=fanAvatarPacks.get(id);
-  if(pack)return <img className={`avatar fan-avatar ${className}`} src={`/models/${pack}/avatars/${id}.png?v=mouth-surface-v2-20261022`} width={192} height={192} alt="" aria-hidden="true" draggable={false} />;
-  return <svg className={`avatar${secondWindIds.has(id) ? ' sw-avatar' : ''} ${className}`} viewBox="0 0 120 120" fill="none" stroke={ink} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{allPortraits[id] ?? <><circle cx="60" cy="58" r="42" fill={yellow} /><Eyes /><path d="M43 79q17 16 35-2" /></>}</svg>;
+  return <svg className={`avatar${secondWindIds.has(id) ? ' sw-avatar' : fanIds.has(id) ? ' fan-avatar' : ''} ${className}`} viewBox="0 0 120 120" fill="none" stroke={ink} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{allPortraits[id] ?? <><circle cx="60" cy="58" r="42" fill={yellow} /><Eyes /><path d="M43 79q17 16 35-2" /></>}</svg>;
 }

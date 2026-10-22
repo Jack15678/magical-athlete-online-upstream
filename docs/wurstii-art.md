@@ -1,11 +1,12 @@
 # Wurstii A 类角色美术
 
-2026-10-22 接入用户提供的 Dots 四份 ZIP，仅对应 `WURSTII_CHARACTERS` 的30个ID。选牌、详情、场内头像使用透明立绘，棋盘按角色加载独立模型。原作和 Second Wind 的资源路径、规则结算、底座与倒地逻辑保持原样。
+2026-10-22 接入用户提供的 Dots 四份 ZIP，仅对应 `WURSTII_CHARACTERS` 的30个ID。棋盘按角色加载独立模型。随后按用户要求，将选牌、详情、队伍列表等头像统一为与基础包一致的扁平 SVG，详见[扩展头像](expansion-avatars.md)。下方 PNG、WebP 的加载数据为之前版本的验收记录；当前头像不再请求这些渲染图。
 
 ## 资源与制作方式
 
 | 内容 | 路径 | 说明 |
 | --- | --- | --- |
+| 当前二维头像30张 | `src/client/wurstii-portraits.tsx`、`public/avatars/wurstii/*.svg` | 原创路径与平涂形状，`pnpm build:avatars` 从同一组件导出 |
 | 立绘30张 | `public/avatars/wurstii/*.png` | 1024×1024 RGBA，同一模型的 Eevee 全身渲染，非二维手绘 |
 | 模型30个 | `public/models/wurstii/*.glb` | 自包含、顶点色、每角色一个材质绘制，无外部纹理 |
 | 索引 | `public/models/wurstii/manifest.json` | ID、中文名、路径、根节点、包围盒、面数与动画名 |
@@ -20,7 +21,7 @@
 
 - 只匹配已实现的30个ID，不根据 `wurstii-` 前缀接受任意未知模型。
 - GLB 为 +Y 向上、+Z 朝前，静态最低点Y=0，XZ居中；放在现有底座顶面，不再做轴旋转或另加底座。
-- `avatars.tsx` 使用 `object-fit: contain` 保留全身，并延迟加载图片。保留交付的原始PNG，总计约22.46 MB；不会预加载所有模型，GLB合计约5.48 MB、单个不超过301 KB。
+- `avatars.tsx` 渲染独立编写的二维 SVG。原始PNG（约22.46 MB）与压缩WebP仅保留为渲染参考，不作为选牌头像请求；GLB仍按需加载，合计约5.48 MB、单个不超过301 KB。
 - `ToyCharacter.tsx` 沿用现有独立实例克隆、材质缓存、AnimationMixer、加载失败回退和重试。两档画质保留顶点颜色；GLB不与其他角色共享动画状态。
 - `idle`、`move`、`skill` 分别是整体呼吸、弹跳和蓄力形变，没有独立骨骼肢体动作。沿用棋盘的事件驱动动画与静止时按需渲染策略，不强制持续重绘待机动画，也不从动画修改比赛位置。
 
@@ -51,7 +52,7 @@
 
 ## 后续重建
 
-### PR #10 复审后的头像优化
+### PR #10 复审后的头像优化（历史版本 `792eb24`）
 
 小头像改用 `public/avatars/wurstii-small/*.webp`：30张256×256透明图片共239,102字节，原1024×1024 PNG共22,462,005字节保留在原目录。生成命令：`python scripts/build-wurstii-avatars.py`（需Pillow）。这是原立绘的缩放编码，不改人物、映射或GLB。
 

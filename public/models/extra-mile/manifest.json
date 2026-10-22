@@ -38,7 +38,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "cracked golden clock face, black bowler hat, moustache and brown feet",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-broken-clock.png"
+      "avatar": "/avatars/extra-mile/extra-mile-broken-clock.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-broken-clock.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-cletus",
@@ -68,8 +70,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink hunter, tall brown hat, red shirt and long double barrel toy rifle",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-cletus.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-cletus.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-cletus.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-doc-paradox",
@@ -99,8 +103,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "blue scientist, swept white hair and upright green time portal",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-doc-paradox.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-doc-paradox.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-doc-paradox.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-doctor-dice",
@@ -130,7 +136,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "white die doctor, blue limbs, silver head mirror and stethoscope",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-doctor-dice.png"
+      "avatar": "/avatars/extra-mile/extra-mile-doctor-dice.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-doctor-dice.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-dom-and-gary",
@@ -160,8 +168,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange cat with curled tail and separate small grey mouse companion",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-dom-and-gary.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-dom-and-gary.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-dom-and-gary.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-echo",
@@ -191,7 +201,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "upside-down dark bat hanging from a brown branch, folded wings and small ears",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-echo.png"
+      "avatar": "/avatars/extra-mile/extra-mile-echo.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-echo.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-gingy",
@@ -221,8 +233,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "brown gingerbread body, blue bow/buttons, white icing and striped candy cane",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-gingy.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-gingy.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-gingy.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-gluebert",
@@ -252,7 +266,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "white glue bottle, orange nozzle/label and white glue-puddle limbs",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-gluebert.png"
+      "avatar": "/avatars/extra-mile/extra-mile-gluebert.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-gluebert.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-heads",
@@ -282,7 +298,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "horizontal copper coin, tall eyes and white limbs",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-heads.png"
+      "avatar": "/avatars/extra-mile/extra-mile-heads.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-heads.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-honey-pot",
@@ -312,7 +330,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "striped yellow bee, white wings and blue honey pot",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-honey-pot.png"
+      "avatar": "/avatars/extra-mile/extra-mile-honey-pot.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-honey-pot.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-king-pete",
@@ -342,8 +362,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "blue child king, pointed golden crown, red jersey and baseball bat",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-king-pete.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-king-pete.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-king-pete.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-lazy-bones",
@@ -373,7 +395,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "white skeleton reclining in a red armchair, visible ribs and long shin bones",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-lazy-bones.png"
+      "avatar": "/avatars/extra-mile/extra-mile-lazy-bones.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-lazy-bones.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-marksman",
@@ -403,7 +427,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "grey long-beaked bird archer, wooden bow and arrow",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-marksman.png"
+      "avatar": "/avatars/extra-mile/extra-mile-marksman.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-marksman.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-moneybags",
@@ -433,8 +459,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink pig, black top hat, green trousers and curled tail",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-moneybags.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-moneybags.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-moneybags.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-mr-fox",
@@ -464,8 +492,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "orange fox lawyer, navy suit, cream muzzle, briefcase and balance scales",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-mr-fox.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-mr-fox.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-mr-fox.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-oddball",
@@ -495,7 +525,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "white baseball, red stitching, thick black spectacles and buck teeth",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-oddball.png"
+      "avatar": "/avatars/extra-mile/extra-mile-oddball.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-oddball.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-pooh",
@@ -525,8 +557,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "round pale yellow bear, honey pot and three red balloons",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-pooh.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-pooh.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-pooh.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-robin-hood",
@@ -556,8 +590,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "grey archer, pointed green feathered hat/tunic, belt and longbow",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-robin-hood.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-robin-hood.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-robin-hood.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-saint-nick",
@@ -587,8 +623,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "red bishop mitre/coat, white beard, tan sack and golden crozier",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-saint-nick.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-saint-nick.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-saint-nick.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-school-bully",
@@ -618,8 +656,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "grey gorilla, dark backward cap, blue shorts and wooden slingshot",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-school-bully.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-school-bully.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-school-bully.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-scout",
@@ -649,8 +689,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "red scout, wide yellow hat, badge sash and green flag",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-scout.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-scout.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-scout.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-shuffler",
@@ -680,7 +722,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "white playing card with black spade, blue limbs and red card stack",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-shuffler.png"
+      "avatar": "/avatars/extra-mile/extra-mile-shuffler.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-shuffler.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-silly-goose",
@@ -710,7 +754,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "white long-neck goose, yellow beak, dark sunglasses and propeller cap",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-silly-goose.png"
+      "avatar": "/avatars/extra-mile/extra-mile-silly-goose.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-silly-goose.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-snake-eyes",
@@ -740,7 +786,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "green coiled snake, cream belly, forked red tongue and two white dice above its eyes",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-snake-eyes.png"
+      "avatar": "/avatars/extra-mile/extra-mile-snake-eyes.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-snake-eyes.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-snub",
@@ -770,8 +818,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink elephant, large ears, short curled trunk and red striped shorts",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-snub.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-snub.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-snub.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-terrible-toddler",
@@ -801,8 +851,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "pink crying monkey baby, white diaper, large open mouth and ears",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-terrible-toddler.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-terrible-toddler.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-terrible-toddler.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-thief",
@@ -832,8 +884,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "green burglar, dark beanie/mask, striped shirt and tan loot sack",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-thief.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-thief.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-thief.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-toll-troll",
@@ -863,8 +917,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "green troll, spiky brown hair, pointed ears and ragged cream tunic",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-toll-troll.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-toll-troll.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-toll-troll.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-totally-fair-ref",
@@ -894,8 +950,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "grey dog referee, striped black/white shirt and black cap",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-totally-fair-ref.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-totally-fair-ref.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-totally-fair-ref.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-whisper",
@@ -925,7 +983,9 @@
       "referenceDate": "2026-10-22",
       "recognition": "lavender ghost, pointed scalloped hem and hands covering its mouth",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-whisper.png"
+      "avatar": "/avatars/extra-mile/extra-mile-whisper.svg",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-whisper.png",
+      "avatarStyle": "flat-cartoon-svg"
     },
     {
       "id": "extra-mile-witch-hazel",
@@ -955,8 +1015,10 @@
       "referenceDate": "2026-10-22",
       "recognition": "green witch, crooked black hat, hooked nose and yellow broom",
       "inferred": "Single-view card artwork informs the silhouette and identifying props. Side/back surfaces and joint placement are original project interpretations, not author-approved sculpts.",
-      "avatar": "/models/extra-mile/avatars/extra-mile-witch-hazel.png",
-      "mouthSurfaceVersion": "surface-mouth-v2"
+      "avatar": "/avatars/extra-mile/extra-mile-witch-hazel.svg",
+      "mouthSurfaceVersion": "surface-mouth-v2",
+      "modelPreview": "/models/extra-mile/avatars/extra-mile-witch-hazel.png",
+      "avatarStyle": "flat-cartoon-svg"
     }
   ],
   "totalBytes": 1527560,

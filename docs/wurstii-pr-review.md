@@ -1,5 +1,7 @@
 # Wurstii A PR #10 复审与修复
 
+本报告记录 `792eb24` 的规则修复及当时的 WebP 头像验收。后续按用户要求将三个粉丝扩展的头像统一为 SVG，当前表现与验收见[扩展头像](expansion-avatars.md)。
+
 对象：`qiuh23/magical-athlete-online#10`；继续使用 fork 的 `codex/wurstii-upstream-sync`，不新建 PR、不合并或部署。复审前 head `1768e638edd6829f1f21f79b726f34f77810ab8a`，上游 `571b0cb1a875c0bb92bcf8767b21764ed7a75a3b`。最终被验证的提交和远端 CI 状态记录在 PR 说明，避免文档自引用 SHA。
 
 ## 问题、证据和行为变化

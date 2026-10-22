@@ -5,7 +5,6 @@ import { io } from 'socket.io-client';
 import type { ActionEnvelope, ActionReply } from '../../src/shared/types.js';
 import { createApplication } from '../../src/server/index.js';
 import { createGame, resolveTasks } from '../../src/engine/index.js';
-import { WURSTII_CHARACTERS } from '../../src/shared/wurstii.js';
 
 let app:ReturnType<typeof createApplication>,url:string;
 test.beforeAll(async()=>{app=createApplication(':memory:');await new Promise<void>(r=>app.http.listen(0,'127.0.0.1',r));const a=app.http.address();if(!a||typeof a==='string')throw Error('address');url=`http://127.0.0.1:${a.port}`;});
@@ -22,8 +21,8 @@ test('three players and spectator see one Fox response across reconnect, with hi
   try{
     for(const [i,context] of contexts.entries()){
       await context.addInitScript(({identity,low})=>{localStorage.setItem(`magical-athlete:identity:${identity.roomCode}`,JSON.stringify(identity));localStorage.setItem(`magical-athlete:identity:${identity.roomCode}:${identity.role??'player'}`,JSON.stringify(identity));localStorage.setItem('magical-athlete:low-quality',String(low));localStorage.setItem('magical-athlete:animation-speed','4');localStorage.setItem('magical-athlete:reduced-motion','true');localStorage.setItem('magical-athlete:muted','true');},{identity:joins[i]!.identity,low:i!==1});
-      // Only the spectator loses one model and one image; no authority state changes.
-      if(i===3){await context.route('**/models/wurstii/wurstii-mario.glb*',r=>r.abort());await context.route('**/avatars/wurstii-small/wurstii-mario.webp',r=>r.abort());}
+      // Only the spectator loses one model; the independent SVG portrait still renders.
+      if(i===3)await context.route('**/models/wurstii/wurstii-mario.glb*',r=>r.abort());
       const page=await context.newPage();pages.push(page);await page.goto(`${url}/room/${code}`);await expect(page.locator('.connection.is-online')).toBeVisible();
     }
     const [host,fox,other,viewer]=pages;
@@ -44,7 +43,8 @@ test('three players and spectator see one Fox response across reconnect, with hi
     for(const page of [host!,fox!]){await expect(page.getByTestId('board-3d')).toHaveAttribute('data-loaded-models','3');await expect(page.getByTestId('board-3d')).toHaveAttribute('data-model-fallbacks','0');}
     await expect(viewer!.getByTestId('board-3d')).toHaveAttribute('data-model-fallbacks','1');
     await expect(viewer!.locator('img[src*="wurstii-mario.webp"]')).toHaveCount(0);
-    await expect(viewer!.locator('svg.avatar')).toHaveCount(1);
+    await expect(viewer!.locator('.floating-racers svg.avatar')).toHaveCount(3);
+    await expect(viewer!.locator('.floating-racer[aria-label^="马力欧"] svg.avatar')).toBeVisible();
     await viewer!.screenshot({path:info.outputPath('spectator-fallback.png')});
     await fox!.reload();await expect(fox!.getByTestId('skill-choice')).toHaveCount(0);expect(app.rooms.get(code).game.racers[1]!.flags.foxUsed).toBe(1);
     // An actual second authenticated socket retries the SAME response envelope.
@@ -68,21 +68,30 @@ test('three players and spectator see one Fox response across reconnect, with hi
   }finally{await Promise.all(contexts.map(c=>c.close()));}
 });
 
-test('all thirty small avatars load 256px alpha WebP, measure cold/warm requests against original PNGs',async({page},info)=>{
-  await page.goto(url);await page.getByRole('tab',{name:'自己练习',exact:true}).click();await page.getByRole('checkbox',{name:'Wurstii A',exact:true}).check();
-  await page.getByRole('button',{name:'开始自己练习',exact:true}).click();await expect(page.locator('.connection.is-online')).toBeVisible();await page.getByLabel('角色版本筛选').selectOption('wurstii');
-  const images=page.locator('.practice-pool img');await expect(images).toHaveCount(30);
-  for(let i=0;i<30;i++){await images.nth(i).scrollIntoViewIfNeeded();await expect.poll(()=>images.nth(i).evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBe(256);}
-  expect(await images.evaluateAll(nodes=>nodes.every(n=>(n as HTMLImageElement).loading==='lazy'&&(n as HTMLImageElement).decoding==='async'))).toBe(true);
-  const cold=await page.evaluate(()=>performance.getEntriesByType('resource').filter(e=>e.name.includes('/avatars/wurstii')).map(e=>{const t=e as PerformanceResourceTiming;return {url:t.name,initiator:t.initiatorType,encoded:t.encodedBodySize,transfer:t.transferSize};}));
-  expect(cold.filter(e=>e.initiator==='img'&&e.url.includes('/avatars/wurstii/'))).toHaveLength(0);
-  expect(new Set(cold.filter(e=>e.encoded>0).map(e=>e.url)).size).toBe(30);
-  const control=await page.evaluate(async ids=>{const rows=[];for(const id of ids){const r=await fetch(`/avatars/wurstii/${id}.png`,{cache:'no-store'});rows.push({id,bytes:(await r.arrayBuffer()).byteLength});}return rows;},WURSTII_CHARACTERS.map(c=>c.id));
-  await page.reload();await expect(page.locator('.connection.is-online')).toBeVisible();await page.getByLabel('角色版本筛选').selectOption('wurstii');
-  for(let i=0;i<30;i++){await images.nth(i).scrollIntoViewIfNeeded();await expect.poll(()=>images.nth(i).evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBe(256);}
-  const warm=await page.evaluate(()=>performance.getEntriesByType('resource').filter(e=>e.name.includes('/avatars/wurstii-small/')).map(e=>{const t=e as PerformanceResourceTiming;return {url:t.name,encoded:t.encodedBodySize,transfer:t.transferSize};}));
-  expect(cold.reduce((n,r)=>n+r.encoded,0)).toBe(239102);expect(control.reduce((n,r)=>n+r.bytes,0)).toBe(22462005);
-  const network=JSON.stringify({cold,warm,originalControlDownloads:control},null,2);writeFileSync(info.outputPath('avatar-network.json'),network);
+test('all expansion pickers use flat SVG at desktop and mobile sizes without rendered-image requests',async({page},info)=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  const imageRequests:string[]=[];
+  page.on('request',r=>{if(/\/(?:avatars\/|models\/[^/]+\/avatars\/)/.test(r.url()))imageRequests.push(r.url());});
+  await page.goto(url);await page.getByRole('tab',{name:'自己练习',exact:true}).click();
+  for(const name of ['Extra Mile','Leaf’s Fan Expansion','Wurstii A'])await page.getByRole('checkbox',{name,exact:true}).check();
+  await page.getByRole('button',{name:'开始自己练习',exact:true}).click();await expect(page.locator('.connection.is-online')).toBeVisible();
+  const packs=[['extra-mile',31],['leaf',18],['wurstii',30]] as const;
+  for(const [pack,count] of packs){
+    await page.getByLabel('角色版本筛选').selectOption(pack);
+    await expect(page.locator('.practice-pool svg.avatar')).toHaveCount(count);
+    await expect(page.locator('.practice-pool img,.practice-pool image')).toHaveCount(0);
+    const button=page.locator('.practice-pool .character-pick').first();await button.click();
+    await expect(button).toHaveAttribute('aria-pressed','true');
+    await page.screenshot({path:info.outputPath(`${pack}-desktop.png`)});
+    await page.setViewportSize({width:390,height:844});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await expect(page.locator('.practice-pool svg.avatar').first()).toBeVisible();
+    await page.screenshot({path:info.outputPath(`${pack}-mobile.png`)});
+    await page.setViewportSize({width:1280,height:900});
+  }
+  await page.reload();await expect(page.locator('.connection.is-online')).toBeVisible();
+  await page.getByLabel('角色版本筛选').selectOption('wurstii');await expect(page.locator('.practice-pool svg.avatar')).toHaveCount(30);
+  expect(imageRequests).toEqual([]);expect(errors).toEqual([]);
+  const network=JSON.stringify({avatarRequests:imageRequests,pageErrors:errors},null,2);writeFileSync(info.outputPath('avatar-network.json'),network);
   await info.attach('avatar-network',{body:network,contentType:'application/json'});
-  await page.screenshot({path:info.outputPath('small-avatars.png')});
 });
