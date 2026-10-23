@@ -14,14 +14,18 @@ function labelTexture(label: string) {
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; return texture;
 }
 
-export function TwistBoundary({ track, compact }: { track: TrackId; compact: boolean }) {
+export function TwistBoundary({ track, compact, triggered = false }: { track: TrackId; compact: boolean; triggered?:boolean }) {
   const boundary = TRACKS[track].twistBoundary;
-  const texture = useMemo(() => labelTexture('TWIST'), []);
+  const texture = useMemo(() => labelTexture(triggered?'TWIST ✓':'TWIST'), [triggered]);
   useEffect(() => () => texture.dispose(), [texture]);
   if (!boundary) return null;
   const a = boardPoint(boundary.before, compact, track), b = boardPoint(boundary.after, compact, track);
-  return <group name="twist-crossing-line" position={[(a[0] + b[0]) / 2, .247, (a[2] + b[2]) / 2]} rotation={[0, Math.atan2(b[0] - a[0], b[2] - a[2]), 0]}>
-    <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[TILE * 1.07, .42]} /><meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} /></mesh>
+  return <group name="twist-crossing-line" userData={{triggered}} position={[(a[0] + b[0]) / 2, .247, (a[2] + b[2]) / 2]} rotation={[0, Math.atan2(b[0] - a[0], b[2] - a[2]), 0]}>
+    {[-1,1].map(side=><group key={side} position={[side*TILE*.62,0,0]}>
+      <mesh position={[0,.08,0]}><cylinderGeometry args={[.16,.2,.16,12]}/><meshStandardMaterial color="#aa91be" roughness={.7}/></mesh>
+      <mesh position={[0,.19,0]}><octahedronGeometry args={[.13,0]}/><meshStandardMaterial color={triggered?'#edc56c':'#d9cce5'} roughness={.55}/></mesh>
+    </group>)}
+    <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[TILE * 1.07, .28]} /><meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} /></mesh>
   </group>;
 }
 
@@ -33,7 +37,7 @@ export function TwistPieces({ room, compact, lowQuality, reducedMotion }: { room
   const wandering = monster && !monster.racerId && !monster.finished ? boardPoint(monster.position, compact, room.track) : undefined;
   const event=room.trackState?.event,npc=event?.npc,marker=npc&&!npc.finished?boardPoint(npc.position,compact,room.track):undefined;
   return <group name="public-twist-pieces">
-    <TwistBoundary track={room.track} compact={compact} />
+    <TwistBoundary track={room.track} compact={compact} triggered={!!twist?.triggered} />
     {twist?.chips?.map(position => { const point = boardPoint(position, compact, room.track); return <mesh key={position} name={`twist-chip-${position}`} position={[point[0] + .55, point[1] + .1, point[2] + .55]}>
       <cylinderGeometry args={[.22, .22, .09, 16]} /><meshStandardMaterial color="#ffd15b" metalness={.45} roughness={.3} />
     </mesh>; })}

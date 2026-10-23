@@ -122,6 +122,13 @@ const bridgeNodes = centers({
   20: [2430, 200], 21: [2525, 400], 22: [2290, 400], 23: [2430, 200], 24: [2760, 210],
   25: [2830, 465], 26: [2640, 680], 27: [2320, 810], 28: [1995, 825], 29: [1675, 825], 30: [1380, 825],
 }, 250);
+// Display coordinates only: preserve every numbered node, effect and legal edge.
+// Room for open portals, full-size pawns, flat landings and gradual approaches.
+for (const node of Object.values(bridgeNodes)) { node.x *= 2.2; node.z *= 2.2; }
+for (const id of [11, 12, 16, 17, 21, 22]) bridgeNodes[id]!.z += 1.2;
+for (const id of [2, 14, 19]) bridgeNodes[id]!.x -= .5;
+bridgeNodes[4]!.z += .5;
+for (const [upper] of bridgePairs) for (const id of [upper - 1, upper + 1]) bridgeNodes[id]!.y = .15;
 for (const [upper, lower] of bridgePairs) {
   // Height is a scene choice, giving the lower pawn clearance under the bridge.
   bridgeNodes[upper]!.y = 1.65;

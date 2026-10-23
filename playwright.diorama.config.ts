@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'tests/browser',testMatch:'expansion-dioramas.spec.ts',timeout:240000,expect:{timeout:30000},workers:1,retries:0,reporter:[['list']],use:{headless:true,deviceScaleFactor:1,launchOptions:{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']}}});

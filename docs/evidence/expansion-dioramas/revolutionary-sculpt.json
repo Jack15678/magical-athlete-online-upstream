@@ -1,0 +1,10 @@
+{
+  "id": "leaf-revolutionary",
+  "sculptVersion": "tailored-v3-20261023",
+  "supersedes": "surface-mouth-v2",
+  "source": "assets/blender/leaf/leaf-revolutionary.blend",
+  "sourceSha256": "0624cb2481324ad7eebbeb421a9fd1b3b82b6f45153a9aae0c533f10defc90d8",
+  "glbSha256": "d940264c85dc7446928a5aeb479591900685bafed1b7594fce20f0e8eacd2e3d",
+  "validationTest": "tests/revolutionary-sculpt.test.ts",
+  "scope": "Shipping GLB face contact, five clips and static bind pose. Blend fingerprint identifies the supplied editable file; Blender was not rerun locally."
+}

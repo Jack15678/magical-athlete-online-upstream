@@ -1,3 +1,6 @@
+import { ExpansionScenery } from './ExpansionScenery.js';
+import { expansionTileSize } from './expansion-layout.js';
+import { BridgesRoads, BridgeRouteBadges } from './BridgesStructure.js';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -9,6 +12,7 @@ import { specialTileTexture } from './tile-art.js';
 function nodeTexture(id: number, finish: number, remaining?: number) {
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
   const context = canvas.getContext('2d')!;
+  if(remaining!==undefined){context.strokeStyle='rgba(116,81,45,.14)';context.lineWidth=2;for(let y=15;y<256;y+=36){context.beginPath();context.moveTo(0,y);context.lineTo(256,y);context.stroke()}}
   context.fillStyle = '#173f37'; context.textAlign = 'center'; context.textBaseline = 'middle';
   context.font = '900 55px "Microsoft YaHei", sans-serif';
   context.fillText(id === 0 ? '起点' : id === finish ? '终点' : String(id), 128, 94);
@@ -29,10 +33,10 @@ function TopologyTile({ track, id, triggered }: { track: TrackId; id: number; tr
   const angle = Math.atan2(-(toward[0] - point[0]), -(toward[2] - point[2]));
   const texture = useMemo(() => special ? specialTileTexture(special.kind, special.move, id, angle, special.points, special.to) : nodeTexture(id, definition.finish, track === 'boardwalks' ? definition.remaining?.[id] : undefined), [id, track, special, angle, definition.finish]);
   useEffect(() => () => texture.dispose(), [texture]);
-  const nearest = Math.min(...trackNodeIds(track).filter(other => other !== id).map(other => {
-    const p = boardPoint(other, false, track); return Math.hypot(p[0] - point[0], p[2] - point[2]);
-  }).filter(distance => distance > .01));
-  const size = Math.min(TILE * .91, nearest * .86), color = id === 0 ? '#82c5ae' : id === definition.finish ? '#efb15a' : definition.nodes?.[id]?.color ?? '#ead3a2';
+  const size = expansionTileSize(track,id);
+  const source = definition.nodes?.[id]?.color;
+  const soft:Record<string,string>={'#f34b22':'#e99d7e','#639fd0':'#97beca','#509542':'#9eba84','#e9b51b':'#e9c77b','#ce85ba':'#c6a5c7'};
+  const color = id===0?'#82c5ae':id===definition.finish?'#efb15a':track==='bridges'?point[1]>.3?'#e7c68f':'#90b7b4':soft[source??'']??'#ead3a2';
   const geometry = useMemo(() => new RoundedBoxGeometry(size, .14, size, 2, .04), [size]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return <group name={`track-node-${id}`} position={point}>
@@ -42,31 +46,19 @@ function TopologyTile({ track, id, triggered }: { track: TrackId; id: number; tr
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .01, 0]}>
       <planeGeometry args={[size * .92, size * .92]} /><meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
     </mesh>
-    {(definition.nodes?.[id]?.y ?? 0) > 0 && [-1, 1].map(side => <mesh key={side} position={[side * size * .39, -(point[1] - .12) / 2, 0]} castShadow>
+    {track !== 'bridges' && (definition.nodes?.[id]?.y ?? 0) > 0 && [-1, 1].map(side => <mesh key={side} position={[side * size * .39, -(point[1] - .12) / 2, 0]} castShadow>
       <boxGeometry args={[.13, point[1] - .12, size * .8]} /><meshStandardMaterial color="#738e74" roughness={.8} />
     </mesh>)}
   </group>;
 }
 
-function TrackConnection({ track, from, to }: { track: TrackId; from: number; to: number }) {
-  const a = new THREE.Vector3(...boardPoint(from, false, track)), b = new THREE.Vector3(...boardPoint(to, false, track));
-  const direction = b.clone().sub(a), middle = a.clone().add(b).multiplyScalar(.5);
-  const orientation = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction.clone().normalize());
-  return <mesh name={`track-edge-${from}-${to}`} position={[middle.x, middle.y - .12, middle.z]} quaternion={orientation} receiveShadow>
-    <boxGeometry args={[TILE * .49, .12, direction.length()]} /><meshStandardMaterial color="#91ac8e" roughness={.85} />
-  </mesh>;
-}
-
 /** Independent courses retain every source fork and bridge; node IDs never draw the edges. */
-export function TopologyStadium({ track, compact, triggered }: { track: TrackId; compact: boolean; triggered: Set<number> }) {
-  const bounds = boardBounds(track), start = boardPoint(0, false, track), definition = TRACKS[track];
-  const deck = useMemo(() => new RoundedBoxGeometry(bounds.width + TILE * 2, .45, bounds.depth + TILE * 2, 4, .18), [bounds.width, bounds.depth]);
-  useEffect(() => () => deck.dispose(), [deck]);
+export function TopologyStadium({ track, compact, triggered, lowQuality }: { track: TrackId; compact: boolean; triggered: Set<number>; lowQuality:boolean }) {
+  const definition = TRACKS[track];
   return <group rotation={[0, compact ? -Math.PI / 2 : 0, 0]} name={`topology-stadium-${track}`}>
-    <mesh geometry={deck} position={[bounds.x, -.22, bounds.z]} receiveShadow castShadow><meshStandardMaterial color="#e7e6c8" roughness={.8} /></mesh>
-    {trackConnections(track).map(([from, to]) => <TrackConnection key={`${from}-${to}`} {...{ track, from, to }} />)}
-    <mesh position={[start[0] - TILE * 1.5, .13, start[2]]} receiveShadow><boxGeometry args={[TILE * 3, .15, TILE * 1.45]} /><meshStandardMaterial color="#82c5ae" roughness={.8} /></mesh>
+    <ExpansionScenery track={track} lowQuality={lowQuality}/>
+    {track === 'bridges' && <><BridgesRoads/><BridgeRouteBadges/></>}
     {trackNodeIds(track).sort((a, b) => (definition.nodes?.[a]?.y ?? 0) - (definition.nodes?.[b]?.y ?? 0)).map(id => <TopologyTile key={id} {...{ track, id }} triggered={triggered.has(id)} />)}
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.46, 0]} receiveShadow><planeGeometry args={[240, 240]} /><meshStandardMaterial color="#e3dcca" roughness={1} /></mesh>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.925, 0]} receiveShadow><planeGeometry args={[240, 240]} /><meshStandardMaterial color="#e3dcca" roughness={1} /></mesh>
   </group>;
 }
