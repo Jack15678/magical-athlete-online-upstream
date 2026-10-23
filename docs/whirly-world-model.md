@@ -38,3 +38,9 @@ pnpm exec playwright test tests/browser/new-track-scenes.spec.ts tests/browser/w
 Node模型测试检查几何与资源结构，真实浏览器负责贴图解码和实际显示。未在本机Blender重新打开工程；交付方的Blender报告不冒充本机验证。
 
 [桌面实际总览](qa/whirly-world-integration/desktop.png) · [手机实际总览](qa/whirly-world-integration/mobile.png)
+
+## PR同步验证（2026-10-24）
+
+同步主分支`ad92d2a`（四张地图美术已合并），保留Bridges高度跟随和本图手机总览留白；合并提交`3b78240`。同步后82项地图/模型/相机/赛程检查、两套完整巡回、12项浏览器地图/建房检查及2项特殊赛事浏览器检查通过，类型检查和构建通过。浏览器确认“规则待确认”“尚未取得完整事件表”“待开放内容”均不再出现；特殊赛事能开启、选择场次、创建房间并刷新恢复，[实际设置截图](qa/special-event-settings.png)。
+
+CI增加Whirly模型结构与加载/失败回退用例，更新首页用例名称匹配并加入两巡回实际建房用例。这里记录本地结果；GitHub检查状态以PR对应提交为准。

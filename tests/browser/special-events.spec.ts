@@ -9,12 +9,13 @@ test.afterAll(async()=>app.close());
 test('special event setup explains automatic events, validates rounds and saves the chosen settings',async({page},info)=>{
  await page.goto(url);await page.getByRole('tab',{name:'创建房间',exact:true}).click();
  await page.getByLabel('你的昵称').fill('特殊赛事设置');
- await expect(page.getByText('规则待确认',{exact:false})).toHaveCount(0);
+ await expect(page.getByText(/规则待确认|尚未取得完整事件表|待开放内容/)).toHaveCount(0);
  await expect(page.locator('.event-status')).toContainText('当前关闭');
  await expect(page.locator('.event-instructions')).toContainText('系统自动抽取');
  await page.getByRole('checkbox',{name:'启用 36 项粉丝事件（网页适配）'}).check();
  await expect(page.getByRole('checkbox',{name:'第 3 场',exact:true})).toBeChecked();
  await expect(page.locator('.config-main .schedule-preview li').nth(2)).toContainText('Thrilling Thirds');
+ await page.locator('.special-event-settings').screenshot({path:info.outputPath('special-event-controls.png')});
  await page.getByRole('checkbox',{name:'第 3 场',exact:true}).uncheck();
  await expect(page.locator('.event-status')).toContainText('至少勾选一场');
  await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
