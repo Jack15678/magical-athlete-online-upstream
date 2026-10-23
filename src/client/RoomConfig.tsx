@@ -3,7 +3,7 @@ import { CHARACTERS } from '../shared/characters.js';
 import { CHARACTER_PACK_IDS, legacyRoomConfig, characterResources, roomConfigError, type RoomConfig, type CharacterPackId } from '../shared/room-config.js';
 import type { GameAction, RoomView } from '../shared/types.js';
 import './room-config.css';
-import { CompetitionFields, PendingContent, competitionSummary, SchedulePreview } from './CompetitionFields.js';
+import { CompetitionFields, competitionSummary, SchedulePreview } from './CompetitionFields.js';
 import { competitionConfig } from '../shared/competition.js';
 
 const PACK_INFO: Record<CharacterPackId,{ name:string; kind:string; description:string; source:string }> = {
@@ -22,8 +22,8 @@ export function RoomConfigFields({config,onChange,disabled=false,players=6,pract
     <fieldset disabled={disabled}><legend>角色包</legend><p className="config-intro">角色包只改变角色牌池，与地图方案独立；粉丝包默认关闭。</p>
       <div className="pack-options">{CHARACTER_PACK_IDS.map(id=><div key={id} className="pack-option"><label><input type="checkbox" aria-label={PACK_INFO[id].name} checked={config.characterPacks[id] === true} onChange={event=>onChange({...config,characterPacks:{...config.characterPacks,[id]:event.target.checked}})} /><span><strong>{PACK_INFO[id].name}<b>{packCount(id)} 位可用</b></strong><small>{PACK_INFO[id].kind}</small></span></label><p>{PACK_INFO[id].description} <a href={PACK_INFO[id].source} target="_blank" rel="noreferrer">来源 ↗</a></p></div>)}</div>
     </fieldset>
-    <fieldset disabled={disabled}><legend>特殊赛事与其他规则</legend><label className="event-off"><input type="checkbox" checked={false} disabled />Thrilling Thirds · 规则待确认</label><p className="config-intro">尚未取得完整事件表，特殊赛事保持关闭。地图和角色包不会自动开启特殊赛事。</p>
-      <p>两人每场两名选手，按自己安排的固定顺序行动；粘液怪不减速同玩家的另一名选手为项目房规。7–8 人为项目变体。</p><PendingContent />
+    <fieldset disabled={disabled}><legend>人数与房规</legend>
+      <p>两人每场两名选手，按自己安排的固定顺序行动；粘液怪不减速同玩家的另一名选手为项目房规。7–8 人为项目变体。</p>
     </fieldset>
   </div><details className="config-summary" open><summary>这场怎么跑 · 总摘要</summary><p className="summary-line">{configSummary(config)}</p><p>{CHARACTER_PACK_IDS.filter(id=>config.characterPacks[id]).map(id=>`${PACK_INFO[id].name}（${PACK_INFO[id].kind}）`).join('、')}</p><p>{config.visibility==='private'?'私密 · 凭链接或房间码进入':'公开房间'}</p><p>{practice?'个人练习':`${players} 人${players===2?' · 每人双选手':players>=7?' · 项目变体':''}`}</p><p className="config-total" role="status">当前牌池 {resources.available} 位 · 选秀 {resources.drafted} 位 · 技能预留 {resources.reserve} 位</p><details><summary>查看逐场安排</summary><SchedulePreview competition={competitionConfig(config)} /></details>{error&&<p role="alert" className="form-error">{error}</p>}</details></div>;
 }

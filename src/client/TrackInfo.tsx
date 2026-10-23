@@ -35,6 +35,6 @@ export function TrackInfo({ room, queue }: { room: RoomView; queue?: Presentatio
         </article>;
       })}<a href="/rules/competition.md" target="_blank" rel="noreferrer">地图与网页裁定</a></div>}
     </section>}
-    {event && <details className="race-special-event" data-testid="special-event"><summary>特殊赛事 · {CHARACTERS.find(c => c.id === event.id)?.nameZh ?? event.id}</summary><p>{event.description}</p>{event.npc && <p>公共标记：第 {event.npc.position} 格</p>}<a href="/rules/special-events.md" target="_blank" rel="noreferrer">网页适配规则</a></details>}
+    {event && <details key={`${room.code}:${room.round}:${event.id}`} className="race-special-event" data-testid="special-event" open><summary>特殊赛事 · {CHARACTERS.find(c => c.id === event.id)?.nameZh ?? event.id}</summary><p>{event.description}</p><p>本场生效；需要你选择时会自动提示，其余效果由系统结算。</p>{event.npc && <p>公共标记：第 {event.npc.position} 格</p>}<a href="/rules/special-events.md" target="_blank" rel="noreferrer">网页适配规则</a></details>}
   </aside>;
 }

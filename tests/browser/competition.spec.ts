@@ -25,20 +25,23 @@ async function clickAction(page:Page,action:GameAction,pending?:{options:{id:str
   else throw Error(`unsupported browser intent ${action.type}`);
 }
 
-test('home, preserved draft, exact presets, invalid rotation and desktop/mobile layout',async({page},info)=>{
+test('home shows only playable presets, preserves drafts, rejects invalid rotations and fits desktop/mobile',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize({width:1440,height:900});await page.goto(url);
   await expect(page.getByRole('checkbox')).toHaveCount(0);await page.screenshot({path:info.outputPath('home.png'),fullPage:true});
   await page.getByRole('tab',{name:'创建房间',exact:true}).click();
-  await expect(page.locator('.preset-select').nth(1)).toBeDisabled();await expect(page.locator('.preset-select').nth(2)).toBeDisabled();
+  await expect(page.locator('.preset-select')).toHaveCount(1);await expect(page.locator('.preset-select')).toBeEnabled();
+  await expect(page.getByText(/社区锦标赛|官方巡回|扩展巡回|规则待确认|待开放内容/)).toHaveCount(0);
   await expect(page.locator('.config-main .schedule-preview li')).toHaveCount(4);
   await page.getByRole('checkbox',{name:'Extra Mile',exact:true}).check();
-  await page.getByRole('button',{name:'修改扩展巡回赛程',exact:true}).click();
+  await page.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();
+  await page.getByLabel('比赛场数').selectOption('8');
+  for(let i=0;i<6;i++)await page.getByRole('button',{name:'添加 Mild Mile',exact:true}).click();
   await expect(page.getByLabel('比赛场数')).toHaveValue('8');await expect(page.locator('.rotation-list li')).toHaveCount(8);
   await expect(page.getByRole('checkbox',{name:'Extra Mile',exact:true})).toBeChecked();
-  await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
   await page.getByLabel('比赛场数').selectOption('4');await expect(page.locator('.rotation-list li')).toHaveCount(8);
   await expect(page.locator('.config-summary')).toContainText('长度不能超过');
+  await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
   await page.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();
   await page.getByRole('button',{name:'移除第1项',exact:true}).click();await page.getByRole('button',{name:'移除第1项',exact:true}).click();
   await expect(page.locator('.config-summary')).toContainText('不能为空');
