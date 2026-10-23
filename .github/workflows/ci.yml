@@ -83,7 +83,7 @@ jobs:
       # Default to one eight-player race with reconnects. A validation trailer
       # can select focused ability checks; broad suites stay manual.
       - name: Validate room-list admission and spectating
-        run: pnpm exec playwright test -c playwright.relay.config.ts tests/relay-browser/room-directory.spec.ts --grep "^directory:"
+        run: pnpm exec playwright test -c playwright.relay.config.ts tests/relay-browser/room-directory.spec.ts --grep "directory:"
         env:
           CI: true
       - run: pnpm exec playwright test tests/browser/three-scene.spec.ts --grep "3D dice settles|3D simultaneous"
