@@ -77,7 +77,7 @@ test('Thespian and Filmmaker keep independent simultaneous temporary powers and 
 });
 
 test('a permanent Doppel grant made during a matching temporary borrow survives its expiry and recovery turn',()=>{
-  const s=fixture(['doppelgangster','mush','legs'],[2,29,20]);r(s).flags.acquiredPowers=['leaf-thespian'];r(s,1).flags.acquiredPowers=['coach'];
+  const s=fixture(['doppelgangster','egg','legs'],[2,29,20]);r(s).flags.acquiredPowers=['leaf-thespian'];r(s,1).flags.acquiredPowers=['coach'];
   s.deck=['coach','blimp'];begin(s);assert(effectivePowers(s,r(s)).includes('coach'));move(s,1,1);
   assert(r(s,1).eliminated);r(s).tripped=true;begin(s);
   assert(effectivePowers(s,r(s)).includes('coach'));assert(abilityState(s,r(s)).acquired.includes('coach'));
@@ -86,7 +86,7 @@ test('a permanent Doppel grant made during a matching temporary borrow survives 
 });
 
 test('legacy single-slot temporary grants migrate without deleting a later permanent identical grant',()=>{
-  const s=fixture(['doppelgangster','mush','legs'],[2,29,20]);
+  const s=fixture(['doppelgangster','egg','legs'],[2,29,20]);
   Object.assign(r(s).flags,{acquiredPowers:['coach'],leafBorrowedPower:'coach',leafBorrowAlreadyPresent:false,leafDisplayedCard:'coach'});
   r(s,1).flags.acquiredPowers=['coach'];move(s,1,1);r(s).tripped=true;begin(s);
   assert(effectivePowers(s,r(s)).includes('coach'));assert(abilityState(s,r(s)).acquired.includes('coach'));
@@ -108,7 +108,7 @@ test('Doppel takes no effective powers from a Null-disabled first finisher',()=>
 });
 
 test('a receiver does not reset its own spent Kraken when acquiring a new source of Kraken',()=>{
-  const s=fixture(['doppelgangster','mush','legs'],[0,29,20]);r(s).flags.krakenUsed=true;r(s,1).flags.acquiredPowers=['kraken'];
+  const s=fixture(['doppelgangster','egg','legs'],[0,29,20]);r(s).flags.krakenUsed=true;r(s,1).flags.acquiredPowers=['kraken'];
   move(s,1,1);assert(effectivePowers(s,r(s)).includes('kraken'));assert.equal(abilityState(s,r(s)).krakenRemaining,0);
   begin(s);assert.notEqual(s.pending?.kind,'kraken');
 });
@@ -267,9 +267,9 @@ test('public grant events freeze the awarded text and expiry without reconstruct
   assert.deepEqual(borrowed.grantedPowerIds,['blimp']);assert.equal(borrowed.grantDuration,'next-turn');
   roll(film,3);r(film).tripped=true;begin(film);assert(!effectivePowers(film,r(film)).includes('blimp'));assert.deepEqual(borrowed.grantedPowerIds,['blimp']);
   assert(!JSON.stringify(borrowed).includes('sisyphus'));
-  const doppel=fixture(['doppelgangster','mush','legs'],[0,29,20]);r(doppel,1).flags.acquiredPowers=['coach','kraken'];move(doppel,1,1);
+  const doppel=fixture(['doppelgangster','egg','legs'],[0,29,20]);r(doppel,1).flags.acquiredPowers=['coach','kraken'];move(doppel,1,1);
   const acquired=doppel.logs.find(event=>event.type==='copy'&&event.cause==='doppelgangster')!;
-  assert.deepEqual(acquired.grantedPowerIds,['mush','coach','kraken']);assert.equal(acquired.grantDuration,'race');
+  assert.deepEqual(acquired.grantedPowerIds,['egg','coach','kraken']);assert.equal(acquired.grantDuration,'race');
   const copy=fixture(['copycat','coach','legs'],[0,10,5]);task(copy,'refreshCopies');r(copy,2).position=15;task(copy,'refreshCopies');
   assert.deepEqual(copy.logs.filter(event=>event.cause==='copycat').map(event=>event.grantedPowerIds),[['coach'],['legs']]);
   assert(copy.logs.filter(event=>event.cause==='copycat').every(event=>event.grantDuration==='source-change'));

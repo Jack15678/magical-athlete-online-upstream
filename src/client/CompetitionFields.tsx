@@ -16,12 +16,12 @@ export function TrackThumbnail({id}:{id:MapId}) {
 }
 export function competitionSummary(config:RoomConfig):string {
   const c=competitionConfig(config),name=c.preset==='custom'?'自定义积分赛':PRESETS[c.preset].name;
-  return `${name} · ${c.raceCount} 场比赛 · ${new Set(expandedSchedule(c)).size} 张地图 · ${CHARACTER_PACK_IDS.filter(id=>config.characterPacks[id]).length} 个角色包 · 特殊赛事关闭`;
+  return `${name} · ${c.raceCount} 场比赛 · ${new Set(expandedSchedule(c)).size} 张地图 · ${CHARACTER_PACK_IDS.filter(id=>config.characterPacks[id]).length} 个角色包 · ${c.thrillingThirds.enabled?`特殊赛事第 ${c.thrillingThirds.rounds.join('、')} 场`:'特殊赛事关闭'}`;
 }
 export function SchedulePreview({competition}:{competition:CompetitionConfig}) {
   const maps=expandedSchedule(competition);
   return <ol className="schedule-preview" aria-label="完整逐场安排">{maps.map((id,i)=><li key={i}>
-    <span className="race-number">{i+1}</span><span><strong>{TRACK_CATALOG[id].name}</strong><small>{TRACK_CATALOG[id].available?'特殊赛事关闭':'地图尚未开放'}</small></span>
+    <span className="race-number">{i+1}</span><span><strong>{TRACK_CATALOG[id].name}</strong><small>{!TRACK_CATALOG[id].available?'地图尚未开放':competition.thrillingThirds.enabled&&competition.thrillingThirds.rounds.includes(i+1)?'Thrilling Thirds · 网页适配':'特殊赛事关闭'}</small></span>
     <span className="race-rewards">第 1 名 <b>{RACE_POINTS[REWARD_TIERS[competition.raceCount][i]!]![0]}</b> 分<br />第 2 名 <b>{RACE_POINTS[REWARD_TIERS[competition.raceCount][i]!]![1]}</b> 分</span>
   </li>)}</ol>;
 }
@@ -59,9 +59,14 @@ export function CompetitionFields({config,onChange,disabled=false}:{config:RoomC
       </details>
       {!!blocked.length&&<p className="project-rule" role="note">此赛程禁用：{blocked.map(id=>CHARACTERS.find(character=>character.id===id)?.nameZh??id).join('、')}。地图原规则未规定对应弯道，整局选秀、抽牌及复制均排除这些角色。</p>}
       {c.raceCount!==4&&<p className="project-rule">{c.raceCount} 场为项目自定义赛制：每人每场使用未出赛角色；每批按顺序和逆序各选一名，下批首选顺延。不是官方赛制，未获社区平衡性认证。最后一场不加倍。</p>}
+      <fieldset disabled={disabled}><legend>特殊赛事 · Thrilling Thirds</legend>
+        <label><input type="checkbox" checked={c.thrillingThirds.enabled} onChange={e=>change({...c,thrillingThirds:{enabled:e.target.checked,rounds:e.target.checked?[3]:[]}})} />启用 36 项粉丝事件（网页适配）</label>
+        <p>选手揭晓后抽取本场公共规则。原作者用于第三场；此处可选其他场次。独立事件签、双人双角色和扩展地图的适配见<a href="/rules/special-events.md" target="_blank" rel="noreferrer">规则说明</a>。</p>
+        {c.thrillingThirds.enabled&&<div className="event-rounds">{Array.from({length:c.raceCount},(_,i)=>i+1).map(round=><label key={round}><input type="checkbox" checked={c.thrillingThirds.rounds.includes(round)} onChange={e=>change({...c,thrillingThirds:{enabled:true,rounds:e.target.checked?[...c.thrillingThirds.rounds,round].sort((a,b)=>a-b):c.thrillingThirds.rounds.filter(n=>n!==round)}})} />第 {round} 场</label>)}</div>}
+      </fieldset>
       <h3>完整逐场安排</h3><SchedulePreview competition={c} />
       <details className="source-details"><summary>来源与适配详情</summary><p>基础规则书第18页允许赛前约定地图，第19页为四场总分，第20页给出官方巡回顺序。6／8场与扩展巡回为本项目规则。</p><a href="/rules/competition.md" target="_blank" rel="noreferrer">核验范围、奖励表与待开放资料 ↗</a></details>
     </fieldset>
   </>;
 }
-export function PendingContent(){return <details className="optional-rules pending-content"><summary>待开放内容 · {Object.values(TRACK_CATALOG).filter(map=>!map.available).length} 张地图与 2 种玩法</summary><ul>{(Object.entries(TRACK_CATALOG) as [MapId,typeof TRACK_CATALOG[MapId]][]).filter(([,map])=>!map.available).map(([id,map])=><li key={id}><strong>{map.name} · {map.kind}</strong><p>{map.description}</p></li>)}<li><strong>Thrilling Thirds · 粉丝特殊赛事</strong><p>已取得36项事件表；抽牌生命周期、扩展角色映射和部分时序仍待适配，当前关闭。</p></li><li><strong>社区锦标赛 · 社区方案</strong><p>作者原帖暂无法读取，按当前约定暂缓接入。</p></li></ul></details>;}
+export function PendingContent(){return <details className="optional-rules pending-content"><summary>待开放内容 · {Object.values(TRACK_CATALOG).filter(map=>!map.available).length} 张地图与 1 种玩法</summary><ul>{(Object.entries(TRACK_CATALOG) as [MapId,typeof TRACK_CATALOG[MapId]][]).filter(([,map])=>!map.available).map(([id,map])=><li key={id}><strong>{map.name} · {map.kind}</strong><p>{map.description}</p></li>)}<li><strong>社区锦标赛 · 社区方案</strong><p>作者原帖暂无法读取，按当前约定暂缓接入。</p></li></ul></details>;}

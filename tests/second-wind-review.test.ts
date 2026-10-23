@@ -42,24 +42,24 @@ test('Nemesis secondary die log compares the public main face and explains the r
   }
 });
 
-test('Stepdad left neighbor is the next fixed racer instance and can be the same controller teammate',()=>{
+test('Stepdad left neighbor skips teammates to benefit another player (official p27)',()=>{
   const s=fixture(['stepdad','alchemist','legs','blimp'],[21,2,17,8]);r(s,1).playerId='p0';s.baseTurnOrder=['r2','r3','r0','r1'];
-  assert.equal(stepdadTarget(s,r(s))?.id,'r1');assert.equal(abilityState(s,r(s)).stepTargetControllerId,'p0');
-  s.players.reverse();s.racers.reverse();assert.equal(stepdadTarget(s,r(s))?.id,'r1');
-  assert.equal(abilityState(s,r(s)).stepTargetId,'r1');
+  assert.equal(stepdadTarget(s,r(s))?.id,'r2');assert.equal(abilityState(s,r(s)).stepTargetControllerId,'p2');
+  s.players.reverse();s.racers.reverse();assert.equal(stepdadTarget(s,r(s))?.id,'r2');
+  assert.equal(abilityState(s,r(s)).stepTargetId,'r2');
 });
 test('Stepdad wraps the fixed order without using on-board position or player seat direction',()=>{
   const s=fixture(['alchemist','legs','stepdad'],[2,25,10]);s.baseTurnOrder=['r0','r1','r2'];
   assert.equal(stepdadTarget(s,r(s,2))?.id,'r0');r(s).position=28;r(s,1).position=1;assert.equal(stepdadTarget(s,r(s,2))?.id,'r0');
 });
-test('Stepdad adds2 only to its fixed teammate main move and does not change the final die',()=>{
+test('Stepdad does not buff its teammate or alter its final die',()=>{
   const s=fixture(['stepdad','alchemist','legs'],[2,5,20]);r(s,1).playerId='p0';begin(s,1);roll(s,3);
-  assert.equal(r(s,1).position,10);assert.equal(s.lastRoll?.face,3);assert.equal(s.lastRoll?.distance,5);
-  move(s,1,2,'centaur');assert.equal(r(s,1).position,12);
+  assert.equal(r(s,1).position,8);assert.equal(s.lastRoll?.face,3);assert.equal(s.lastRoll?.distance,3);
+  move(s,1,2,'centaur');assert.equal(r(s,1).position,10);
 });
-test('Stepdad fixed teammate champion gives normal first prize plus Stepdad3 to stable current controller',()=>{
-  const s=fixture(['stepdad','alchemist','legs'],[2,26,20]);r(s,1).playerId='p0';begin(s,1);roll(s,3);
-  assert.equal(r(s,1).rank,1);assert.equal(s.players[0]!.score,6);assert.equal(s.logs.filter(e=>e.type==='score'&&e.source==='r0').length,1);
+test('Stepdad teammate champion gives only normal first prize',()=>{
+  const s=fixture(['stepdad','alchemist','legs'],[2,26,20]);r(s,1).playerId='p0';begin(s,1);roll(s,4);
+  assert.equal(r(s,1).rank,1);assert.equal(s.players[0]!.score,3);assert.equal(s.logs.filter(e=>e.type==='score'&&e.source==='r0').length,0);
 });
 test('Stepdad does not award3 for the fixed left racer finishing second',()=>{
   const s=fixture(['stepdad','alchemist','legs'],[2,28,29]);move(s,2,1);move(s,1,2);
@@ -82,9 +82,13 @@ test('Null disables both Stepdad bonus and champion award while fixed target rem
   const s=fixture(['stepdad','alchemist','null'],[5,26,2]);assert.deepEqual(effectivePowers(s,r(s)),[]);assert.equal(abilityState(s,r(s)).stepTargetId,'r1');begin(s,1);roll(s,3);
   assert.equal(s.lastRoll?.distance,2);assert.equal(r(s,1).position,28);move(s,1,2);assert.equal(s.players[0]!.score,0);
 });
-test('Stepdad does not retarget around a finished or eliminated fixed neighbor',()=>{
+test('Stepdad does not retarget around a finished fixed neighbor',()=>{
   const s=fixture(['stepdad','alchemist','legs'],[2,30,20]);r(s,1).finished=true;
   assert.equal(stepdadTarget(s,r(s))?.id,'r1');begin(s,2);choose(s,'use');assert.equal(r(s,2).position,25);
+});
+test('Stepdad retargets past an eliminated opponent and applies its bonus to the next opponent',()=>{
+  const s=fixture(['stepdad','alchemist','legs'],[2,10,20]);r(s,1).eliminated=true;
+  assert.equal(stepdadTarget(s,r(s))?.id,'r2');begin(s,2);choose(s,'use');assert.equal(r(s,2).position,27);
 });
 test('solo Stepdad has no left neighbor and cannot buff or award itself',()=>{
   const s=fixture(['stepdad'],[2]);s.mode='practice';assert.equal(stepdadTarget(s,r(s)),undefined);begin(s);roll(s,3);assert.equal(r(s).position,5);

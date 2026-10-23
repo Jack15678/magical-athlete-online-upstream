@@ -22,8 +22,8 @@ test('only a copied primary power names its public source; acquired powers are n
   assert.equal(copiedAbilitySource(view,actor,'coach'),undefined);
 });
 
-test('Stepdad details identify the exact same-controller neighbor and explain that screen-left is irrelevant',()=>{
-  const view=room(),step=racer('step','p0','stepdad'),target=racer('target','p0','alchemist');
+test('old Stepdad details retain their same-controller interpretation',()=>{
+  const view=room(),step=racer('step','p0','stepdad'),target=racer('target','p0','alchemist');view.rulesVersion='cmyk-base-aug2026-maps-v1';
   step.flags.publicAbilities={powers:['stepdad'],stepTargetId:'target'};view.racers=[step,target];
   const detail=renderToStaticMarkup(createElement(StepdadTarget,{room:view,racer:step}));
   assert.match(detail,/屏幕左右/);assert.match(detail,/自己控制的另一名选手/);assert.match(detail,/炼金术士/);assert.match(detail,/甲/);assert.match(detail,/主要移动加 2/);

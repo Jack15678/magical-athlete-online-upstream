@@ -66,9 +66,9 @@ test('Curse Wands counts finished and eliminated seats, including their own skip
   assert(rules.nextTurn(s,s.racers[0]!));run();assert.equal(s.currentRacerId,'r0');assert.equal(s.randomLog.length,2);assert.equal(s.flags.needsBegin,true);
 });
 
-test('Curse fixed dice hold inactive-seat loops without manufacturing a result',()=>{
+test('Curse fixed dice skip a repeated inactive-seat loop without manufacturing a result',()=>{
   const {s,rules,card,run,data}=fixture(['coach','legs','blimp','banana'],[0,1,2,3]);card('curse-wands');data().fixedFaces={p0:1,p1:1,p2:1,p3:1};s.racers[0]!.finished=true;s.racers[2]!.finished=true;
-  rules.nextTurn(s,s.racers[0]!);run();assert.equal(s.phase,'paused');assert.equal(s.randomLog.length,0);assert.equal(s.results.length,0);assert(s.flags.ruleHold);assert.equal(s.queue[0]!.step,'curse-next');assert(s.players.every(p=>p.score===0));
+  rules.nextTurn(s,s.racers[0]!);run();assert.equal(s.phase,'race');assert.equal(s.randomLog.length,0);assert.equal(s.results.length,0);assert.equal(s.flags.ruleHold,undefined);assert.equal(s.flags.needsBegin,true);assert(!s.racers.find(r=>r.id===s.currentRacerId)!.finished);assert(s.players.every(p=>p.score===0));
 });
 
 test('Fans draws two cards in order and never redraws itself',()=>{

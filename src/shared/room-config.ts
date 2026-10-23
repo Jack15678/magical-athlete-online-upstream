@@ -48,20 +48,22 @@ export function requiredCharacterCount(players:number,practice=false,rounds=4):n
 export function characterResources(config:RoomConfig,players:number,practice=false) {
   const ids=new Set(enabledCharacterIds(config)),rounds=competitionConfig(config).raceCount;
   const drafted=requiredCharacterCount(players,practice,rounds),slots=practice?1:players===2?4:players;
+  const events=competitionConfig(config).thrillingThirds.enabled;
   const filmSources=['leaf-filmmaker','egg','twin','understudy','leaf-zombie'].filter(id=>ids.has(id)).length;
-  const film=ids.has('leaf-filmmaker')?7*Math.min(slots,filmSources):0;
+  const film=ids.has('leaf-filmmaker')?7*(events?slots:Math.min(slots,filmSources)):0;
   // Copied Thespian / Filmmaker can hold one display of each kind per racer.
   const displays=ids.has('leaf-thespian')?slots:0;
   const abilityDraw=ids.has('egg')?3:ids.has('mush')||ids.has('leaf-thespian')?1:0;
   const draw=Math.max(abilityDraw,competitionConfig(config).rotation.includes('twisty-twirl')?(practice?1:players):0);
-  const reserve=film+displays+draw;
+  // Copycat retains one real card per racer; Centaur retains one per player.
+  const eventCards=events?Math.max(slots,players):0;
+  const reserve=film+displays+draw+eventCards;
   return {available:ids.size,drafted,reserve,required:drafted+reserve};
 }
 export function validateRoomConfigForPlayers(config:RoomConfig,players:number,practice=false):RoomConfig {
   const normalized=validateRoomConfig(config),rounds=competitionConfig(normalized).raceCount;
   const {available,drafted,reserve,required}=characterResources(normalized,players,practice);
   if(available<required)throw Error(`当前角色包共${available}名可用角色，${practice?'个人练习':`${players}人${rounds}场比赛`}至少需要${required}名（选秀${drafted}名，技能抽牌预留${reserve}名），缺${required-available}名。请启用更多已完成角色包、减少人数或减少场数。`);
-  if(rounds>4&&normalized.characterPacks['leaf-fan']&&normalized.characterPacks['second-wind'])throw Error('长赛程暂不支持 Leaf 与 Second Wind 同时启用：返场跑者与赛前复制可能累计多个私人影片手牌，资源上界尚未完成核验。可关闭其中一个包，或改为四场。');
   return normalized;
 }
 export function roomConfigError(config:RoomConfig,players:number,practice=false):string {

@@ -57,6 +57,8 @@ jobs:
         run: pnpm exec tsx --test tests/fan-expansions.test.ts tests/presentation.test.ts tests/room-continuation.test.ts tests/room-lifecycle.test.ts tests/community-network.test.ts
       - name: Validate map topology, abilities, Twists and saved map matches
         run: pnpm exec tsx --test tests/leaf-tracks.test.ts tests/new-track-scenes.test.ts tests/map-rules.test.ts tests/map-targets.test.ts tests/leaf-map-abilities.test.ts tests/map-matches.test.ts tests/twist-cards.test.ts tests/twist-integration.test.ts
+      - name: Validate special events, official card corrections and mixed long schedules
+        run: pnpm exec tsx --test tests/special-events.test.ts tests/event-matches.test.ts tests/second-wind.test.ts tests/second-wind-review.test.ts tests/copy-ability-interactions.test.ts
       - run: pnpm test
         if: steps.validation.outputs.suite == 'all'
       - run: pnpm test:abilities
@@ -74,6 +76,10 @@ jobs:
           CI: true
       - name: Validate new map scenes and controls
         run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts
+        env:
+          CI: true
+      - name: Validate special event setup, private choices and refresh
+        run: pnpm exec playwright test tests/browser/special-events.spec.ts
         env:
           CI: true
       - name: Validate owner-absence voting and current-race closure

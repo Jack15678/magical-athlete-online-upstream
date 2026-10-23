@@ -56,11 +56,16 @@ test('Real Season Finale withholds qualifying rewards and pays both chips only o
   begin(s);move(s,'r0',15);assert.equal(s.phase,'results');assert.deepEqual(s.players.map(p=>p.score),[4,0,0]);assert.deepEqual(s.results[0]!.placements.map(p=>p.points),[4,0]);assert.deepEqual(s.results[0]!.scores!.map(p=>p.total),[4,0,0]);
 });
 
-test('Season Finale drawn after an awarded finish pauses with the existing score and pending movement intact',()=>{
-  const s=fixture(['banana','legs','blimp'],[12,28,22],['season-finale']);move(s,'r1',2);assert.equal(s.phase,'race');assert.equal(s.players[1]!.score,3);assert(!data(s).triggered);
-  const placements=structuredClone(s.flags.placements),ledger=structuredClone(s.scoreLedger);move(s,'r0',2);
-  assert.equal(s.phase,'paused');assert.equal((s.flags.ruleHold as {kind:string}).kind,'twist-late-finale');assert.deepEqual(data(s).drawn,['season-finale']);assert.equal(data(s).finale,undefined);assert.deepEqual(s.players.map(p=>p.score),[0,3,0]);assert.deepEqual(s.flags.placements,placements);assert.deepEqual(s.scoreLedger,ledger);assert(s.racers[1]!.finished);assert.equal(s.racers[0]!.position,14);assert.equal(s.results.length,0);assert(s.queue.some(t=>t.kind==='motion-arrival'));
-  const restored=JSON.parse(JSON.stringify(s)) as GameState,queue=structuredClone(restored.queue);resolveTasks(restored);assert.equal(restored.phase,'paused');assert.deepEqual(restored.queue,queue);assert.deepEqual(restored.scoreLedger,ledger);assert.deepEqual(data(restored).drawn,['season-finale']);
+test('Late Season Finale keeps awarded points and continues; frozen maps-v1 retains its hold',async()=>{
+  const frozen=await import('../src/engine/maps-v1.js');
+  for(const old of [false,true]){
+    const s=fixture(['banana','legs','blimp'],[12,28,22],['season-finale']);
+    const motion=(id:string,n:number)=>{(old?frozen.enqueueMove:enqueueMove)(s,id,n);(old?frozen.resolveTasks:resolveTasks)(s);};
+    motion('r1',2);const ledger=structuredClone(s.scoreLedger);motion('r0',2);
+    assert.equal(s.phase,old?'paused':'race');assert.deepEqual(s.scoreLedger,ledger);assert.deepEqual(data(s).drawn,['season-finale']);assert.equal(data(s).finale,undefined);assert.equal(s.racers[0]!.position,14);
+    const restored=JSON.parse(JSON.stringify(s));(old?frozen.resolveTasks:resolveTasks)(restored);assert.equal(restored.phase,s.phase);assert.deepEqual(restored.scoreLedger,ledger);
+    if(!old){motion('r0',16);assert.equal(s.phase,'results');assert.deepEqual(s.players.map(p=>p.score),[1,3,0]);}
+  }
 });
 
 test('Real reverse Season Finale restarts at the reversed second corner',()=>{
