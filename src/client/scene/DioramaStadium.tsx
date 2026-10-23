@@ -7,6 +7,7 @@ import { TRACKS } from '../../shared/tracks.js';
 import type { PresentationBeat } from '../presentation.js';
 import { BOARD_CENTER_SPAN, boardPoint, TILE } from './math.js';
 import { specialTileTexture } from './tile-art.js';
+import { CarnivalDetails } from './CarnivalDetails.js';
 import { TopologyStadium } from './TopologyStadium.js';
 
 const C = { mint: '#84c6b1', darkMint: '#438674', cream: '#f3e3c4', coral: '#ee785e', ink: '#285e55', wood: '#cda77b', gold: '#edbc55' };
@@ -272,10 +273,13 @@ function LawnDetails({lowQuality,kit}:{lowQuality:boolean;kit:Kit}) {
 }
 
 export function DioramaStadium({ compact, track, reversed = false, lowQuality, beat, racers }: { compact: boolean; track: RoomView['track']; reversed?: boolean; lowQuality: boolean; beat?: PresentationBeat; racers: Racer[] }) {
-  const kit = useKit(lowQuality);
   const triggered = new Set(beat?.motions.map(motion => motion.to) ?? []);
   if (beat && ['score', 'trip'].includes(beat.kind)) for (const racer of racers) if (beat.targets.includes(racer.id) || beat.source === racer.id) triggered.add(racer.position);
-  if (TRACKS[track].nodes) return <TopologyStadium {...{ track, compact, triggered }} />;
+  if (TRACKS[track].nodes) return <TopologyStadium {...{ track, compact, triggered, lowQuality }} />;
+  return <ClassicDiorama {...{compact,track,reversed,lowQuality,triggered}}/>;
+}
+function ClassicDiorama({compact,track,reversed,lowQuality,triggered}:{compact:boolean;track:RoomView['track'];reversed:boolean;lowQuality:boolean;triggered:Set<number>}) {
+  const kit=useKit(lowQuality);
   return <group rotation={[0, compact ? -Math.PI / 2 : 0, 0]}>
     <mesh rotation={[-Math.PI/2,0,0]} position={[.12,-.923,0]}><planeGeometry args={[WIDTH*1.07,DEPTH*1.21]}/><meshBasicMaterial map={kit.baseContact} transparent depthWrite={false} toneMapped={false}/></mesh>
     <mesh geometry={kit.plinth} position={[0, -.62, 0]} material={kit.wood} castShadow receiveShadow dispose={null} />
@@ -286,6 +290,7 @@ export function DioramaStadium({ compact, track, reversed = false, lowQuality, b
     <Box kit={kit} position={[2.4,.154,-.05]} scale={[6.15,.022,2.08]} material={kit.turfShade} shadow={false}/>
     <mesh geometry={kit.course} material={kit.dark} position={[0,.19,0]} receiveShadow castShadow dispose={null}/>
     <LawnDetails lowQuality={lowQuality} kit={kit}/>
+    {track==='twisty-twirl'&&<CarnivalDetails lowQuality={lowQuality} reversed={reversed}/>}
     {Array.from({ length: 31 }, (_, index) => <DioramaTile key={index} {...{ index, track, reversed, kit, lowQuality }} triggered={triggered.has(index)} />)}
     <Gate kit={kit} reversed={reversed} /><Gate finish kit={kit} reversed={reversed} /><CourseDetails kit={kit} lowQuality={lowQuality} />
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.925, 0]} receiveShadow><planeGeometry args={[240, 240]} /><meshStandardMaterial color="#e3dcca" roughness={1} /></mesh>

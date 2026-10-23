@@ -57,6 +57,8 @@ jobs:
         run: pnpm exec tsx --test tests/fan-expansions.test.ts tests/presentation.test.ts tests/room-continuation.test.ts tests/room-lifecycle.test.ts tests/community-network.test.ts
       - name: Validate map topology, abilities, Twists and saved map matches
         run: pnpm exec tsx --test tests/leaf-tracks.test.ts tests/new-track-scenes.test.ts tests/map-rules.test.ts tests/map-targets.test.ts tests/leaf-map-abilities.test.ts tests/map-matches.test.ts tests/twist-cards.test.ts tests/twist-integration.test.ts
+      - name: Validate expansion scenery and delivered model assets
+        run: pnpm exec tsx --test tests/expansion-scenery.test.ts tests/bridges-display.test.ts tests/revolutionary-sculpt.test.ts tests/avatars.test.ts tests/mouth-surfaces.test.ts
       - name: Validate special events, official card corrections and mixed long schedules
         run: pnpm exec tsx --test tests/special-events.test.ts tests/event-matches.test.ts tests/second-wind.test.ts tests/second-wind-review.test.ts tests/copy-ability-interactions.test.ts
       - run: pnpm test
@@ -75,7 +77,7 @@ jobs:
         env:
           CI: true
       - name: Validate new map scenes and controls
-        run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts
+        run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts tests/browser/expansion-bridges.spec.ts tests/browser/expansion-movement.spec.ts tests/browser/expansion-low.spec.ts
         env:
           CI: true
       - name: Validate special event setup, private choices and refresh
