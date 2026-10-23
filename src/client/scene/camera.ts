@@ -103,6 +103,7 @@ export function cameraFrame(positions: number[], compact: boolean, width: number
   const minZ = Math.min(...points.map(point => point[2])), maxZ = Math.max(...points.map(point => point[2]));
   const mapBounds = TRACKS[track].nodes ? boardBounds(track, compact) : undefined;
   const x = overview ? mapBounds?.x ?? 0 : (minX + maxX) / 2, z = overview ? mapBounds?.z ?? 0 : (minZ + maxZ) / 2;
+  const y = track === 'bridges' && !overview ? (Math.min(...points.map(p => p[1])) + Math.max(...points.map(p => p[1]))) / 2 - .22 : 0;
   const bounds: { x: number; y: number }[] = [];
   if (overview && track === 'whirly-world') {
     const { min, max } = WHIRLY_MODEL_BOUNDS;
@@ -124,7 +125,7 @@ export function cameraFrame(positions: number[], compact: boolean, width: number
     // Include enlarged pawns, all occupied offsets and both ends of a confirmed move.
     const padding = closeUp ? .9 : TILE * .67;
     for (const point of points) for (const dx of [-padding, padding]) for (const dz of [-padding, padding]) for (const by of closeUp ? [-.3, 2.65] : [-.9, 2.9]) {
-      bounds.push(cameraProject([point[0] - x + dx, point[1] - .22 + by, point[2] - z + dz], compact, closeUp));
+      bounds.push(cameraProject([point[0] - x + dx, point[1] - .22 + by - y, point[2] - z + dz], compact, closeUp));
     }
   }
   // The target remains on the racer/tile, so an asymmetric arch or pawn must fit
@@ -137,7 +138,7 @@ export function cameraFrame(positions: number[], compact: boolean, width: number
   // Whirly's tall phone overview must clear the minimap and its rule toggle.
   const verticalMargin = compact ? overview && track === 'whirly-world' ? 380 : 235 : 190;
   const usableHeight = Math.max(180, height - verticalMargin);
-  return { x, z, zoom: Math.max(3, Math.min(MAX_CAMERA_ZOOM, usableWidth / spanX, usableHeight / spanY)) };
+  return { x, y, z, zoom: Math.max(3, Math.min(MAX_CAMERA_ZOOM, usableWidth / spanX, usableHeight / spanY)) };
 }
 
 /** A full-size two-by-four lineup on the extended start platform. */

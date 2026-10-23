@@ -29,13 +29,16 @@ export function CameraRig({ track = 'mild', compact, reset, focus, racers, reduc
   const points = cameraFocusPoints(focus, racers, compact, track);
   const closeUp = focus.state === 'intro' && focus.ids.length === 1;
   const view = useMemo(() => cameraView(compact, closeUp), [compact, closeUp]);
+  // Orthographic composition is unchanged; pull the eye back so the wide Bridges
+  // overview cannot clip the tabletop through the near plane.
+  const eyeDistance = track === 'bridges' ? 2.5 : 1;
   const frame = cameraFrame(focus.positions, compact, size.width, size.height, focus.state === 'overview', points, closeUp, track);
   useEffect(() => {
     const first = cameraFrame(focus.positions, compact, size.width, size.height, focus.state === 'overview', points, closeUp, track);
-    camera.position.set(first.x + view.offset[0], view.offset[1], first.z + view.offset[2]);
-    camera.up.set(0, 1, 0); camera.lookAt(first.x, 0, first.z);
-    if (camera instanceof THREE.OrthographicCamera) { camera.zoom = first.zoom; camera.updateProjectionMatrix(); }
-    controls.current?.target.set(first.x, 0, first.z); controls.current?.update();
+    camera.position.set(first.x + view.offset[0]*eyeDistance, first.y + view.offset[1]*eyeDistance, first.z + view.offset[2]*eyeDistance);
+    camera.up.set(0, 1, 0); camera.lookAt(first.x, first.y, first.z);
+    if (camera instanceof THREE.OrthographicCamera) { camera.far = track === 'bridges' ? 200 : 100; camera.zoom = first.zoom; camera.updateProjectionMatrix(); }
+    controls.current?.target.set(first.x, first.y, first.z); controls.current?.update();
     userDrag.current = false; invalidate();
   }, [camera, compact, track]);
   useEffect(() => { userDrag.current = false; invalidate(); }, [reset]);
@@ -43,8 +46,8 @@ export function CameraRig({ track = 'mild', compact, reset, focus, racers, reduc
   useFrame((_, delta) => {
     if (!controls.current || !(camera instanceof THREE.OrthographicCamera)) return;
     if (!userDrag.current && focus.state !== 'manual') {
-      target.set(frame.x, 0, frame.z);
-      desiredOffset.set(...view.offset); offset.subVectors(camera.position, controls.current.target);
+      target.set(frame.x, frame.y, frame.z);
+      desiredOffset.set(...view.offset).multiplyScalar(eyeDistance); offset.subVectors(camera.position, controls.current.target);
       const distance = Math.max(controls.current.target.distanceTo(target), offset.distanceTo(desiredOffset));
       const amount = cameraStep(distance, Math.max(camera.zoom, frame.zoom), delta, reducedMotion);
       const zoomAmount = reducedMotion ? 1 : Math.min(1 - Math.exp(-Math.min(delta, .05) * 4.8), .65 * Math.min(delta, .05) / Math.max(.001, Math.abs(Math.log(frame.zoom / camera.zoom))));

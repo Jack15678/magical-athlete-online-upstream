@@ -312,7 +312,7 @@ function Pawn({ racer, racers, room, compact, beat, startedAt, durationMs, lowQu
   const route = useMemo(() => motion ? pawnRoute(motion.path.map((position, index) => {
     const point = boardPoint(position, compact, room.track);
     return [point[0] + (index === 0 ? offset.x : index === motion.path.length - 1 ? endOffset.x : 0), point[1], point[2] + (index === 0 ? offset.z : index === motion.path.length - 1 ? endOffset.z : 0)];
-  })) : undefined, [motion, compact, room.track, offset.x, offset.z, endOffset.x, endOffset.z]);
+  }), room.track === 'bridges') : undefined, [motion, compact, room.track, offset.x, offset.z, endOffset.x, endOffset.z]);
   const walkPoint = useMemo(() => new THREE.Vector3(), []);
   const affected = beat?.targets.includes(racer.id) || beat?.source === racer.id;
   useFrame(() => {
