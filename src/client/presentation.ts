@@ -102,7 +102,7 @@ function beatForEvent(event: GameEvent, room: RoomView): PresentationBeat | unde
   else if (event.type === 'warp') kind = event.cause === 'flip-flop' ? 'swap' : 'warp';
   else if (event.type === 'place') kind = 'warp';
   else if (['trip', 'recover', 'score', 'finish', 'eliminate'].includes(event.type)) kind = event.type as PresentationKind;
-  else if (abilityReveal || ['power', 'copy', 'prediction', 'duel', 'cancel', 'reroll', 'skip', 'transform', 'mount', 'control', 'secret-reveal', 'die-modified', 'cancel-race', 'cycle-draw', 'loop'].includes(event.type)) kind = 'skill';
+  else if (abilityReveal || ['twist', 'power', 'copy', 'prediction', 'duel', 'cancel', 'reroll', 'skip', 'transform', 'mount', 'control', 'secret-reveal', 'die-modified', 'cancel-race', 'cycle-draw', 'loop'].includes(event.type)) kind = 'skill';
   else return undefined;
   const faces = event.faces?.length && event.faces.every(value => Number.isInteger(value) && value >= 1 && value <= 6) ? [...event.faces] : undefined;
   const face = kind === 'dice' ? confirmedFace(event, room) : undefined;

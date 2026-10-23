@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createApplication } from '../../src/server/index.js';
-import { createGame } from '../../src/engine/index.js';
+import { createGame, resolveTasks } from '../../src/engine/index.js';
 import { boardPoint, trackNodeIds } from '../../src/client/scene/math.js';
 import type { TrackId } from '../../src/shared/tracks.js';
 
@@ -57,14 +57,84 @@ for (const { track, reversed = false } of courses) test(`${track}${reversed ? ' 
     const positionLabel = board.getByTestId('minimap-own-position');
     expect(await positionLabel.locator('strong').evaluate(element => element.getBoundingClientRect().right <= element.closest('.minimap-own-position')!.getBoundingClientRect().right)).toBe(true);
     if (track === 'boardwalks') await expect(positionLabel).toContainText('距终点 23 格');
+    if (track === 'bridges') {
+      await page.getByTestId('bridges-rules').locator('summary').click();
+      await expect(page.getByTestId('bridges-rules')).toContainText('交叉处不能换层');
+      await expect(positionLabel).toContainText('桥上');
+    }
+    if (track === 'twisty-twirl') {
+      await expect(page.getByTestId('twist-cards')).toContainText('炼金实验室泄漏');
+      await expect(page.getByTestId('twist-cards')).toContainText('皮纳塔漏宝');
+    }
     await board.screenshot({ path: info.outputPath(`${track}-${compact ? 'mobile' : 'desktop'}.png`) });
     await board.getByRole('button', { name: '自己', exact: true }).click();
     await expect(board).toHaveAttribute('data-camera-state', 'self');
     const ownPoint = boardPoint(positions[0]!, compact, track);
     await expect.poll(async () => Number(await board.getAttribute('data-camera-x'))).toBeCloseTo(ownPoint[0], 1);
     await expect.poll(async () => Number(await board.getAttribute('data-camera-z'))).toBeCloseTo(ownPoint[2], 1);
+    if (track === 'bridges') await page.getByTestId('bridges-rules').locator('summary').click();
   }
   expect(errors).toEqual([]);
+});
+
+test('all six fork directions are clickable on the board, including opponent-controlled backward movement and refresh', async ({ page, browser }, info) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  const forks = [[8, 1, 31], [17, 1, 37], [18, 1, 19], [13, -1, 36], [24, -1, 49], [26, -1, 58]] as const;
+  for (const [from, distance, destination] of forks) {
+    const made = app.rooms.create('选路者', 2, 0), code = made.identity.roomCode, guest = app.rooms.join(code, '另一位玩家');
+    const room = app.rooms.get(code), game = createGame(room.game.players, 731), actor = distance < 0 ? 1 : 0;
+    game.phase = 'race'; game.round = 1; game.track = 'boardwalks'; game.currentRacerId = `r${actor}`;
+    game.racers = game.players.map((p, i) => ({ id: `r${i}`, playerId: p.id, characterId: 'banana', position: i === actor ? from : 0, tripped: false, finished: false, eliminated: false, flags: {} }));
+    game.flags.awaitRoll = true; game.queue = [{ kind: 'move', racerId: `r${actor}`, distance, controllerId: made.identity.playerId }]; resolveTasks(game);
+    expect(game.pending?.kind).toBe('track-branch'); const choiceId = game.pending!.id;
+    room.game = game; room.version++; app.store.save(room);
+    await page.addInitScript(identity => { localStorage.setItem(`magical-athlete:identity:${identity.roomCode}`, JSON.stringify(identity)); for (const key of ['reduced-motion', 'low-quality', 'muted']) localStorage.setItem(`magical-athlete:${key}`, 'true'); }, made.identity);
+    await page.setViewportSize({ width: from === 8 ? 1280 : 390, height: 844 }); await page.goto(`${url}/room/${code}`);
+    const arrows = page.locator('.route-arrow'); await expect(arrows).toHaveCount(2);
+    if (from === 8) {
+      const before = await page.getByTestId('route-arrow-31').locator('svg').getAttribute('style');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect.poll(() => page.getByTestId('route-arrow-31').locator('svg').getAttribute('style')).not.toBe(before);
+      await page.reload(); await expect(arrows).toHaveCount(2); expect(app.rooms.get(code).game.pending!.id).toBe(choiceId);
+      const otherContext = await browser.newContext(), other = await otherContext.newPage();
+      try { await other.addInitScript(identity => localStorage.setItem(`magical-athlete:identity:${identity.roomCode}`, JSON.stringify(identity)), guest.identity); await other.goto(`${url}/room/${code}`); await expect(other.getByTestId('board-3d')).toBeVisible(); await expect(other.locator('.route-arrow')).toHaveCount(0); } finally { await otherContext.close(); }
+    }
+    await expect(page.getByTestId('board-3d')).toHaveAttribute('data-camera-state', 'choice');
+    for (const arrow of await arrows.all()) {
+      await expect(arrow).toHaveAttribute('data-from', String(from));
+      await expect.poll(() => arrow.evaluate(element => { const r = element.getBoundingClientRect(); return r.width >= 44 && r.height >= 44 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('button') === element; })).toBe(true);
+    }
+    if (from === 8 || from === 13) await page.screenshot({ path: info.outputPath(`fork-${from}-mobile.png`) });
+    await page.getByTestId(`route-arrow-${destination}`).click();
+    await expect.poll(() => app.rooms.get(code).game.racers[actor]!.position).toBe(destination);
+    await expect(arrows).toHaveCount(0); expect(app.rooms.get(code).game.pending).toBeUndefined();
+  }
+  expect(errors).toEqual([]);
+});
+
+test('crossing 13-14 reveals the actual Twist and its effect to both players and survives refresh', async ({ browser }, info) => {
+  const made = app.rooms.create('跨线者', 2, 0), code = made.identity.roomCode, guest = app.rooms.join(code, '观看者');
+  const room = app.rooms.get(code), game = createGame(room.game.players, 731);
+  game.phase = 'race'; game.round = 1; game.track = 'twisty-twirl'; game.currentRacerId = 'r0'; game.baseTurnOrder = ['r0', 'r1'];
+  game.racers = game.players.map((p, i) => ({ id: `r${i}`, playerId: p.id, characterId: 'banana', position: i ? 4 : 12, tripped: false, finished: false, eliminated: false, flags: {} }));
+  game.flags.twist = { triggered: false, deck: ['conveyor'], drawn: [] }; game.flags.testDice = [2];
+  game.queue = [{ kind: 'beginTurn', racerId: 'r0' }]; resolveTasks(game); room.game = game; room.version++; app.store.save(room);
+  const contexts = await Promise.all([made, guest].map(() => browser.newContext({ viewport: { width: 390, height: 844 } })));
+  const pages = await Promise.all(contexts.map(context => context.newPage()));
+  try {
+    for (const [i, p] of pages.entries()) { await p.addInitScript(identity => { localStorage.setItem(`magical-athlete:identity:${identity.roomCode}`, JSON.stringify(identity)); for (const key of ['reduced-motion', 'low-quality', 'muted']) localStorage.setItem(`magical-athlete:${key}`, 'true'); }, [made, guest][i]!.identity); await p.goto(`${url}/room/${code}`); await expect(p.getByTestId('board-3d')).toBeVisible(); await expect(p.getByTestId('twist-cards')).toHaveCount(0); }
+    await pages[0]!.getByTestId('roll-button').click();
+    for (const p of pages) { await expect(p.getByTestId('twist-cards')).toContainText('传送带启动'); await expect(p.getByTestId('twist-cards')).toContainText('主移动增加3格'); }
+    expect(app.rooms.get(code).game.racers.map(r => r.position)).toEqual([1, 1]);
+    const randoms = app.rooms.get(code).game.randomLog.length;
+    await pages[0]!.reload(); await expect(pages[0]!.getByTestId('twist-cards')).toContainText('传送带启动');
+    await expect(pages[0]!.getByTestId('board-3d')).toBeVisible();
+    await expect(pages[0]!.getByTestId('board-3d')).toHaveAttribute('data-loaded-models', /[1-9]/);
+    expect(app.rooms.get(code).game.randomLog.length).toBe(randoms);
+    await pages[0]!.screenshot({ path: info.outputPath('twist-card-mobile.png') });
+    await pages[0]!.getByRole('button', { name: /变化卡 · 1 张/ }).click(); await expect(pages[0]!.locator('[data-twist-card]')).toHaveCount(0);
+    await pages[0]!.getByRole('button', { name: /变化卡 · 1 张/ }).click(); await expect(pages[0]!.locator('[data-twist-card="conveyor"]')).toBeVisible();
+  } finally { await Promise.all(contexts.map(context => context.close())); }
 });
 
 test('setup exposes real new-map thumbnails and the schedule character restriction', async ({ page }) => {
