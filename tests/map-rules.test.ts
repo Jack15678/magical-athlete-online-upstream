@@ -20,8 +20,8 @@ function move(s:GameState,distance:number,index=0){enqueueMove(s,`r${index}`,dis
 function choose(s:GameState,id:string){assert(s.pending);applyGameAction(s,s.pending.playerId,{type:'choose',choiceId:s.pending.id,optionId:id});}
 function begin(s:GameState){s.queue.push({kind:'beginTurn',racerId:'r0'});resolveTasks(s);}
 
-test('Whirly draft implements every confirmed pair in both directions without bouncing back',()=>{
-  for(const [a,b] of [[3,5],[7,12],[10,15],[20,23]])for(const [from,to] of [[a!,b!],[b!,a!]]){
+test('Whirly implements all six approved pairs in both directions without bouncing back',()=>{
+  for(const [a,b] of [[3,5],[7,12],[10,15],[18,22],[20,23],[24,27]])for(const [from,to] of [[a!,b!],[b!,a!]]){
     const s=fixture('whirly-world',['legs','coach','banana'],[from-1,20,25]);
     move(s,1);assert.equal(s.racers[0]!.position,to);
     assert.equal(s.logs.filter(e=>e.cause==='track-whirl').length,1);
@@ -57,10 +57,10 @@ test('Whirly pending warp retains its pair guard across JSON restoration',()=>{
   assert.equal(restored.racers[0]!.position,5);assert.equal(restored.logs.filter(e=>e.cause==='track-whirl').length,1);
 });
 
-test('Whirly draft does not invent hidden pairs or open an unfinished competition',()=>{
-  assert.deepEqual(Object.keys(TRACKS['whirly-world'].specials).map(Number),[3,5,7,10,12,15,20,23]);
+test('Whirly opens exactly the user-approved six-pair web layout',()=>{
+  assert.deepEqual(Object.keys(TRACKS['whirly-world'].specials).map(Number),[3,5,7,10,12,15,18,20,22,23,24,27]);
   assert.equal(TRACKS['whirly-world'].verified,false);
-  assert.throws(()=>createMatchPlan({competition:{...presetCompetition(),preset:'custom',rotation:['whirly-world']}}),/尚未开放地图/);
+  assert.deepEqual(createMatchPlan({competition:{...presetCompetition(),preset:'custom',rotation:['whirly-world']}}).races.map(race=>race.map),Array(4).fill('whirly-world'));
 });
 
 test('Boardwalk branch is a real route, survives JSON restore, and cannot be chosen twice',()=>{

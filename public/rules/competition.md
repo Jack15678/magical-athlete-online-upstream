@@ -1,10 +1,11 @@
 # 赛程、计分与开放状态
 
-核验日期：2026-10-23。此页区分已可玩规则、项目适配和未取得的资料。公开文件介绍、下载量、作者试玩与本项目运行验收是不同证据。
+更新日期：2026-10-24。此页区分已可玩规则、项目适配和未取得的资料。公开文件介绍、下载量、作者试玩与本项目运行验收是不同证据。
 
 ## 当前可玩
 
-- 地图：Mild Mile、Wild Wilds、Twisty Twirl、Squiggle、Boardwalks、Bridges。三维位置只用于显示；分岔使用有向连接，领先使用作者的剩余步数图，桥上下层按专属共格/越过规则结算。
+- 地图：Mild Mile、Wild Wilds、Twisty Twirl、Whirly World（网页版布局）、Squiggle、Boardwalks、Bridges。三维位置只用于显示；分岔使用有向连接，领先使用作者的剩余步数图，桥上下层按专属共格/越过规则结算。
+- Whirly World：六组双向传送为3↔5、7↔12、10↔15、18↔22、20↔23、24↔27，其余格子普通。停在端点才传送，越过不触发，到达另一端不会立即弹回。采用与用户共同确定的网页版布局；遮挡区域并未宣称还原原版地图。
 - Squiggle、Boardwalks 按用户决定禁用飞艇、葛洛斯、纨绔子弟等依赖未标定弯道的角色；Bridges 缺第一弯道定义，只禁用依赖它的纨绔子弟。限制应用于整个赛程牌池，包括技能抽牌。
 - Twisty Twirl 在首次穿过第13/14格边界时触发13张Twist之一；变化卡面板展示已抽卡片及效果。季终决战若迟至已有名次奖励后才抽到，新局保留奖励并继续原比赛，本卡不改赛制；旧地图版本存档保留原暂停规则。
 - Bridges 沿0→30的连续路线行走，四个桥梁交叉处不能换道；[上下层规则与角色例外](bridges.md)。Boardwalks 的真实分叉则由有选择权的玩家点击棋盘上的方向箭头选路，也可展开列表选择。
@@ -20,9 +21,11 @@
 |方案|场数|逐场地图|状态|
 |---|---:|---|---|
 |经典赛|4|Mild Mile → Wild Wilds → Mild Mile → Wild Wilds|可玩|
-|自定义积分赛|4 / 6 / 8|从六张可玩地图中选择有序列表并循环|可玩|
+|官方巡回|4|Mild Mile → Wild Wilds → Twisty Twirl → Whirly World|可玩；Whirly使用网页版布局|
+|扩展巡回|8|Mild Mile → Wild Wilds → Twisty Twirl → Whirly World → Squiggle → Boardwalks → Bridges → Wild Wilds|项目赛程；Whirly使用网页版布局|
+|自定义积分赛|4 / 6 / 8|从七张可玩地图中选择有序列表并循环|可玩|
 
-官方巡回和扩展巡回都需要 Whirly World；现有照片遮挡部分路线，尚不能核实完整地图。社区锦标赛也尚未取得完整方案。这三个未完成入口已从建房界面移除，不以其他地图或自编晋级规则替代。自定义六／八场按全部场次总积分决定胜负，最后一场不加倍也不单独决定冠军。
+官方巡回沿用官方推荐的四图顺序，其中 Whirly World 使用已约定的六组传送网页版布局；两套巡回入口已恢复。社区锦标赛尚未取得完整方案，继续不显示入口。扩展巡回和自定义六／八场按全部场次总积分决定胜负，最后一场不加倍也不单独决定冠军。
 
 名次奖励直接来自原项目 `RACE_POINTS`。每格为第一名／第二名；其他名次不增加名次分。
 
@@ -56,12 +59,12 @@ Leaf 与 Second Wind 已开放混合长赛程。赛前预留仍按已启用的�
 |---|---|---|
 |基础与巡回顺序|[官方规则镜像](https://johnnlds.github.io/Magical-Athlete-Racers/officialrules.pdf)，32页PDF。p18允许赛前约定地图顺序；p19四场总分与共享胜利；p20列出四图轮换；p23补充技能交互。已下载并阅读，p20另做页面图像检查。|此PDF不替代Second Wind新地图细则。基础特殊格仍以本仓库已核验图像为依据。|
 |2026年8月更新|[原讨论](https://boardgamegeek.com/thread/3754599/a-couple-august-2026-rules-updates/page/1)|本次返回403；没有把摘要当新裁定。沿用已冻结的基线能力规则。|
-|Twisty Twirl / Whirly World|用户提供32页Second Wind规则书。p21地图，p27–29的13张Twist；[实现与来源边界](../../docs/second-wind-map-source.md)。|Twisty已开放。Whirly照片被盒子遮挡，未捏造剩余跳跃端点，暂不开放。|
+|Twisty Twirl / Whirly World|用户提供32页Second Wind规则书。p21地图，p27–29的13张Twist；[实现与来源边界](../../docs/second-wind-map-source.md)。|两图均可玩。Whirly原图仍有遮挡，已按用户决定采用六组传送的[网页版布局](../../docs/whirly-world-source.md)。|
 |Squiggle / Boardwalks / Bridges|用户提供bgg442357/442654/442655.pdf，逐页渲染核对；[节点与规则抄录](../../docs/leaf-map-source.md)。|三图已开放；缺失弯道采用上述角色禁用策略。|
 |Thrilling Thirds|用户提供bgg464837.pdf；[36项事件表与适配缺口](../../docs/thrilling-thirds-source.md)。|36项全部接入；多角色、扩展牌池和多地图使用[明确网页适配](special-events.md)，不冒充原作者裁定。|
 |社区锦标赛|[指定讨论](https://boardgamegeek.com/thread/3589241/magical-athlete-tournament-see-all-player-powers-i)当前被Cloudflare阻挡。|用户明确暂不处理，不把八场积分赛称为锦标赛。|
 
-未把附带文件中的文本当开发指令。Whirly缺少的数据不以通用跑道替代，也不标记五图全部完成。
+未把附带文件中的文本当开发指令。Whirly的运行验收与原版资料核验分开记录，网页共创布局不等同于完整原图复刻。
 
 ## 冻结、恢复与边界
 

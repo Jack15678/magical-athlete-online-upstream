@@ -2,6 +2,7 @@ import type { Racer, RoomView } from '../../shared/types.js';
 import { TRACKS, type TrackId } from '../../shared/tracks.js';
 import type { PresentationBeat } from '../presentation.js';
 import { BOARD_CENTER_SPAN, boardBounds, boardPoint, routeChoice, TILE } from './math.js';
+import { WHIRLY_MODEL_BOUNDS } from './whirly-model.js';
 
 export type CameraMode = 'self' | 'overview';
 export type CameraState = 'self' | 'action' | 'choice' | 'manual' | 'overview' | 'intro';
@@ -103,7 +104,12 @@ export function cameraFrame(positions: number[], compact: boolean, width: number
   const mapBounds = TRACKS[track].nodes ? boardBounds(track, compact) : undefined;
   const x = overview ? mapBounds?.x ?? 0 : (minX + maxX) / 2, z = overview ? mapBounds?.z ?? 0 : (minZ + maxZ) / 2;
   const bounds: { x: number; y: number }[] = [];
-  if (overview && mapBounds) {
+  if (overview && track === 'whirly-world') {
+    const { min, max } = WHIRLY_MODEL_BOUNDS;
+    for (const bx of [min[0], max[0]]) for (const bz of [min[2], max[2]]) for (const by of [min[1], Math.max(max[1], 2.9)]) {
+      bounds.push(cameraProject(compact ? [-bz, by, bx] : [bx, by, bz], compact, closeUp));
+    }
+  } else if (overview && mapBounds) {
     for (const bx of [mapBounds.minX - TILE, mapBounds.maxX + TILE]) for (const bz of [mapBounds.minZ - TILE, mapBounds.maxZ + TILE]) for (const by of [-1.1, mapBounds.top + 2.9]) {
       bounds.push(cameraProject([bx - x, by, bz - z], compact, closeUp));
     }
@@ -128,7 +134,9 @@ export function cameraFrame(positions: number[], compact: boolean, width: number
   const spanX = overview ? fittedWidth : Math.max(TILE * (compact ? closeUp ? 2.35 : 2.85 : closeUp ? 3.6 : 5.3), fittedWidth);
   const spanY = overview ? fittedHeight : Math.max(TILE * (compact ? closeUp ? 3.1 : 3.7 : closeUp ? 2.55 : 3.15), fittedHeight);
   const usableWidth = Math.max(160, width - (compact ? 24 : 80));
-  const usableHeight = Math.max(180, height - (compact ? 235 : 190));
+  // Whirly's tall phone overview must clear the minimap and its rule toggle.
+  const verticalMargin = compact ? overview && track === 'whirly-world' ? 380 : 235 : 190;
+  const usableHeight = Math.max(180, height - verticalMargin);
   return { x, z, zoom: Math.max(3, Math.min(MAX_CAMERA_ZOOM, usableWidth / spanX, usableHeight / spanY)) };
 }
 

@@ -16,11 +16,11 @@ export function TrackInfo({ room, queue }: { room: RoomView; queue?: Presentatio
   const expanded = collapsed !== key, event = room.trackState?.event;
   if (room.track !== 'bridges' && room.track !== 'whirly-world' && !drawn.length && !event) return null;
   return <aside className="race-track-info" aria-label="本场地图规则">
-    {room.track === 'whirly-world' && <details className="track-rule-card" data-testid="whirly-rules" open>
-      <summary>Whirly World · 共创草稿</summary>
+    {room.track === 'whirly-world' && <details className="track-rule-card" data-testid="whirly-rules">
+      <summary>Whirly World · 传送规则</summary>
       <p>停在漩涡格时，传送到配对格；只经过不触发。一次传送不会沿同一连接立即弹回。</p>
-      <p>已接入：3↔5、7↔12、10↔15，以及用户补充的20↔23。</p>
-      <p>其余遮挡部分等待共同确定布局；当前仅用于开发预览。</p>
+      <p>六组连接：3↔5、7↔12、10↔15、18↔22、20↔23、24↔27；其余格子为普通格。</p>
+      <p>本图采用共同确认的网页版布局。</p>
     </details>}
     {room.track === 'bridges' && <details className="track-rule-card" data-testid="bridges-rules">
       <summary>Bridges · 桥上桥下怎样走？</summary>

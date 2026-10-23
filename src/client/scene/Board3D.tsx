@@ -8,6 +8,7 @@ import type { PresentationBeat } from '../presentation.js';
 import { Avatar } from '../avatars.js';
 import { ToyCharacter } from './ToyCharacter.js';
 import { DioramaStadium } from './DioramaStadium.js';
+import { WhirlyStadium } from './WhirlyStadium.js';
 import { CameraRig } from './CameraRig.js';
 import { StudioLighting, AdaptiveQuality, PawnContact } from './StudioLighting.js';
 import { RaceEffects } from './RaceEffects.js';
@@ -128,7 +129,9 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
         <StudioLighting compact={compact} lowQuality={lowQuality} />
         <AdaptiveQuality lowQuality={lowQuality} onSlow={() => setAutomaticLow(true)} root={root} />
         <CameraRig track={room.track} racers={racers} compact={compact} reset={cameraReset} focus={focus} reducedMotion={reducedMotion} onManual={() => { intro.skip(); setManualCamera(true); }} root={root} />
-        <DioramaStadium compact={compact} track={room.track} reversed={room.trackState?.reversed} lowQuality={lowQuality} beat={beat} racers={racers} />
+        {room.track === 'whirly-world'
+          ? <WhirlyStadium compact={compact} lowQuality={lowQuality} fallback={<DioramaStadium compact={compact} track={room.track} lowQuality={lowQuality} beat={beat} racers={racers} />} />
+          : <DioramaStadium compact={compact} track={room.track} reversed={room.trackState?.reversed} lowQuality={lowQuality} beat={beat} racers={racers} />}
         {route && <RouteChoices {...{ route, compact }} track={room.track} buttons={routeButtons} />}
         <Suspense fallback={null}><TwistPieces {...{ room, compact, lowQuality, reducedMotion }} />{racers.filter(r => !r.eliminated || beat?.kind === 'eliminate' && beat.targets.includes(r.id)).map(racer => <Pawn key={racer.id} racer={racer} racers={racers} room={room} compact={compact} beat={beat} startedAt={startedAt} durationMs={durationMs} lowQuality={lowQuality} reducedMotion={reducedMotion} active={active === racer.id} onDetail={onDetail} labels={labels} />)}</Suspense>
         <RaceEffects track={room.track} reversed={room.trackState?.reversed} {...{ beat, racers, compact, startedAt, durationMs, reducedMotion, lowQuality }} />
@@ -179,6 +182,7 @@ function PerformanceProbe({ root }: { root: React.RefObject<HTMLElement | null> 
       let loaded = 0, fallbacks = 0;
       scene.traverse(object => { if (object.name.startsWith('toy_')) loaded++; if (object.name === 'procedural-racer-fallback') fallbacks++; });
       root.current.dataset.loadedModels = String(loaded); root.current.dataset.modelFallbacks = String(fallbacks);
+      root.current.dataset.trackModel = scene.getObjectByName('track_whirly_world') ? 'whirly-world' : 'procedural';
     };
     reportModels();
     const modelReport = setInterval(reportModels, 500);

@@ -67,9 +67,14 @@ for (const { track, reversed = false } of courses) test(`${track}${reversed ? ' 
       await expect(page.getByTestId('twist-cards')).toContainText('皮纳塔漏宝');
     }
     if (track === 'whirly-world') {
+      await expect(board).toHaveAttribute('data-track-model', 'whirly-world');
       await expect(page.getByTestId('whirly-rules')).toContainText('3↔5、7↔12、10↔15');
       await expect(page.getByTestId('whirly-rules')).toContainText('20↔23');
-      await expect(page.getByTestId('whirly-rules')).toContainText('等待共同确定布局');
+      await expect(page.getByTestId('whirly-rules')).toContainText('18↔22');
+      await expect(page.getByTestId('whirly-rules')).toContainText('24↔27');
+      await page.getByTestId('whirly-rules').locator('summary').click();
+      await expect(page.getByTestId('whirly-rules')).toContainText('其余格子为普通格');
+      await page.getByTestId('whirly-rules').locator('summary').click();
     }
     await board.screenshot({ path: info.outputPath(`${track}-${compact ? 'mobile' : 'desktop'}.png`) });
     await board.getByRole('button', { name: '自己', exact: true }).click();
