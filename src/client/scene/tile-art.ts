@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /** Original vector markings fill the space, including corners left visible by pawns. */
-export function specialTileTexture(kind: 'star' | 'trip' | 'arrow', move: number | undefined, index: number, angle: number) {
+export function specialTileTexture(kind: 'star' | 'trip' | 'arrow' | 'warp', move: number | undefined, index: number, angle: number, points = 1, to?: number) {
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = 512;
   const context = canvas.getContext('2d')!;
   const backward = kind === 'arrow' && (move ?? 0) < 0;
@@ -20,10 +20,14 @@ export function specialTileTexture(kind: 'star' | 'trip' | 'arrow', move: number
     context.beginPath();
     for (let point = 0; point < 10; point++) { const theta = -Math.PI / 2 + point * Math.PI / 5, radius = point % 2 ? 88 : 192; const x = Math.cos(theta) * radius, y = Math.sin(theta) * radius; if (!point) context.moveTo(x, y); else context.lineTo(x, y); }
     context.closePath(); context.fill(); context.stroke();
-    context.fillStyle = ink; context.font = '950 94px "Microsoft YaHei",sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText('+1', 0, 10);
+    context.fillStyle = ink; context.font = '950 94px "Microsoft YaHei",sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(`${points > 0 ? '+' : ''}${points}`, 0, 10);
   } else if (kind === 'trip') {
     context.beginPath(); context.moveTo(0, -180); context.lineTo(192, 156); context.lineTo(-192, 156); context.closePath(); context.fill(); context.stroke();
     context.fillStyle = ink; context.fillRect(-25, -82, 50, 124); context.beginPath(); context.arc(0, 98, 28, 0, Math.PI * 2); context.fill();
+  } else if (kind === 'warp') {
+    context.lineWidth = 22; context.beginPath();
+    for (let step = 0; step <= 80; step++) { const theta = step / 80 * Math.PI * 5, radius = 15 + step * 2; const x = Math.cos(theta) * radius, y = Math.sin(theta) * radius; if (!step) context.moveTo(x, y); else context.lineTo(x, y); }
+    context.stroke();
   } else {
     // The printed arrow follows the actual board direction, including backwards.
     context.rotate(-angle);
@@ -35,7 +39,7 @@ export function specialTileTexture(kind: 'star' | 'trip' | 'arrow', move: number
     context.strokeStyle = ink; context.lineWidth = 4; context.stroke(); context.fillStyle = inverted ? paper : ink;
     context.font = `950 ${text.length > 2 ? 39 : 48}px "Microsoft YaHei",sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, x + width / 2, y + 38);
   };
-  const value = kind === 'star' ? '+1' : kind === 'trip' ? '绊倒' : `${(move ?? 0) > 0 ? '+' : ''}${move ?? 0}`;
+  const value = kind === 'star' ? `${points > 0 ? '+' : ''}${points}` : kind === 'trip' ? '绊倒' : kind === 'warp' ? `→${to ?? '?'}` : `${(move ?? 0) > 0 ? '+' : ''}${move ?? 0}`;
   badge(String(index).padStart(2, '0'), 24, 24, 86); badge(value, 356, 416, 132, true);
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4;
   return texture;

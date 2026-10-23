@@ -9,6 +9,7 @@ import type { ActionEnvelope, ActionReply, CharacterPool, ChatReply, ChatState, 
 import { appendChat, appendPlayerChat, chatBatch, deduplicateStoredNicknames, uniqueNickname, validateChatSend, validateNickname } from '../shared/chat.js';
 import type { RelayJoinReply, RelayMetadata, RelayServerMessage } from '../shared/relay.js';
 import { personalRoom, roomExpiry, type RoomClosure, type RoomCloseReason } from '../shared/room-lifecycle.js';
+import { continuationAction, continuationPaused, offerContinuation, updateContinuation } from '../shared/room-continuation.js';
 import { legacyRoomConfig, legacyPoolForConfig, validateRoomConfig, validateRoomConfigForPlayers, MULTIPLAYER_ROOM_LIMIT, ROOM_CAPACITY_MESSAGE, type RoomConfig } from '../shared/room-config.js';
 
 interface Env { ROOMS: DurableObjectNamespace<RoomRelay>; ASSETS: Fetcher }
@@ -207,7 +208,7 @@ export class RoomRelay extends DurableObject<Env> {
   private run<T>(operation:()=>Promise<T>):Promise<T>{const next=this.serial.then(operation,operation);this.serial=next.catch(()=>{});return next;}
   private attachment(socket:WebSocket):Connection|null { try{return socket.deserializeAttachment() as Connection|null;}catch{return null;} }
   private sockets():WebSocket[]{return this.ctx.getWebSockets().filter(socket=>socket.readyState===WebSocket.OPEN);}
-  private expiry(room=this.record!):number {return roomExpiry(room);}
+  private expiry(room=this.record!):number {return roomExpiry({...room,continuation:room.serverRoom?.continuation});}
   private spectator(playerId:string):StoredSpectator|undefined {return this.record?.spectators?.find(person=>person.id===playerId);}
   private participant(playerId:string):StoredMember|StoredSpectator|undefined {return this.record?.members.find(person=>person.id===playerId)??this.spectator(playerId);}
   private summary():RoomSummary {
@@ -459,6 +460,7 @@ export class RoomRelay extends DurableObject<Env> {
     if(!this.record||this.expiry()<=Date.now()){
       if(this.record)await this.expire(updateDirectory);
       if(this.closed)throw new HttpError(410,ROOM_CLOSED_MESSAGE);
+      if(this.record)return this.record;
       throw new HttpError(404,'房间不存在或已过期，请检查房间码。');
     }
     if(this.record.closedAt!==undefined)throw new HttpError(410,ROOM_CLOSED_MESSAGE);
@@ -473,8 +475,10 @@ export class RoomRelay extends DurableObject<Env> {
   private workerNextAt(now:number,state?:import('../shared/types.js').Room):number {
     if(!this.record?.serverRoom)return Number.MAX_SAFE_INTEGER;
     const room=state??this.workerRoom();
+    if(continuationPaused(room))return room.continuation!.deadline;
+    if(room.continuation?.stage==='playing'&&!room.game.players.some(p=>!p.isAI&&p.connected))return room.continuation.emptySince===undefined?now+10:roomExpiry(room);
     if(room.game.phase==='paused'||room.game.flags.workerFault)return Number.MAX_SAFE_INTEGER;
-    if(personalRoom(room)&&!room.game.players.some(player=>player.id===room.ownerId&&player.connected))return Number.MAX_SAFE_INTEGER;
+    if(personalRoom(room)&&!room.continuation&&!room.game.players.some(player=>player.id===room.ownerId&&player.connected))return Number.MAX_SAFE_INTEGER;
     let candidate:ReturnType<typeof immediateRoomAction>;
     try{candidate=immediateRoomAction({...room,updatedAt:now-1_200},now);}catch{return now+1_000;}
     return Math.min(room.deadline!==null&&timeoutRoomAction(room.game)?Math.max(now+10,room.deadline):Number.MAX_SAFE_INTEGER,candidate?candidate.reason==='system'?now+10:Math.max(now+10,room.updatedAt+1_200):Number.MAX_SAFE_INTEGER);
@@ -482,6 +486,9 @@ export class RoomRelay extends DurableObject<Env> {
   private async broadcastWorker():Promise<void> {
     if(!this.record?.serverRoom)return;
     const room=this.workerRoom();
+    // A returning human may be waiting for their own roll, with no AI alarm
+    // due. Cancel the empty-room grace now instead of waiting for that alarm.
+    if(room.continuation?.emptySince!==undefined&&room.game.players.some(p=>!p.isAI&&p.connected))updateContinuation(room,Date.now());
     if(room.version!==this.record.serverRoom.version){const next={...this.record,serverRoom:room};await this.ctx.storage.put('room',next);this.record=next;}
     for(const socket of this.sockets()){const id=this.attachment(socket)?.playerId;if(id&&this.participant(id))this.send(socket,{type:'snapshot',room:this.view(id)});}
     await this.ensureAlarmNoLaterThan(this.workerNextAt(Date.now()));
@@ -491,7 +498,7 @@ export class RoomRelay extends DurableObject<Env> {
     const prior=await this.ctx.storage.get<{request:string;result:ActionReply}>(key);
     if(prior)return prior.request===request?{...prior.result,duplicate:true}:{ok:false,error:'同一操作编号不能用于不同操作。'};
     const original=this.workerRoom();let nextRoom=original,result:ActionReply;
-    if(envelope.expectedVersion!==original.version)result={ok:false,error:'画面已更新，请同步后重试。',version:original.version};
+    if(envelope.expectedVersion!==original.version&&!(continuationAction(envelope.action)&&envelope.expectedVersion<=original.version))result={ok:false,error:'画面已更新，请同步后重试。',version:original.version};
     else if(original.game.flags.workerFault&&envelope.action.type!=='close')result={ok:false,error:'本房间的规则结算已暂停，原始状态已保存，请保留房间供排查或由房主解散。',version:original.version};
     else try{nextRoom=reduceRoomAction(original,playerId,envelope.action,{now:Date.now(),rematchSeed:envelope.action.type==='rematch'?secureRandomSeed():0,automatic});result={ok:true,version:nextRoom.version};}
     catch(error){
@@ -502,7 +509,7 @@ export class RoomRelay extends DurableObject<Env> {
     if(next.ownerId!==this.record!.ownerId){if(next.ownerId&&this.online(next.ownerId))delete next.hostLeftAt;else next.hostLeftAt=Date.now();}
     await this.ctx.storage.transaction(async txn=>{
       await txn.put('room',next);await txn.put(key,{request,result});
-      if(nextRoom.closedAt===undefined){const due=Math.min(roomExpiry(next),this.workerNextAt(Date.now(),nextRoom)),scheduled=await txn.getAlarm();if(due<Number.MAX_SAFE_INTEGER&&(scheduled===null||due<scheduled))await txn.setAlarm(due);}
+      if(nextRoom.closedAt===undefined){const due=Math.min(this.expiry(next),this.workerNextAt(Date.now(),nextRoom)),scheduled=await txn.getAlarm();if(due<Number.MAX_SAFE_INTEGER&&(scheduled===null||due<scheduled))await txn.setAlarm(due);}
     });
     this.record=next;
     return result;
@@ -520,15 +527,20 @@ export class RoomRelay extends DurableObject<Env> {
     if(this.spectator(playerId))throw Error('观战者不能进行比赛操作。');
     if(!only(input,['type','requestId','envelope'])||!requestId)throw Error('操作格式不正确。');
     const envelope=validateActionEnvelope(input.envelope),result=await this.commitWorker(playerId,envelope);
-    if(result.ok&&this.record?.serverRoom?.closedAt!==undefined){await this.closePersonal('dismissed',this.record.serverRoom.closedAt,{hostId:playerId,actionId:envelope.actionId,version:result.version},()=>this.send(socket,{type:'ack',requestId,result}));return;}
+    if(result.ok&&this.record?.serverRoom?.closedAt!==undefined){await this.closePersonal(this.record.serverRoom.closeReason??'dismissed',this.record.serverRoom.closedAt,{hostId:playerId,actionId:envelope.actionId,version:result.version},()=>this.send(socket,{type:'ack',requestId,result}));return;}
     this.send(socket,{type:'ack',requestId,result});
     await this.broadcastWorker();this.notify({type:'roster',meta:this.metadata()});await this.publishDirectory();
   }
   private async tickWorker(now:number):Promise<void> {
     if(!this.record?.serverRoom)return;
     const room=this.workerRoom();
+    if(updateContinuation(room,now)){
+      if(room.closedAt!==undefined){await this.closePersonal('host-away',now);return;}
+      this.record={...this.record,serverRoom:room};await this.ctx.storage.put('room',this.record);await this.broadcastWorker();
+    }
+    if(continuationPaused(room))return;
     if(room.game.phase==='paused'||room.game.flags.workerFault)return;
-    if(personalRoom(room)&&!room.game.players.some(player=>player.id===room.ownerId&&player.connected))return;
+    if(personalRoom(room)&&!room.continuation&&!room.game.players.some(player=>player.id===room.ownerId&&player.connected))return;
     let immediate:ReturnType<typeof immediateRoomAction>,next:ReturnType<typeof timeoutRoomAction>;
     try{immediate=immediateRoomAction(room,now);next=immediate??(room.deadline!==null&&room.deadline<=now?timeoutRoomAction(room.game):undefined);}
     catch(error){const paused=this.workerFault(room,error,{stage:'schedule'});await this.ctx.storage.put('room',{...this.record,serverRoom:paused,phase:paused.game.phase});this.record={...this.record,serverRoom:paused,phase:paused.game.phase};await this.broadcastWorker();return;}
@@ -600,7 +612,7 @@ export class RoomRelay extends DurableObject<Env> {
           if(!this.record||this.expiry()<=Date.now()){
             const expiredAt=this.record?this.expiry():Date.now();if(this.record)await this.expire();
             if(this.closed)return this.terminalUpgrade(this.closedNotice());
-            return this.terminalUpgrade({type:'room-closed',code,closedAt:expiredAt,reason:'expired'},4404,'房间已过期');
+            if(!this.record)return this.terminalUpgrade({type:'room-closed',code,closedAt:expiredAt,reason:'expired'},4404,'房间已过期');
           }
           if(this.record.code===code&&this.record.closedAt!==undefined)return this.terminalUpgrade(this.closedNotice());
         }
@@ -917,6 +929,14 @@ export class RoomRelay extends DurableObject<Env> {
   async webSocketError(socket:WebSocket):Promise<void>{await this.webSocketClose(socket,1011,'连接中断',false);}
   private async expire(updateDirectory=true):Promise<void>{
     if(!this.record)return;
+    if(this.record.serverRoom){
+      const room=this.workerRoom(),now=Date.now();
+      const changed=updateContinuation(room,now);
+      if(offerContinuation(room,now)||(changed&&room.closedAt===undefined&&roomExpiry(room)>now)){
+        this.record={...this.record,serverRoom:room};await this.ctx.storage.put('room',this.record);
+        await this.broadcastWorker();await this.ctx.storage.setAlarm(this.expiry());if(updateDirectory)await this.publishDirectory();return;
+      }
+    }
     await this.closePersonal(this.record.closedAt===undefined?'host-away':'dismissed',this.record.closedAt??this.expiry(),{},undefined,updateDirectory);return;
   }
   private async closePersonal(reason:RoomCloseReason,closedAt:number,receipt:Partial<RoomClosure>={},acknowledge?:()=>void,updateDirectory=true):Promise<void>{

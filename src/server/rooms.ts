@@ -9,6 +9,7 @@ import { timeoutRoomAction as timeoutAction, LEGACY_RULES_VERSION } from '../eng
 import { Store } from './store.js';
 import { MAX_SPECTATORS, ROOM_TTL_MS } from '../shared/constants.js';
 import { roomExpiry, type RoomCloseReason, type RoomClosure } from '../shared/room-lifecycle.js';
+import { continuationAction, continuationPaused, offerContinuation, updateContinuation } from '../shared/room-continuation.js';
 import { legacyRoomConfig, legacyPoolForConfig, validateRoomConfigForPlayers, type RoomConfig } from '../shared/room-config.js';
 
 export const PLAYER_COLORS = ['#df3c32','#175bd1','#159269','#b34fa6','#eb8a19','#6d57c7','#008eaa','#77503c'];
@@ -18,6 +19,7 @@ type PresenceRoom = Room & {hostSeenAt?:number};
 export class Rooms {
   readonly rooms = new Map<string, Room>();
   onExpired?: (code:string, expiresAt:number, reason?:RoomCloseReason) => void;
+  onChanged?: (code:string) => void;
   constructor(readonly store: Store, readonly defaultTimeout = 120, readonly now=Date.now) {
     const restoredAt=this.now();
     for(const room of store.load()) {
@@ -38,7 +40,10 @@ export class Rooms {
   }
   expire(code:string,now=this.now()):boolean {
     const room=this.rooms.get(code);
-    if(!room||roomExpiry(room)>now)return false;
+    if(!room)return false;
+    if(updateContinuation(room,now)){this.store.save(room);if(room.closedAt===undefined)this.onChanged?.(code);}
+    if(room.closedAt===undefined&&roomExpiry(room)>now)return false;
+    if(offerContinuation(room,now)){this.store.save(room);this.onChanged?.(code);return false;}
     const at=room.closedAt??roomExpiry(room),reason=room.closeReason??'host-away';
     this.closePersonal(room,reason,at);
     this.onExpired?.(code,at,reason);return true;
@@ -137,11 +142,11 @@ export class Rooms {
     const receipt=this.store.receipt(code,id,envelope.actionId);
     if(receipt) return receipt.request===request ? {...receipt.result,duplicate:true} : {ok:false,error:'同一操作编号不能用于不同操作。'};
     if(original.closedAt!==undefined) return {ok:false,error:'房间已解散。请创建或加入其他房间。',version:original.version};
-    if(original.version!==envelope.expectedVersion) return {ok:false,error:'画面已更新，请同步后重试。',version:original.version};
+    if(original.version!==envelope.expectedVersion&&!(continuationAction(envelope.action)&&envelope.expectedVersion<=original.version)) return {ok:false,error:'画面已更新，请同步后重试。',version:original.version};
     try {
       const room=reduceRoomAction(original,id,envelope.action,{now:this.now(),rematchSeed:envelope.action.type==='rematch'?secureRandomSeed():0,automatic});
       if(envelope.action.type==='transfer')(room as PresenceRoom).hostSeenAt=this.now();
-      if(room.closedAt!==undefined){this.closePersonal(room,'dismissed',room.closedAt,envelope.actionId);return{ok:true,version:room.version};}
+      if(room.closedAt!==undefined){this.closePersonal(room,room.closeReason??'dismissed',room.closedAt,envelope.actionId);return{ok:true,version:room.version};}
       const result={ok:true,version:room.version};this.store.commitAction(room,id,envelope.actionId,request,result);this.rooms.set(code,room);return result;
     }catch(e){return{ok:false,error:e instanceof Error?e.message:'操作失败，请重试。',version:original.version};}
   }
@@ -182,9 +187,11 @@ export class Rooms {
   deadline(room: Room): void { setRoomDeadline(room,this.now()); }
   tick(now=this.now()): string[] {
     const updated:string[]=[];
-    for(const original of this.rooms.values()){
-      if(this.expire(original.code,now))continue;
+    for(const cached of this.rooms.values()){
+      if(this.expire(cached.code,now))continue;
+      const original=this.rooms.get(cached.code)!;
       if(original.closedAt!==undefined)continue;
+      if(continuationPaused(original))continue;
       // Persist owner liveness independently of AI turns. After a crash the
       // restart can count downtime instead of resetting the thirty-minute clock.
       if(original.game.players.some(p=>p.id===original.ownerId&&p.connected)&&now-((original as PresenceRoom).hostSeenAt??0)>=15_000){

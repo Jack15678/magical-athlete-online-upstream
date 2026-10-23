@@ -123,8 +123,8 @@ test('Hose recovery-only turn still gets its end-of-turn die; it is not a main r
   const s=fixture(['the-hose','alchemist','legs'],[5,7,15]);r(s).tripped=true;s.flags.testDice=[2];begin(s);
   assert.equal(s.pending?.kind,'the-hose-roll');assert.equal(s.randomLog.length,0);assert(!r(s).tripped);choose(s,'roll');assert(r(s,1).tripped);assert.equal(s.lastRoll,undefined);assert(!s.logs.some(e=>e.type==='roll'));
 });
-test('Hose trip is not blocked by Penguin: Penguin remains tripped and uses doubled next main die',()=>{
-  const s=fixture(['the-hose','penguin','legs'],[2,6,20]);begin(s);roll(s,2,2);choose(s,'roll');assert(r(s,1).tripped);begin(s,1);roll(s,3);assert.equal(r(s,1).position,12);assert(r(s,1).tripped);
+test('Hose trip is not blocked by Penguin: Penguin doubles the next main die then recovers',()=>{
+  const s=fixture(['the-hose','penguin','legs'],[2,6,20]);begin(s);roll(s,2,2);choose(s,'roll');assert(r(s,1).tripped);begin(s,1);roll(s,3);assert.equal(r(s,1).position,12);assert.equal(r(s,1).tripped,false);
 });
 test('Hose never rolls after finishing, elimination or Null disabling its end-of-turn power',()=>{
   for(const status of ['finished','eliminated'] as const){const s=fixture(['the-hose','alchemist','legs'],[30,7,15]);r(s)[status]=true;s.queue.push({kind:'endTurn',racerId:'r0'});resolveTasks(s);assert.equal(s.pending,undefined);assert.equal(s.randomLog.length,0);}

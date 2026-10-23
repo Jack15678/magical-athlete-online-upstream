@@ -2,7 +2,7 @@ import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNo
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Racer, RoomView } from '../../shared/types.js';
-import { TRACKS } from '../../shared/tracks.js';
+import { TRACKS, type TrackId } from '../../shared/tracks.js';
 import { CHARACTERS } from '../../shared/characters.js';
 import type { PresentationBeat } from '../presentation.js';
 import { Avatar } from '../avatars.js';
@@ -11,7 +11,8 @@ import { DioramaStadium } from './DioramaStadium.js';
 import { CameraRig } from './CameraRig.js';
 import { StudioLighting, AdaptiveQuality, PawnContact } from './StudioLighting.js';
 import { RaceEffects } from './RaceEffects.js';
-import { boardPoint, TILE } from './math.js';
+import { boardPoint, TILE, trackConnections, trackNodeIds, trackSvgLayout, trackMovementDistance } from './math.js';
+import { TwistPieces } from './TwistPieces.js';
 import { DiceSpotlight } from './DiceSpotlight.js';
 import { pawnRoute, strideLift, strideProgress } from './pawn-motion.js';
 import { pawnFallPose } from './pawn-fall.js';
@@ -102,7 +103,7 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
   const idleFocus = autoWatch && heldFocus && heldFocus.chainId !== dismissedChain ? idleFollowFocus(room, racers, heldFocus) : ownFocus(room, racers);
   const focus: CameraFocus = cameraMode === 'overview' ? { state: 'overview', ids: active ? [active] : [], positions: [] } : choosing ?? (manualCamera ? { state: 'manual', ids: [], positions: [] } : intro.focus ?? (action && action.chainId !== dismissedChain && (autoWatch || myAction) ? action : idleFocus));
   const returnSelf = () => { intro.skip(); setCameraMode('self'); setManualCamera(false); setDismissedChain(action?.chainId ?? heldFocus?.chainId ?? 'manual-self'); setCameraReset(value => value + 1); };
-  return <section ref={root} className={`board-scene ${compact ? 'compact-scene' : ''}`} data-testid="board-3d" data-phase={beat?.kind ?? 'idle'} data-intro-ready={String(introReady)} data-event-ids={beat?.events.map(e => e.id).join(',') ?? ''} data-motion-count={beat?.motions.length ?? 0} data-renderer="react-three-fiber" data-frameloop={beat && beat.kind!=='intro' && !dice && !reducedMotion ? 'always' : 'demand'} data-camera-mode={cameraMode} data-camera-state={focus.state} data-camera-target-ids={focus.ids.join(',')} data-camera-chain-id={focus.chainId ?? ''} aria-label={`${TRACKS[room.track].name}立体棋盘`}>
+  return <section ref={root} className={`board-scene ${compact ? 'compact-scene' : ''}`} data-testid="board-3d" data-track={room.track} data-node-count={trackNodeIds(room.track).length} data-twist-boundary={TRACKS[room.track].twistBoundary?`${TRACKS[room.track].twistBoundary!.before}-${TRACKS[room.track].twistBoundary!.after}`:undefined} data-neutral-monster={room.trackState?.twist?.monster&&!room.trackState.twist.monster.racerId&&!room.trackState.twist.monster.finished?room.trackState.twist.monster.position:undefined} data-twist-chips={room.trackState?.twist?.chips?.join(',')} data-phase={beat?.kind ?? 'idle'} data-intro-ready={String(introReady)} data-event-ids={beat?.events.map(e => e.id).join(',') ?? ''} data-motion-count={beat?.motions.length ?? 0} data-renderer="react-three-fiber" data-frameloop={beat && beat.kind!=='intro' && !dice && !reducedMotion ? 'always' : 'demand'} data-camera-mode={cameraMode} data-camera-state={focus.state} data-camera-target-ids={focus.ids.join(',')} data-camera-chain-id={focus.chainId ?? ''} aria-label={`${TRACKS[room.track].name}立体棋盘`}>
     <div className="scene-camera-toolbar">
       <div className="scene-camera-modes" role="group" aria-label="棋盘视角"><button aria-pressed={cameraMode === 'self'} aria-label={spectator ? '跟随当前选手' : undefined} onClick={returnSelf}>{spectator ? '跟随' : '自己'}</button><button aria-pressed={cameraMode === 'overview'} onClick={() => { intro.skip(); setCameraMode('overview'); setManualCamera(false); setCameraReset(value => value + 1); }}>总览</button></div>
       <button className="camera-home" onClick={returnSelf} aria-label="恢复默认视角" title={spectator ? '跟随当前选手' : '回到自己的棋子'}>⌖ <span>{spectator ? '跟随选手' : '回到自己'}</span></button>
@@ -121,19 +122,19 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
       <Canvas className="board-webgl" key={resetKey} frameloop={beat && beat.kind!=='intro' && !dice && !reducedMotion ? 'always' : 'demand'} orthographic shadows={!lowQuality} dpr={lowQuality ? 1 : [1, compact ? 1.25 : 1.5]} camera={{ position: [3, 16, 16], near: .1, far: 100, zoom: 35 }} gl={{ antialias: !lowQuality, alpha: false, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.setClearColor('#c7dfd3'); gl.outputColorSpace = THREE.SRGBColorSpace; gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.1; gl.shadowMap.type = THREE.PCFShadowMap; gl.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); setLost(true); }); gl.domElement.addEventListener('webglcontextrestored', () => setLost(false)); }}>
         <StudioLighting compact={compact} lowQuality={lowQuality} />
         <AdaptiveQuality lowQuality={lowQuality} onSlow={() => setAutomaticLow(true)} root={root} />
-        <CameraRig racers={racers} compact={compact} reset={cameraReset} focus={focus} reducedMotion={reducedMotion} onManual={() => { intro.skip(); setManualCamera(true); }} root={root} />
-        <DioramaStadium compact={compact} track={room.track} lowQuality={lowQuality} beat={beat} racers={racers} />
-        <Suspense fallback={null}>{racers.filter(r => !r.eliminated || beat?.kind === 'eliminate' && beat.targets.includes(r.id)).map(racer => <Pawn key={racer.id} racer={racer} racers={racers} room={room} compact={compact} beat={beat} startedAt={startedAt} durationMs={durationMs} lowQuality={lowQuality} reducedMotion={reducedMotion} active={active === racer.id} onDetail={onDetail} labels={labels} />)}</Suspense>
-        <RaceEffects {...{ beat, racers, compact, startedAt, durationMs, reducedMotion, lowQuality }} />
-        <ScoreProjector beat={beat} racers={racers} compact={compact} label={scoreLabel} />
+        <CameraRig track={room.track} racers={racers} compact={compact} reset={cameraReset} focus={focus} reducedMotion={reducedMotion} onManual={() => { intro.skip(); setManualCamera(true); }} root={root} />
+        <DioramaStadium compact={compact} track={room.track} reversed={room.trackState?.reversed} lowQuality={lowQuality} beat={beat} racers={racers} />
+        <Suspense fallback={null}><TwistPieces {...{ room, compact, lowQuality, reducedMotion }} />{racers.filter(r => !r.eliminated || beat?.kind === 'eliminate' && beat.targets.includes(r.id)).map(racer => <Pawn key={racer.id} racer={racer} racers={racers} room={room} compact={compact} beat={beat} startedAt={startedAt} durationMs={durationMs} lowQuality={lowQuality} reducedMotion={reducedMotion} active={active === racer.id} onDetail={onDetail} labels={labels} />)}</Suspense>
+        <RaceEffects track={room.track} reversed={room.trackState?.reversed} {...{ beat, racers, compact, startedAt, durationMs, reducedMotion, lowQuality }} />
+        <ScoreProjector track={room.track} beat={beat} racers={racers} compact={compact} label={scoreLabel} />
         <PerformanceProbe root={root} />
         <IntroReadiness beat={beat} count={racers.filter(racer=>!racer.eliminated).length} onReady={onIntroReady} root={root} />
       </Canvas>
     </SceneBoundary>
-    <div className="scene-labels" aria-hidden="true">{racers.filter(r => !r.eliminated).map(racer => { const owner = room.players.find(p => p.id === racer.playerId), scale = occupancy(racer, racers, racer.position).scale; return <span key={racer.id} data-racer-id={racer.id} ref={element => { if (element) labels.current.set(racer.id, element); else labels.current.delete(racer.id); }} className={`pawn-seat ${active === racer.id ? 'is-active' : ''} ${scale < .5 ? 'is-crowded' : scale < .9 ? 'is-shared' : ''}`} style={{ borderColor: owner?.color }}>{(owner?.seat ?? 0) + 1}</span>; })}<span ref={scoreLabel} className="score-float" style={{ display: beat?.kind === 'score' || beat?.kind === 'finish' ? undefined : 'none' }}>{beat?.events[0]?.text.match(/[+＋-]\d+分/)?.[0] ?? (beat?.kind === 'finish' ? '冲线！' : '得分！')}</span></div>
+    <div className="scene-labels" aria-hidden="true">{racers.filter(r => !r.eliminated).map(racer => { const owner = room.players.find(p => p.id === racer.playerId), scale = occupancy(racer, racers, racer.position, compact, room.track).scale; return <span key={racer.id} data-racer-id={racer.id} ref={element => { if (element) labels.current.set(racer.id, element); else labels.current.delete(racer.id); }} className={`pawn-seat ${active === racer.id ? 'is-active' : ''} ${scale < .5 ? 'is-crowded' : scale < .9 ? 'is-shared' : ''}`} style={{ borderColor: owner?.color }}>{(owner?.seat ?? 0) + 1}</span>; })}<span ref={scoreLabel} className="score-float" style={{ display: beat?.kind === 'score' || beat?.kind === 'finish' ? undefined : 'none' }}>{beat?.events[0]?.text.match(/[+＋-]\d+分/)?.[0] ?? (beat?.kind === 'finish' ? '冲线！' : '得分！')}</span></div>
     {lost && <div className="scene-fallback"><strong>正在恢复图形画面…</strong><button onClick={() => { setLost(false); setResetKey(n => n + 1); }}>重新载入 3D</button></div>}
     <SceneBoundary resetKey={resetKey} retry={() => setResetKey(n => n + 1)}><DiceSpotlight active={dice} beatKey={dice ? beat?.key : undefined} contenders={duelContenders} face={beat?.face ?? room.lastRoll?.face ?? 1} faces={beat?.faces} cause={beat?.cause} detail={beat?.events.map(event=>event.text).join(" · ")} sourceRacerId={selected?.id} sourceCharacterId={selected?.characterId} onDetail={onDetail} startedAt={startedAt} durationMs={durationMs} reducedMotion={reducedMotion} lowQuality={lowQuality} source={selected ? characterName(selected.characterId) : '运动员'} /></SceneBoundary>
-    <ActionBanner beat={beat} racers={racers} onDetail={onDetail} />
+    <ActionBanner track={room.track} reversed={room.trackState?.reversed} beat={beat} racers={racers} onDetail={onDetail} />
     <ul className="sr-only" aria-label="立体棋盘选手位置">{racers.map(r => <li key={r.id} data-testid="scene-racer" data-racer-id={r.id} data-position={r.position} data-target-position={beat?.motions.find(m => m.racerId === r.id)?.to ?? r.position}>{characterName(r.characterId)} · {r.position} 格{r.tripped ? ' · 绊倒' : ''}</li>)}</ul>
   </section>;
 }
@@ -200,29 +201,45 @@ function Minimap({ room, racers, active, beat, startedAt, durationMs, reducedMot
     const update = () => { const value = progress(startedAt, durationMs); setTick(value); if (value < 1) animation = requestAnimationFrame(update); };
     update(); return () => cancelAnimationFrame(animation);
   }, [beat?.key, startedAt, durationMs, reducedMotion]);
-  const mapPoint = (position: number) => { const point = boardPoint(position, false); return { x: 32 + (point[0] / TILE + 7.5) * 10.3, y: 28 + (point[2] / TILE + 1.5) * 15 }; };
+  const topology = !!TRACKS[room.track].nodes, mapLayout = trackSvgLayout(room.track, 220, 104, 24);
+  const mapPoint = (position: number) => { if (topology) return mapLayout.point(position); const point = boardPoint(position, false, room.track); return { x: 32 + (point[0] / TILE + 7.5) * 10.3, y: 28 + (point[2] / TILE + 1.5) * 15 }; };
   const currentPosition = (racer: Racer) => {
     const motion = beat?.motions.find(value => value.racerId === racer.id);
     if (!motion) return racer.position;
     if (beat?.kind !== 'move') return tick < .5 ? motion.from : motion.to;
     const step = ease(clamp((tick - .06) / .88, 0, 1)) * Math.max(0, motion.path.length - 1);
     const at = Math.min(motion.path.length - 1, Math.floor(step));
-    return THREE.MathUtils.lerp(motion.path[at] ?? motion.from, motion.path[Math.min(at + 1, motion.path.length - 1)] ?? motion.to, step - at);
+    return topology ? motion.path[at] ?? motion.from : THREE.MathUtils.lerp(motion.path[at] ?? motion.from, motion.path[Math.min(at + 1, motion.path.length - 1)] ?? motion.to, step - at);
+  };
+  const currentMapPoint = (racer: Racer) => {
+    const motion = beat?.motions.find(value => value.racerId === racer.id);
+    if (!topology || !motion || beat?.kind !== 'move') return mapPoint(currentPosition(racer));
+    const step = ease(clamp((tick - .06) / .88, 0, 1)) * Math.max(0, motion.path.length - 1), at = Math.floor(step);
+    const first = mapPoint(motion.path[at] ?? motion.to), second = mapPoint(motion.path[Math.min(at + 1, motion.path.length - 1)] ?? motion.to);
+    return { x: THREE.MathUtils.lerp(first.x, second.x, step - at), y: THREE.MathUtils.lerp(first.y, second.y, step - at) };
   };
   const ownRacers = racers.filter(racer => racer.playerId === room.selfId);
   const others = racers.filter(racer => racer.playerId !== room.selfId);
   const visibleRacers = racers.filter(racer => !racer.eliminated);
   const ownMarker = (racer: Racer) => ownRacers.length > 1 ? String.fromCharCode(65 + ownRacers.findIndex(value => value.id === racer.id)) : '你';
-  const positionText = (racer: Racer) => racer.eliminated ? '已出局' : `第${Math.round(currentPosition(racer))}格`;
+  const positionText = (racer: Racer) => {
+    if (racer.eliminated) return '已出局';
+    return `第${Math.round(currentPosition(racer))}格`;
+  };
+  const positionDetail = (racer: Racer) => {
+    if (racer.eliminated) return '';
+    const position = Math.round(currentPosition(racer)), definition = TRACKS[room.track];
+    const layer = definition.bridges?.find(([upper, lower]) => upper === position || lower === position);
+    return room.track === 'boardwalks' ? `距终点 ${definition.remaining?.[position]} 格` : layer ? layer[0] === position ? '桥上' : '桥下' : '';
+  };
   return <aside className="board-minimap" data-testid="board-minimap" aria-label="赛道小地图">
-    <div className="minimap-heading"><span>赛道小地图</span><span><i />{room.role === 'spectator' ? '选手位置' : '你的位置'}</span></div>
+    <div className="minimap-heading"><span>{room.trackState?.reversed ? '反向赛道' : '赛道小地图'}</span><span><i />{room.role === 'spectator' ? '选手位置' : '你的位置'}</span></div>
     <svg className="minimap-track" viewBox="0 0 220 104" aria-hidden="true">
-      <polyline points={Array.from({ length: 31 }, (_, index) => { const point = mapPoint(index); return `${point.x},${point.y}`; }).join(' ')} fill="none" stroke="#d9e5da" strokeWidth="15" strokeLinejoin="round" />
-      <polyline points={Array.from({ length: 31 }, (_, index) => { const point = mapPoint(index); return `${point.x},${point.y}`; }).join(' ')} fill="none" stroke="#62877b" strokeWidth="8" strokeLinejoin="round" />
-      {[0, 5, 10, 12, 15, 20, 25, 30].map(index => { const point = mapPoint(index), upper = index <= 12; return <g key={index}><circle cx={point.x} cy={point.y} r="1.8" fill="#ecf5e8" /><text x={point.x} y={point.y + (upper ? -14 : 18)} textAnchor="middle">{index === 0 ? '起点' : index === 30 ? '终点' : index}</text></g>; })}
+      {trackConnections(room.track).map(([from, to]) => { const a = mapPoint(from), b = mapPoint(to); return <g key={`${from}-${to}`}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#d9e5da" strokeWidth={topology ? 9 : 15} strokeLinecap="round" /><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#62877b" strokeWidth={topology ? 4 : 8} strokeLinecap="round" /></g>; })}
+      {[0, 5, 10, 12, 15, 20, 25, 30].map(index => { const point = mapPoint(index), upper = index <= 12; return <g key={index} data-map-node={index}><circle cx={point.x} cy={point.y} r="1.8" fill="#ecf5e8" /><text x={point.x} y={point.y + (upper ? -14 : 18)} textAnchor="middle">{index === 0 ? room.trackState?.reversed ? '终点' : '起点' : index === 30 ? room.trackState?.reversed ? '起点' : '终点' : index}</text></g>; })}
       {[...visibleRacers].sort((first, second) => Number(first.playerId === room.selfId) - Number(second.playerId === room.selfId)).map(racer => {
-        const point = mapPoint(currentPosition(racer)), owner = room.players.find(player => player.id === racer.playerId), own = racer.playerId === room.selfId;
-        const peers = visibleRacers.filter(value => Math.round(currentPosition(value)) === Math.round(currentPosition(racer))), index = peers.findIndex(value => value.id === racer.id);
+        const point = currentMapPoint(racer), owner = room.players.find(player => player.id === racer.playerId), own = racer.playerId === room.selfId;
+        const peers = visibleRacers.filter(value => { const other = mapPoint(currentPosition(value)), own = mapPoint(currentPosition(racer)); return Math.hypot(other.x - own.x, other.y - own.y) < .1; }), index = peers.findIndex(value => value.id === racer.id);
         const cols = Math.min(3, peers.length), rows = Math.ceil(peers.length / cols);
         const x = point.x + (index % cols - (cols - 1) / 2) * 14, y = point.y + (Math.floor(index / cols) - (rows - 1) / 2) * 14;
         return <g key={racer.id} data-map-racer-id={racer.id} className={`${own ? 'minimap-self' : ''} ${active === racer.id ? 'minimap-active' : ''}`}>
@@ -238,7 +255,7 @@ function Minimap({ room, racers, active, beat, startedAt, durationMs, reducedMot
     </svg>
     <div className="minimap-own-positions">{ownRacers.map(racer => <div key={racer.id} data-testid="minimap-own-position" data-racer-id={racer.id} data-position={Math.round(currentPosition(racer))} className={`minimap-own-position ${active === racer.id ? 'is-active' : ''}`} aria-label={`你，${characterName(racer.characterId)}，${positionText(racer)}`}>
       <button type="button" className="minimap-own-avatar board-avatar-button" onClick={() => onDetail(racer.characterId, racer.id)} aria-label={`查看${characterName(racer.characterId)}技能与当前玩家`}><Avatar id={racer.characterId} />{ownRacers.length > 1 && <b>{ownMarker(racer)}</b>}</button>
-      <span><strong>你 · {positionText(racer)}</strong><small>{characterName(racer.characterId)}{racer.finished ? ' · 已冲线' : racer.tripped ? ' · 绊倒' : ''}</small></span>
+      <span><strong>你 · {positionText(racer)}</strong>{positionDetail(racer)&&<small>{positionDetail(racer)}</small>}<small>{characterName(racer.characterId)}{racer.finished ? ' · 已冲线' : racer.tripped ? ' · 绊倒' : ''}</small></span>
       {active === racer.id && <i title="正在行动" />}
     </div>)}</div>
     {others.length > 0 && <div className="minimap-positions" aria-label="其他选手位置">{others.map(racer => { const owner = room.players.find(player => player.id === racer.playerId); return <span key={racer.id} data-racer-id={racer.id} data-position={Math.round(currentPosition(racer))} className={active === racer.id ? 'is-active' : ''} style={{ borderColor: owner?.color }} aria-label={`${(owner?.seat ?? 0) + 1}号选手，${characterName(racer.characterId)}，${positionText(racer)}`}><i style={{ background: owner?.color }} /><small>{(owner?.seat ?? 0) + 1}号</small><b>{racer.eliminated ? '出局' : <>{Math.round(currentPosition(racer))}<em>格</em></>}</b></span>; })}</div>}
@@ -256,12 +273,12 @@ function PredictionHud({ room, racers, choosing, onDetail }: { room: RoomView; r
   </div>)}</div></aside>;
 }
 
-function ActionBanner({ beat, racers, onDetail }: { beat?: PresentationBeat; racers: Racer[]; onDetail:Props['onDetail'] }) {
+function ActionBanner({ track, reversed, beat, racers, onDetail }: { track: TrackId; reversed?: boolean; beat?: PresentationBeat; racers: Racer[]; onDetail:Props['onDetail'] }) {
   const skillMove = beat?.kind === 'move' && !!beat.cause && beat.cause !== 'main';
   if (!beat || beat.abilityReveal || !skillMove && !['skill', 'trip', 'recover', 'score', 'finish', 'warp', 'swap'].includes(beat.kind)) return null;
   const affected = racers.filter(racer => beat.targets.includes(racer.id));
   const actor = skillMove ? affected[0] : racers.find(racer => racer.id === beat.source) ?? affected[0];
-  const distances = [...new Set(beat.motions.map(motion => motion.to - motion.from))];
+  const distances = [...new Set(beat.motions.map(motion => trackMovementDistance(track, motion.path, reversed)))];
   const distance = distances[0] ?? 0;
   const motionText = distances.length > 1 ? '同时移动' : `${beat.motions.length > 1 ? '同时' : ''}${distance < 0 ? '后退' : '前进'}${Math.abs(distance)}格`;
   const effectName = beat.cause === 'track-arrow' ? '箭头格' : abilityCaption(beat.cause);
@@ -277,14 +294,14 @@ function Pawn({ racer, racers, room, compact, beat, startedAt, durationMs, lowQu
   const owner = room.players.find(p => p.id === racer.playerId);
   const color = owner?.color ?? '#ffcf50';
   const motion = beat?.motions.find(m => m.racerId === racer.id);
-  const from = boardPoint(motion?.from ?? racer.position, compact);
-  const offset = occupancy(racer, racers, motion?.from ?? racer.position, compact);
+  const from = boardPoint(motion?.from ?? racer.position, compact, room.track);
+  const offset = occupancy(racer, racers, motion?.from ?? racer.position, compact, room.track);
   const destinations = motion ? racers.map(r => ({ ...r, position: beat?.motions.find(m => m.racerId === r.id)?.to ?? r.position })) : racers;
-  const endOffset = occupancy(racer, destinations, motion?.to ?? racer.position, compact);
+  const endOffset = occupancy(racer, destinations, motion?.to ?? racer.position, compact, room.track);
   const route = useMemo(() => motion ? pawnRoute(motion.path.map((position, index) => {
-    const point = boardPoint(position, compact);
-    return [point[0] + (index === 0 ? offset.x : index === motion.path.length - 1 ? endOffset.x : 0), 0, point[2] + (index === 0 ? offset.z : index === motion.path.length - 1 ? endOffset.z : 0)];
-  })) : undefined, [motion, compact, offset.x, offset.z, endOffset.x, endOffset.z]);
+    const point = boardPoint(position, compact, room.track);
+    return [point[0] + (index === 0 ? offset.x : index === motion.path.length - 1 ? endOffset.x : 0), point[1], point[2] + (index === 0 ? offset.z : index === motion.path.length - 1 ? endOffset.z : 0)];
+  })) : undefined, [motion, compact, room.track, offset.x, offset.z, endOffset.x, endOffset.z]);
   const walkPoint = useMemo(() => new THREE.Vector3(), []);
   const affected = beat?.targets.includes(racer.id) || beat?.source === racer.id;
   useFrame(() => {
@@ -292,21 +309,21 @@ function Pawn({ racer, racers, room, compact, beat, startedAt, durationMs, lowQu
     // Demand rendering in reduced-motion mode must show the confirmed endpoint
     // immediately; it cannot rely on another animation frame to reach it.
     const t = beat && !reducedMotion ? progress(startedAt, durationMs) : 1;
-    let x = from[0] + offset.x, z = from[2] + offset.z, y = .225, scale = offset.scale, tilt = racer.tripped ? -Math.PI / 2 : 0, swing = 0;
+    let x = from[0] + offset.x, z = from[2] + offset.z, y = from[1] + .005, scale = offset.scale, tilt = racer.tripped ? -Math.PI / 2 : 0, swing = 0;
     if (motion) {
-      const target = boardPoint(motion.to, compact);
+      const target = boardPoint(motion.to, compact, room.track);
       if (beat?.kind === 'swap' && !reducedMotion) {
         const fraction = ease(t), dx = target[0] - from[0], dz = target[2] - from[2], length = Math.max(1, Math.hypot(dx, dz));
         x = THREE.MathUtils.lerp(from[0] + offset.x, target[0] + endOffset.x, fraction) - dz / length * Math.sin(t * Math.PI) * .55;
         z = THREE.MathUtils.lerp(from[2] + offset.z, target[2] + endOffset.z, fraction) + dx / length * Math.sin(t * Math.PI) * .55;
-        y += Math.sin(t * Math.PI) * .6; scale = THREE.MathUtils.lerp(offset.scale, endOffset.scale, fraction); swing = Math.sin(t * Math.PI) * .25;
+        y = THREE.MathUtils.lerp(from[1], target[1], fraction) + .005 + Math.sin(t * Math.PI) * .6; scale = THREE.MathUtils.lerp(offset.scale, endOffset.scale, fraction); swing = Math.sin(t * Math.PI) * .25;
       } else if (beat?.kind === 'warp' || beat?.kind === 'swap') {
         const arrived = t > .5; x = (arrived ? target[0] + endOffset.x : x); z = (arrived ? target[2] + endOffset.z : z);
-        scale = (arrived ? endOffset.scale : offset.scale) * Math.max(.04, Math.abs(2 * t - 1)); y += reducedMotion ? 0 : Math.sin(t * Math.PI) * .65; swing = reducedMotion ? 0 : t * Math.PI * 2;
+        y = (arrived ? target[1] : from[1]) + .005; scale = (arrived ? endOffset.scale : offset.scale) * Math.max(.04, Math.abs(2 * t - 1)); y += reducedMotion ? 0 : Math.sin(t * Math.PI) * .65; swing = reducedMotion ? 0 : t * Math.PI * 2;
       } else {
         const count = Math.max(1, motion.path.length - 1), fraction = strideProgress(t), walk = fraction * count;
-        route!.getPointAt(fraction, walkPoint); x = walkPoint.x; z = walkPoint.z;
-        const backwards = motion.to < motion.from;
+        route!.getPointAt(fraction, walkPoint); x = walkPoint.x; z = walkPoint.z; y = walkPoint.y + .005;
+        const backwards = trackMovementDistance(room.track, motion.path, room.trackState?.reversed) < 0;
         y += reducedMotion ? 0 : strideLift(fraction, count); swing = reducedMotion ? 0 : Math.sin(walk * Math.PI * 2) * (backwards ? -.055 : .045); scale = THREE.MathUtils.lerp(offset.scale, endOffset.scale, fraction);
       }
     }
@@ -317,10 +334,10 @@ function Pawn({ racer, racers, room, compact, beat, startedAt, durationMs, lowQu
     if (beat?.targets.includes(racer.id) && beat.kind === 'eliminate') scale *= 1 - ease(t);
     root.current.position.set(x, y, z); root.current.scale.setScalar(Math.max(.01, scale)); body.current.rotation.set(tilt, swing, 0); body.current.position.y = fall?.lift ?? 0;
     const label = labels.current.get(racer.id);
-    if (label) { label.dataset.worldX = x.toFixed(4); label.dataset.worldZ = z.toFixed(4); }
+    if (label) { label.dataset.worldX = x.toFixed(4); label.dataset.worldY = y.toFixed(4); label.dataset.worldZ = z.toFixed(4); }
     if (label) { root.current.updateWorldMatrix(true, false); projection.set(0, .19, .34).applyMatrix4(root.current.matrixWorld).project(camera); label.style.transform = `translate(${(projection.x + 1) * size.width / 2}px,${(1 - projection.y) * size.height / 2}px) translate(-50%,-50%)`; label.style.visibility = projection.z < -1 || projection.z > 1 ? 'hidden' : 'visible'; }
   });
-  return <group ref={root} position={[from[0] + offset.x, .225, from[2] + offset.z]} scale={offset.scale} onClick={e => { e.stopPropagation(); if (e.delta <= 5) onDetail(racer.characterId, racer.id); }}>
+  return <group ref={root} position={[from[0] + offset.x, from[1] + .005, from[2] + offset.z]} scale={offset.scale} onClick={e => { e.stopPropagation(); if (e.delta <= 5) onDetail(racer.characterId, racer.id); }}>
     <PawnContact />
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .018, 0]}><ringGeometry args={[.31, active ? .43 : .38, 24]} /><meshBasicMaterial color={active ? '#ffda27' : color} side={THREE.DoubleSide} /></mesh>
     <group ref={body} position={[0, 0, 0]}><ToyCharacter characterId={racer.characterId} color={color} lowQuality={lowQuality} form={typeof racer.flags.form === 'string' ? racer.flags.form : undefined} mount={typeof racer.flags.hogOwnerId === 'string'} motionEnabled={!reducedMotion && (!racer.tripped || beat?.kind === 'trip' || beat?.kind === 'recover')} animation={affected ? beat?.kind === 'trip' ? 'fall' : beat?.kind === 'recover' ? 'recover' : beat?.kind === 'move' ? 'move' : ['skill','dice','duel-dice','score','finish'].includes(beat?.kind ?? '') ? 'skill' : 'idle' : 'idle'} /></group>
@@ -328,9 +345,9 @@ function Pawn({ racer, racers, room, compact, beat, startedAt, durationMs, lowQu
   </group>;
 }
 
-function ScoreProjector({ beat, racers, compact, label }: { beat?: PresentationBeat; racers: Racer[]; compact: boolean; label: React.RefObject<HTMLSpanElement | null> }) {
+function ScoreProjector({ track, beat, racers, compact, label }: { beat?: PresentationBeat; racers: Racer[]; compact: boolean; track: TrackId; label: React.RefObject<HTMLSpanElement | null> }) {
   const { camera, size } = useThree(); const projected = useMemo(() => new THREE.Vector3(), []);
-  useFrame(() => { const racer = racers.find(r => r.id === beat?.source); if (!label.current || !racer || !beat || !['score', 'finish'].includes(beat.kind)) return; const point = pawnWorldPoint(racer, racers, racer.position, compact); projected.set(point[0], 2.5, point[2]).project(camera); label.current.style.transform = `translate(${(projected.x + 1) * size.width / 2}px,${(1 - projected.y) * size.height / 2}px) translate(-50%,-50%)`; });
+  useFrame(() => { const racer = racers.find(r => r.id === beat?.source); if (!label.current || !racer || !beat || !['score', 'finish'].includes(beat.kind)) return; const point = pawnWorldPoint(racer, racers, racer.position, compact, track); projected.set(point[0], point[1] + 2.28, point[2]).project(camera); label.current.style.transform = `translate(${(projected.x + 1) * size.width / 2}px,${(1 - projected.y) * size.height / 2}px) translate(-50%,-50%)`; });
   return null;
 }
 

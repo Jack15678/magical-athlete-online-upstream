@@ -3,10 +3,12 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { TrackId } from '../../shared/tracks.js';
 import type { Racer } from '../../shared/types.js';
 import { cameraFocusPoints, cameraFrame, cameraStep, cameraView, MAX_CAMERA_ZOOM, type CameraFocus } from './camera.js';
 
 interface Props {
+  track?: TrackId;
   compact: boolean;
   reset: number;
   focus: CameraFocus;
@@ -17,25 +19,25 @@ interface Props {
 }
 
 /** Demand-rendered follow camera. Manual pan/zoom remains untouched until reset. */
-export function CameraRig({ compact, reset, focus, racers, reducedMotion, onManual, root }: Props) {
+export function CameraRig({ track = 'mild', compact, reset, focus, racers, reducedMotion, onManual, root }: Props) {
   const { camera, size, invalidate } = useThree();
   const controls = useRef<OrbitControlsImpl>(null);
   const userDrag = useRef(false);
   const target = useMemo(() => new THREE.Vector3(), []);
   const offset = useMemo(() => new THREE.Vector3(), []);
   const desiredOffset = useMemo(() => new THREE.Vector3(), []);
-  const points = cameraFocusPoints(focus, racers, compact);
+  const points = cameraFocusPoints(focus, racers, compact, track);
   const closeUp = focus.state === 'intro' && focus.ids.length === 1;
   const view = useMemo(() => cameraView(compact, closeUp), [compact, closeUp]);
-  const frame = cameraFrame(focus.positions, compact, size.width, size.height, focus.state === 'overview', points, closeUp);
+  const frame = cameraFrame(focus.positions, compact, size.width, size.height, focus.state === 'overview', points, closeUp, track);
   useEffect(() => {
-    const first = cameraFrame(focus.positions, compact, size.width, size.height, focus.state === 'overview', points, closeUp);
+    const first = cameraFrame(focus.positions, compact, size.width, size.height, focus.state === 'overview', points, closeUp, track);
     camera.position.set(first.x + view.offset[0], view.offset[1], first.z + view.offset[2]);
     camera.up.set(0, 1, 0); camera.lookAt(first.x, 0, first.z);
     if (camera instanceof THREE.OrthographicCamera) { camera.zoom = first.zoom; camera.updateProjectionMatrix(); }
     controls.current?.target.set(first.x, 0, first.z); controls.current?.update();
     userDrag.current = false; invalidate();
-  }, [camera, compact]);
+  }, [camera, compact, track]);
   useEffect(() => { userDrag.current = false; invalidate(); }, [reset]);
   useEffect(() => { if (focus.state === 'choice') userDrag.current = false; invalidate(); }, [focus.state, focus.ids.join(','), frame.x, frame.z, frame.zoom]);
   useFrame((_, delta) => {

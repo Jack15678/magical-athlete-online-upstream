@@ -53,6 +53,10 @@ jobs:
       - run: pnpm typecheck
       - name: Validate frozen schedules, long drafting, score audit and worker persistence
         run: pnpm exec tsx --test tests/competition.test.ts tests/schedule-review.test.ts tests/rules-version.test.ts tests/relay.test.ts
+      - name: Validate Scout playback and owner-absence room lifecycle
+        run: pnpm exec tsx --test tests/fan-expansions.test.ts tests/presentation.test.ts tests/room-continuation.test.ts tests/room-lifecycle.test.ts tests/community-network.test.ts
+      - name: Validate map topology, abilities, Twists and saved map matches
+        run: pnpm exec tsx --test tests/leaf-tracks.test.ts tests/new-track-scenes.test.ts tests/map-rules.test.ts tests/map-targets.test.ts tests/leaf-map-abilities.test.ts tests/map-matches.test.ts tests/twist-cards.test.ts tests/twist-integration.test.ts
       - run: pnpm test
         if: steps.validation.outputs.suite == 'all'
       - run: pnpm test:abilities
@@ -68,10 +72,18 @@ jobs:
         run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home,|finish 8|two browsers preserve|rematch"
         env:
           CI: true
+      - name: Validate new map scenes and controls
+        run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts
+        env:
+          CI: true
+      - name: Validate owner-absence voting and current-race closure
+        run: pnpm exec playwright test tests/browser/room-continuation.spec.ts
+        env:
+          CI: true
       # Default to one eight-player race with reconnects. A validation trailer
       # can select focused ability checks; broad suites stay manual.
       - name: Validate room-list admission and spectating
-        run: pnpm exec playwright test -c playwright.relay.config.ts tests/relay-browser/room-directory.spec.ts --grep "^directory:"
+        run: pnpm exec playwright test -c playwright.relay.config.ts tests/relay-browser/room-directory.spec.ts --grep "directory:"
         env:
           CI: true
       - run: pnpm exec playwright test tests/browser/three-scene.spec.ts --grep "3D dice settles|3D simultaneous"

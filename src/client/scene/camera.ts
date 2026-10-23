@@ -1,6 +1,7 @@
 import type { Racer, RoomView } from '../../shared/types.js';
+import { TRACKS, type TrackId } from '../../shared/tracks.js';
 import type { PresentationBeat } from '../presentation.js';
-import { BOARD_CENTER_SPAN, boardPoint, TILE } from './math.js';
+import { BOARD_CENTER_SPAN, boardBounds, boardPoint, TILE } from './math.js';
 
 export type CameraMode = 'self' | 'overview';
 export type CameraState = 'self' | 'action' | 'choice' | 'manual' | 'overview' | 'intro';
@@ -64,7 +65,7 @@ export function choiceFocus(room: RoomView, racers: Racer[]): CameraFocus | unde
   const ids = [...new Set([pending.racerId, ...pending.options.map(option => option.id)].filter((id): id is string => !!id && racers.some(racer => racer.id === id)))];
   const positions = ids.flatMap(id => racers.filter(racer => racer.id === id).map(racer => racer.position));
   // Some abilities select a numbered cell rather than a racer.
-  if (pending.kind === 'third-wheel') positions.push(...pending.options.map(option => Number(option.id)).filter(value => Number.isInteger(value) && value >= 0 && value <= 30));
+  if (pending.kind === 'third-wheel' || pending.kind === 'track-branch') positions.push(...pending.options.map(option => Number(option.id)).filter(value => Number.isInteger(value) && value >= 0 && (TRACKS[room.track].nodes ? !!TRACKS[room.track].nodes![value] : value <= TRACKS[room.track].finish)));
   return { state: 'choice', ids, positions: positions.length ? positions : ownFocus(room, racers).positions };
 }
 
@@ -89,17 +90,22 @@ export function cameraProject(point: readonly number[], compact: boolean, portra
 }
 
 /** Fit real projected model bounds, including the plinth and the finish arch. */
-export function cameraFrame(positions: number[], compact: boolean, width: number, height: number, overview = false, anchors?: readonly WorldPoint[], closeUp = false) {
+export function cameraFrame(positions: number[], compact: boolean, width: number, height: number, overview = false, anchors?: readonly WorldPoint[], closeUp = false, track: TrackId = 'mild') {
   const points = anchors?.length ? anchors : (positions.length ? positions : [0]).map(position => {
-    const point = boardPoint(position, compact);
+    const point = boardPoint(position, compact, track);
     if (position <= 0) { if (compact) point[2] += START_CENTER_OFFSET; else point[0] += START_CENTER_OFFSET; }
     return point;
   });
   const minX = Math.min(...points.map(point => point[0])), maxX = Math.max(...points.map(point => point[0]));
   const minZ = Math.min(...points.map(point => point[2])), maxZ = Math.max(...points.map(point => point[2]));
-  const x = overview ? 0 : (minX + maxX) / 2, z = overview ? 0 : (minZ + maxZ) / 2;
+  const mapBounds = TRACKS[track].nodes ? boardBounds(track, compact) : undefined;
+  const x = overview ? mapBounds?.x ?? 0 : (minX + maxX) / 2, z = overview ? mapBounds?.z ?? 0 : (minZ + maxZ) / 2;
   const bounds: { x: number; y: number }[] = [];
-  if (overview) {
+  if (overview && mapBounds) {
+    for (const bx of [mapBounds.minX - TILE, mapBounds.maxX + TILE]) for (const bz of [mapBounds.minZ - TILE, mapBounds.maxZ + TILE]) for (const by of [-1.1, mapBounds.top + 2.9]) {
+      bounds.push(cameraProject([bx - x, by, bz - z], compact, closeUp));
+    }
+  } else if (overview) {
     // The stadium rotates with the compact track; do not fold or shorten its route.
     const halfWidth = BOARD_CENTER_SPAN.width / 2 + TILE;
     const halfDepth = BOARD_CENTER_SPAN.depth / 2 + TILE * 1.1;
@@ -110,7 +116,7 @@ export function cameraFrame(positions: number[], compact: boolean, width: number
     // Include enlarged pawns, all occupied offsets and both ends of a confirmed move.
     const padding = closeUp ? .9 : TILE * .67;
     for (const point of points) for (const dx of [-padding, padding]) for (const dz of [-padding, padding]) for (const by of closeUp ? [-.3, 2.65] : [-.9, 2.9]) {
-      bounds.push(cameraProject([point[0] - x + dx, by, point[2] - z + dz], compact, closeUp));
+      bounds.push(cameraProject([point[0] - x + dx, point[1] - .22 + by, point[2] - z + dz], compact, closeUp));
     }
   }
   // The target remains on the racer/tile, so an asymmetric arch or pawn must fit
@@ -137,9 +143,9 @@ export function startPlacement(racer: Racer, racers: Racer[], compact = false) {
 }
 
 /** A stable grid spreads crowds; the spacious start keeps every pawn full size. */
-export function pawnOccupancy(racer: Racer, racers: Racer[], position: number, compact = false) {
+export function pawnOccupancy(racer: Racer, racers: Racer[], position: number, compact = false, track: TrackId = 'mild') {
   if (position <= 0) return startPlacement(racer, racers, compact);
-  const clampPosition = (value: number) => Math.max(0, Math.min(30, value));
+  const clampPosition = (value: number) => TRACKS[track].nodes ? value : Math.max(0, Math.min(TRACKS[track].finish, value));
   const group = racers.filter(value => (value.id === racer.id || clampPosition(value.position) === clampPosition(position)) && !value.eliminated);
   const index = Math.max(0, group.findIndex(value => value.id === racer.id));
   const cols = group.length > 4 ? 3 : group.length > 1 ? 2 : 1;
@@ -150,26 +156,26 @@ export function pawnOccupancy(racer: Racer, racers: Racer[], position: number, c
 }
 
 /** Visual location without changing the numbered route used by the rules. */
-export function pawnWorldPoint(racer: Racer, racers: Racer[], position: number, compact: boolean): WorldPoint {
-  const point = boardPoint(position, compact), offset = pawnOccupancy(racer, racers, position, compact);
+export function pawnWorldPoint(racer: Racer, racers: Racer[], position: number, compact: boolean, track: TrackId = 'mild'): WorldPoint {
+  const point = boardPoint(position, compact, track), offset = pawnOccupancy(racer, racers, position, compact, track);
   return [point[0] + offset.x, point[1], point[2] + offset.z];
 }
 
 /** Frame the displayed pawns, including their expanded starting lineup. */
-export function cameraFocusPoints(focus: CameraFocus, racers: Racer[], compact: boolean): WorldPoint[] {
+export function cameraFocusPoints(focus: CameraFocus, racers: Racer[], compact: boolean, track: TrackId = 'mild'): WorldPoint[] {
   const selected = focus.ids.flatMap(id => { const racer = racers.find(value => value.id === id); return racer ? [racer] : []; });
   if ((focus.state === 'self' || focus.state === 'intro') && selected.length) {
-    return selected.map(racer => pawnWorldPoint(racer, racers, racer.position, compact));
+    return selected.map(racer => pawnWorldPoint(racer, racers, racer.position, compact, track));
   }
   return focus.positions.flatMap(position => {
     if (position <= 0) {
       const starting = selected.filter(racer => racer.position <= 0);
-      if (starting.length) return starting.map(racer => pawnWorldPoint(racer, racers, 0, compact));
-      const point = boardPoint(0, compact);
+      if (starting.length) return starting.map(racer => pawnWorldPoint(racer, racers, 0, compact, track));
+      const point = boardPoint(0, compact, track);
       if (compact) point[2] += START_CENTER_OFFSET; else point[0] += START_CENTER_OFFSET;
       return [point];
     }
-    return [boardPoint(position, compact)];
+    return [boardPoint(position, compact, track)];
   });
 }
 

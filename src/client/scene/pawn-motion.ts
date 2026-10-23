@@ -3,7 +3,7 @@ import { CatmullRomCurve3, Vector3 } from 'three';
 /** Centripetal curves pass through the confirmed cell centres, without cutting
  * a U-turn across the board. Arc-length sampling keeps each stride even. */
 export function pawnRoute(points: readonly (readonly number[])[]) {
-  const route = points.map(point => new Vector3(point[0], 0, point[2]));
+  const route = points.map(point => new Vector3(point[0], point[1] ?? 0, point[2]));
   if (route.length === 1) route.push(route[0]!.clone());
   return new CatmullRomCurve3(route, false, 'centripetal');
 }

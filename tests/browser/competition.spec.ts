@@ -111,11 +111,27 @@ test('two browsers preserve a pending choice and reject both duplicate and previ
 });
 
 for(const [rounds,n] of [[4,2],[6,3],[8,2]] as const)test(`${n} independent browsers finish ${rounds} races with UI actions, reconnect and score audit`,async({browser},info)=>{
-  test.setTimeout(600_000);
+  // CI's software WebGL took almost ten minutes to finish eight races, leaving
+  // no time for the final result captures and rematch. Budget by race count;
+  // individual action/assertion timeouts still catch a stalled control promptly.
+  test.setTimeout(Math.max(600_000,rounds*120_000));
+  const startedAt=Date.now();
   const contexts=await Promise.all(Array.from({length:n},(_,i)=>browser.newContext({viewport:i?{width:390,height:844}:{width:1440,height:900}})));
   const pages:Page[]=[],errors:string[]=[],observations:unknown[]=[];
   try{
-    for(const context of contexts){await context.addInitScript(()=>{for(const [key,value] of Object.entries({'animation-speed':'4','reduced-motion':'true','low-quality':'true','muted':'true'}))localStorage.setItem(`magical-athlete:${key}`,value);});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));pages.push(page);}
+    for(const context of contexts){
+      await context.addInitScript(()=>{for(const [key,value] of Object.entries({'animation-speed':'4','reduced-motion':'true','low-quality':'true','muted':'true'}))localStorage.setItem(`magical-athlete:${key}`,value);});
+      const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+      // The full-match check exercises every real action and score. Skills keep
+      // 1.5–3 second reading pauses even at 4× speed; use the player's skip button
+      // while waiting for the next control, as separate tests cover the playback.
+      await page.addLocatorHandler(page.getByTestId('skip-animation'),async skip=>{
+        // A short beat can finish between pointer actionability checks. Activate
+        // the currently displayed button atomically; an ended beat needs no skip.
+        await skip.evaluateAll(buttons=>(buttons[0] as HTMLButtonElement|undefined)?.click());
+      },{noWaitAfter:true});
+      pages.push(page);
+    }
     const host=pages[0]!;await host.goto(url);await host.getByRole('tab',{name:'创建房间',exact:true}).click();
     await host.getByLabel('你的昵称').fill('同名');await host.getByLabel('房间人数上限').selectOption(String(n));await host.getByLabel('每次操作时限').selectOption('0');
     if(rounds!==4){await host.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();await host.getByLabel('比赛场数').selectOption(String(rounds));await host.getByRole('button',{name:'添加 Mild Mile',exact:true}).click();}
@@ -143,6 +159,7 @@ for(const [rounds,n] of [[4,2],[6,3],[8,2]] as const)test(`${n} independent brow
       const page=pages[ids.indexOf(actor)]!;await sync(page,version);
       if(g.pending&&!reloaded){const id=g.pending.id;await page.reload();await expect(page.locator('.connection.is-online')).toBeVisible();expect(app.rooms.get(code).game.pending?.id).toBe(id);reloaded=true;}
       if(g.phase==='race'&&!captured.has(g.round)){
+        console.log(`Match ${n}p/${rounds}: race ${g.round}, ${actions} actions, ${Math.round((Date.now()-startedAt)/1000)}s elapsed`);
         await sync(host,version);await expect(host.getByTestId('board-3d').locator('.board-webgl canvas')).toBeVisible();
         await host.getByTestId('board-3d').screenshot({path:info.outputPath(`round-${g.round}-${g.track}.png`)});
         observations.push({round:g.round,track:g.track,stats:await host.evaluate(()=>({heap:(performance as any).memory?.usedJSHeapSize,canvases:document.querySelectorAll('canvas').length,resources:performance.getEntriesByType('resource').length}))});captured.add(g.round);
@@ -151,6 +168,7 @@ for(const [rounds,n] of [[4,2],[6,3],[8,2]] as const)test(`${n} independent brow
       await clickAction(page,action!,view.pending);await expect.poll(()=>app.rooms.get(code).version).toBeGreaterThan(version);await page.waitForTimeout(270);
     }
     const final=app.rooms.get(code).game;expect(final.results).toHaveLength(rounds);expect(final.round).toBe(rounds);expect(final.matchPlan).toEqual(plan);expect(reloaded).toBe(true);
+    console.log(`Match ${n}p/${rounds}: all races finished, ${actions} actions, ${Math.round((Date.now()-startedAt)/1000)}s elapsed; checking results and rematch`);
     const k=n===2?2:1;expect(final.players.every(p=>p.hand.length===0&&p.used.length===rounds*k)).toBe(true);
     for(const p of final.players)expect(p.score).toBe(final.results.reduce((sum,r)=>sum+r.scores!.find(s=>s.playerId===p.id)!.total,0));
     for(const page of pages){await sync(page,app.rooms.get(code).version);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);}
