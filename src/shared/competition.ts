@@ -1,5 +1,5 @@
 import { TRACKS, RACE_POINTS } from './tracks.js';
-import { MAPS_RULES_VERSION, SCHEDULE_RULES_VERSION } from './rules-versions.js';
+import { EVENTS_RULES_VERSION, MAPS_RULES_VERSION, SCHEDULE_RULES_VERSION } from './rules-versions.js';
 
 export const TRACK_CATALOG = {
   mild: { name: 'Mild Mile', label: '温和一英里', kind: '官方', available: true, description: '30 格基础跑道，专注角色互动。' },
@@ -48,8 +48,8 @@ export function validateCompetition(value: unknown): CompetitionConfig {
   if(c.rotation.some(id=>typeof id!=='string'||!Object.hasOwn(TRACK_CATALOG,id))) throw Error('赛程包含未知地图。');
   const event=object(c.thrillingThirds);
   if(Object.keys(event).some(key=>!['enabled','rounds'].includes(key)) || typeof event.enabled!=='boolean' || !Array.isArray(event.rounds) || event.rounds.some(n=>!Number.isInteger(n)||n<1||n>(c.raceCount as number)) || new Set(event.rounds).size!==event.rounds.length) throw Error('特殊赛事适用场次无效。');
-  if(event.enabled) throw Error('Thrilling Thirds 已取得36项事件表，扩展角色与事件时序适配尚未确认。');
-  if(event.rounds.length) throw Error('特殊赛事关闭时不能指定适用场次。');
+  if(event.enabled&&!event.rounds.length)throw Error('请选择至少一场特殊赛事。');
+  if(!event.enabled&&event.rounds.length) throw Error('特殊赛事关闭时不能指定适用场次。');
   const config=structuredClone(c) as unknown as CompetitionConfig;
   if(config.preset!=='custom'){
     const expected=PRESETS[config.preset];
@@ -63,19 +63,19 @@ export interface MatchPlan {
   version: 'points-v1';
   trackVersion: 'base-tracks-2026-10-21' | 'expanded-tracks-2026-10-23';
   raceCount: RaceCount;
-  races: { round:number; map:PlayableMapId; rewards:number[]; specialEvent:null }[];
+  races: { round:number; map:PlayableMapId; rewards:number[]; specialEvent:null|'thrilling-thirds' }[];
 }
 export function createMatchPlan(config?: {competition?:CompetitionConfig}): MatchPlan {
   const c=validateCompetition(competitionConfig(config));
-  return {version:'points-v1',trackVersion:'expanded-tracks-2026-10-23',raceCount:c.raceCount,races:expandedSchedule(c).map((map,i)=>({round:i+1,map:map as PlayableMapId,rewards:[...RACE_POINTS[REWARD_TIERS[c.raceCount][i]!]!],specialEvent:null}))};
+  return {version:'points-v1',trackVersion:'expanded-tracks-2026-10-23',raceCount:c.raceCount,races:expandedSchedule(c).map((map,i)=>({round:i+1,map:map as PlayableMapId,rewards:[...RACE_POINTS[REWARD_TIERS[c.raceCount][i]!]!],specialEvent:c.thrillingThirds.enabled&&c.thrillingThirds.rounds.includes(i+1)?'thrilling-thirds':null}))};
 }
 export function matchRaceCount(state:{rulesVersion?:string;matchPlan?:MatchPlan;config?:{competition?:CompetitionConfig}}):RaceCount {
   if(state.matchPlan)return state.matchPlan.raceCount;
   // A finished historical match may already have a different next-game draft.
-  return [SCHEDULE_RULES_VERSION,MAPS_RULES_VERSION].includes(state.rulesVersion??'')?competitionConfig(state.config).raceCount:4;
+  return [SCHEDULE_RULES_VERSION,MAPS_RULES_VERSION,EVENTS_RULES_VERSION].includes(state.rulesVersion??'')?competitionConfig(state.config).raceCount:4;
 }
 /** Executable plans are saved once at draft start; the live catalog never rebuilds them. */
 export function assertSupportedPlan(plan?:MatchPlan):void {
   if(!plan)return;
-  if(plan.version!=='points-v1'||!['base-tracks-2026-10-21','expanded-tracks-2026-10-23'].includes(plan.trackVersion)||![4,6,8].includes(plan.raceCount)||plan.races.length!==plan.raceCount||plan.races.some((race,i)=>race.round!==i+1||!(plan.trackVersion==='base-tracks-2026-10-21'?['mild','wild'].includes(race.map):Object.hasOwn(TRACKS,race.map))||race.specialEvent!==null||JSON.stringify(race.rewards)!==JSON.stringify(RACE_POINTS[REWARD_TIERS[plan.raceCount][i]!]))) throw Error('存档赛程版本或奖励表不兼容，请使用对应版本恢复，不能按另一张地图继续。');
+  if(plan.version!=='points-v1'||!['base-tracks-2026-10-21','expanded-tracks-2026-10-23'].includes(plan.trackVersion)||![4,6,8].includes(plan.raceCount)||plan.races.length!==plan.raceCount||plan.races.some((race,i)=>race.round!==i+1||!(plan.trackVersion==='base-tracks-2026-10-21'?['mild','wild'].includes(race.map):Object.hasOwn(TRACKS,race.map))||![null,'thrilling-thirds'].includes(race.specialEvent)||JSON.stringify(race.rewards)!==JSON.stringify(RACE_POINTS[REWARD_TIERS[plan.raceCount][i]!]))) throw Error('存档赛程版本或奖励表不兼容，请使用对应版本恢复，不能按另一张地图继续。');
 }

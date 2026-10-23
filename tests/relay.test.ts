@@ -1095,6 +1095,20 @@ async function continuationWorker(){
   await env.relay.webSocketClose(host,1000,'owner left',true);
   return{env,peers,viewer,identities:[a.identity,b.identity]};
 }
+
+test('worker persists secret event guesses, serializes duplicate inputs, rejects delayed choices and awards only once',async()=>controlledClock(async()=>{
+ let env=await modern('multiplayer',legacyRoomConfig(),3);const a=await join(env),b=await join(env);const host=await authenticate(env),peers=[await authenticate(env,a.identity),await authenticate(env,b.identity)];
+ let record=await env.ctx.storage.get<any>('room');const g=createGame(record.serverRoom.game.players,123);g.phase='race';g.round=1;g.currentRacerId='r0';g.baseTurnOrder=['r0','r1','r2'];g.racers=g.players.map((p,i)=>({id:`r${i}`,playerId:p.id,characterId:'banana',position:2+i*8,finished:false,eliminated:false,tripped:false,flags:{}}));g.flags.thirds={id:'mastermind',round:1,held:{},extraCards:[]};g.scoreLedger=g.players.map(p=>({playerId:p.id,placement:0,map:0,skill:0,event:0,total:0}));g.queue=[{kind:'beginTurn',racerId:'r0'}];resolveTasks(g);g.flags.testDice=[4];record.serverRoom.game=g;record.phase='race';record.serverRoom.version++;await env.ctx.storage.put('room',record);env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};
+ const action={type:'choose' as const,choiceId:g.pending!.id,optionId:'4'},envelope={actionId:crypto.randomUUID(),expectedVersion:record.serverRoom.version,action};
+ const replies=await Promise.all([workerAction(env,peers[0]!,action,'guess-a',envelope),workerAction(env,peers[0]!,action,'guess-repeat',envelope)]);assert(replies.every(r=>r.result.ok));assert.equal(replies.filter(r=>r.result.duplicate).length,1);
+ record=await env.ctx.storage.get<any>('room');assert.equal(record.serverRoom.game.flags.thirds.guesses.values.r1,4);assert.equal(record.serverRoom.game.pending.playerId,b.identity.playerId);
+ await env.relay.webSocketMessage(peers[1]!,JSON.stringify({type:'sync',requestId:'private-event-sync'}));const view=peers[1]!.sent.findLast(m=>m.type==='snapshot').room;assert(!JSON.stringify(view.trackState).includes('values'));assert(!view.logs.some((l:any)=>l.type==='event-guesses'));
+ env={...await instance(env.ctx.storage,env.ctx.sockets),created:env.created};const second={type:'choose' as const,choiceId:record.serverRoom.game.pending.id,optionId:'2'};
+ assert.equal((await workerAction(env,peers[1]!,second,'delayed-event',{actionId:crypto.randomUUID(),expectedVersion:envelope.expectedVersion,action:second})).result.ok,false);
+ assert((await workerAction(env,peers[1]!,second,'fresh-event')).result.ok);assert((await workerAction(env,host,{type:'roll'},'event-roll')).result.ok);
+ record=await env.ctx.storage.get<any>('room');assert.equal(record.serverRoom.game.players[1].score,1);assert.equal(record.serverRoom.game.scoreLedger[1].event,1);assert.equal(record.serverRoom.game.racers[0].position,6);
+ assert((await workerAction(env,peers[0]!,action,'late-duplicate',envelope)).result.duplicate);assert.equal((await env.ctx.storage.get<any>('room')).serverRoom.game.players[1].score,1);
+}));
 for(const entry of ['alarm','http','sync','upgrade'] as const)test(`worker offers continuation on expiry via ${entry}, including reconnect at the deadline`,async()=>controlledClock(async clock=>{
   const {env,peers,viewer}=await continuationWorker();clock.now+=PERSONAL_ROOM_AWAY_MS;
   if(entry==='alarm')await env.relay.alarm();

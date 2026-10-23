@@ -122,9 +122,7 @@ export function installTwists(ctx:TwistContext){
       }
       case 'season-finale':
         if((s.flags.placements as unknown[]|undefined)?.length){
-          s.phase='paused';s.flags.awaitRoll=false;s.flags.needsBegin=false;
-          const hold={kind:'twist-late-finale',cardId:id,triggerId,message:'抽到季终决战前已有选手完赛并结算名次分；原规则未说明如何处理已发奖励及其技能连锁。本场暂停，保留这张卡、现有名次积分和待处理效果，等待明确裁定。'};
-          s.flags.ruleHold=hold;log(s,'rule-hold',hold.message,{source:triggerId,cause:id});break;
+          log(s,'house-rule','网页裁定：季终决战迟于首次颁奖时不再改赛制；保留已经结算的奖励与技能链，按原赛程继续。',{source:triggerId,cause:id});break;
         }
         t.finale={stage:'qualifying',qualifiers:[],reward:ctx.raceRewards(s).slice(0,2).reduce((a,b)=>a+b,0)};break;
       case 'swap-meet':{
@@ -216,10 +214,10 @@ export function installTwists(ctx:TwistContext){
         else{
           const visited=(t.fixedVisited??[]) as string[];
           if(data.fixedFaces&&visited.includes(next.id)){
-            s.phase='paused';s.flags.awaitRoll=false;s.flags.needsBegin=false;
-            s.flags.ruleHold={kind:'twist-curse-cycle',message:'固定骰与诅咒魔杖只在已离场席位间循环，无法选出在赛选手；保留局面，等待该组合的明确裁定。'};
-            push(s,work('curse-next',{racerId:next.id,fixedVisited:visited}));
-            log(s,'rule-hold','固定骰与诅咒魔杖循环，比赛暂停；未发放剩余名次分。',{cause:'twist-curse-wands'});return true;
+            const start=fixed.indexOf(next.id);
+            const available=Array.from({length:fixed.length},(_,i)=>racer(s,fixed[(start+i+1)%fixed.length]!)).find(r=>r&&live(r));
+            if(available){s.currentRacerId=available.id;s.turn=s.racers.indexOf(available);s.flags.needsBegin=true;}
+            log(s,'house-rule','网页裁定：固定骰跳席形成离场席位闭环，跳出闭环，由下一名在赛选手行动。',{cause:'twist-curse-wands',...(available?{source:available.id}:{})});return true;
           }
           push(s,work('curse-next',{racerId:next.id,fixedVisited:data.fixedFaces?[...visited,next.id]:[]}));
         }

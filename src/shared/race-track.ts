@@ -3,7 +3,7 @@ import { nextTrackNodes, sharedTrackSpace, trackDistance } from './track-topolog
 import type { GameState, Racer } from './types.js';
 
 export const raceDirection = (s: GameState) => s.flags.twistReversed ? -1 : 1;
-export const startPosition = (s: GameState) => s.flags.twistReversed ? TRACKS[s.track].finish : 0;
+export const startPosition = (s: GameState) => typeof s.flags.thirdsStart==='number' ? s.flags.thirdsStart : s.flags.twistReversed ? TRACKS[s.track].finish : 0;
 export const finishPosition = (s: GameState) => s.flags.twistReversed ? 0 : TRACKS[s.track].finish;
 export const firstCorner = (s: GameState) => s.flags.twistReversed ? TRACKS[s.track].secondCorner : TRACKS[s.track].firstCorner;
 export const secondCorner = (s: GameState) => s.flags.twistReversed ? TRACKS[s.track].firstCorner : TRACKS[s.track].secondCorner;

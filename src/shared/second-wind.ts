@@ -1,5 +1,5 @@
 import type { CharacterData } from './characters.js';
-/** Card transcription only; fan-authored Interactions are not official rulings. */
+/** Official card text checked against the user-supplied Second Wind rulebook, pp24-27. */
 export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
   {
     "id": "bite-mark",
@@ -16,7 +16,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "targets": "被越过的其他选手",
     "scope": "按卡文；other 为其他选手，opposing 为其他玩家控制的选手",
     "limit": "变身时",
-    "duration": "本场；卡文未说明还原，待官方复核",
+    "duration": "变身持续本场，官方第24页已确认",
     "statuses": [],
     "sources": [
       {
@@ -32,11 +32,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Bite Mark",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-01",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Bite%20Mark.png"
   },
   {
@@ -69,11 +76,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Blunderdog",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-02",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Blunderdog.png"
   },
   {
@@ -107,11 +121,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Cheatah",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-03",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Cheatah.png"
   },
   {
@@ -144,11 +165,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Critic",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-04",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Critic.png"
   },
   {
@@ -181,11 +209,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Diva",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-05",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Diva.png"
   },
   {
@@ -218,11 +253,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Doppelgängster",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-06",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Doppelgangster.png"
   },
   {
@@ -256,11 +298,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Gloth",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-07",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Gloth.png"
   },
   {
@@ -269,7 +318,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "野猪骑士",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "开赛骑野猪，坐骑为当前骑手主移动+2；其他选手停到野猪所在格便夺走坐骑。",
+    "ability": "开赛骑野猪，每只坐骑为骑手主移动+2；其他选手停到其格便夺走坐骑。可同时骑多只野猪。",
     "timing": [
       "before-race",
       "main-move",
@@ -295,11 +344,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Hog Knight",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-08",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Hog%20Knight.png"
   },
   {
@@ -332,11 +388,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p24 / Hopfrog",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-09",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第24页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Hopfrog.png"
   },
   {
@@ -369,11 +432,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Hotel",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-10",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Hotel.png"
   },
   {
@@ -407,11 +477,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Icarus",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-11",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Icarus.png"
   },
   {
@@ -444,11 +521,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Kingtripper",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-12",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Kingtripper.png"
   },
   {
@@ -481,11 +565,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Kraken",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-13",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Kraken.png"
   },
   {
@@ -494,7 +585,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "破坏者",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "其他选手主移动最终骰面3时，主移动方向改为后退。",
+    "ability": "其他选手主骰3时，整个主移动改为后退；显摆精任一保留骰为3、骰子先生六骰中含3同样生效。双重反向抵消。",
     "timing": [
       "main-roll-final"
     ],
@@ -518,11 +609,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Le Saboteur",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-14",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/LeSaboteur.png"
   },
   {
@@ -531,7 +629,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "魔法运动员",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "主骰1：移动7；2：末位传送到自己；3：传送到另一选手并绊倒对方；4：移动4并额外回合；5：领跑者后退5；6：移动6并绊倒越过者。",
+    "ability": "主骰1：移动7；2：所有并列末位同时传送到自己；3：传送到另一选手所在格并绊倒该格其他所有人；4：移动4并额外回合；5：所有并列领跑者后退5；6：移动6并绊倒越过者。",
     "timing": [
       "main-roll-final",
       "passed"
@@ -556,11 +654,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Magical Athlete",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-15",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Magical%20Athlete.png"
   },
   {
@@ -593,11 +698,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Mole",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-16",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Mole.png"
   },
   {
@@ -630,11 +742,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Mr. Dice Guy",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-17",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Mr.%20Dice%20Guy.png"
   },
   {
@@ -643,7 +762,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "蘑菇泥",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "主移动最终骰面1或2时抽一张选手牌，获得其能力至本场结束，可累积。",
+    "ability": "主移动最终骰面1或2时抽一张选手牌，获得其能力至本场结束，可累积；不补用赛前或赛后效果。复制黏黏怪不继承已累积能力。",
     "timing": [
       "main-roll-final"
     ],
@@ -667,11 +786,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p25 / Mush",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-18",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第25页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Mush.png"
   },
   {
@@ -680,7 +806,7 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "宿敌",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "其他选手掷主骰时，自己可跟掷；相同则移动该点数。",
+    "ability": "其他选手掷主骰并完成移动后，自己可跟掷；相同则移动该点数。",
     "timing": [
       "other-main-roll"
     ],
@@ -704,11 +830,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Nemesis",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-19",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Nemesis.png"
   },
   {
@@ -741,11 +874,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Nepo Baby",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-20",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Nepo%20Baby.png"
   },
   {
@@ -779,11 +919,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Null",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-21",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Null.png"
   },
   {
@@ -816,11 +963,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Overtaker",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-22",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Overtaker.png"
   },
   {
@@ -853,11 +1007,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Party Pooper",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-23",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Party%20Pooper.png"
   },
   {
@@ -892,11 +1053,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Penguin",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-24",
-    "verified": false,
-    "verification": "用户提供的 Second Wind 规则书第26页确认主移动后恢复；其他复制交互未全部核验",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Penguin.png"
   },
   {
@@ -930,11 +1098,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Re-Runner",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-25",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Re-Runner.png"
   },
   {
@@ -968,11 +1143,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Show-Off",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-26",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Show-Off.png"
   },
   {
@@ -1006,11 +1188,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p26 / Soulmate",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-27",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第26页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Soulmate.png"
   },
   {
@@ -1044,11 +1233,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Speed Demon",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-28",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Speed%20Demon.png"
   },
   {
@@ -1081,11 +1277,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Spoilsport",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-29",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Spoilsport.png"
   },
   {
@@ -1094,15 +1297,15 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "继父",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "固定行动顺序中的左邻（下一名选手，可为队友）主移动+2；该实例夺冠时，继父当前控制者获得3分。独自出场无目标。",
+    "ability": "固定行动顺序中左侧首名其他玩家的非淘汰选手主移动+2；该选手夺冠时，继父当前控制者获得3分。目标被淘汰后顺延。",
     "timing": [
       "continuous",
       "main-move",
       "first-finish"
     ],
     "optional": false,
-    "targets": "本场固定顺时针行动顺序中的下一名选手实例；允许同控制者队友，不包含自身，不按屏幕左右或赛道位置判断",
-    "scope": "只加主要移动，不加额外移动或传送；目标按赛前固定选手实例顺序派生，中途获得能力也生效，控制权交换不改实例顺序",
+    "targets": "沿本场固定顺序跳过己方队友和淘汰者，取第一名对方选手",
+    "scope": "多角色依官方第27页惠及另一名玩家；按固定卡位顺延，不按赛道位置判定",
     "limit": "持续；获冠军一次",
     "duration": "本场",
     "statuses": [],
@@ -1120,11 +1323,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Stepdad",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-30",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Stepdad.png"
   },
   {
@@ -1157,11 +1367,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Streaker",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-31",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Streaker.png"
   },
   {
@@ -1194,11 +1411,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Stunner",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-32",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Stunner.png"
   },
   {
@@ -1231,11 +1455,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Switcharoo",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-33",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Switcharoo.png"
   },
   {
@@ -1268,11 +1499,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Tail",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-34",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Tail.png"
   },
   {
@@ -1306,11 +1544,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / The Hose",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-35",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/The%20Hose.png"
   },
   {
@@ -1319,12 +1564,12 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
     "nameZh": "替补演员",
     "translation": "本项目译名",
     "edition": "second-wind",
-    "ability": "开赛前复制一名对方选手的能力。",
+    "ability": "赛前复制另一名参赛者的印刷能力，可以选己方队友；执行赛前效果，不执行返场等赛后效果。",
     "timing": [
       "before-race"
     ],
     "optional": false,
-    "targets": "由其他玩家控制的选手",
+    "targets": "本场其他参赛者，包含同一玩家的另一名选手",
     "scope": "按卡文；other 为其他选手，opposing 为其他玩家控制的选手",
     "limit": "开赛一次",
     "duration": "本场",
@@ -1343,11 +1588,18 @@ export const SECOND_WIND_CHARACTERS: readonly CharacterData[] = [
         "locator": "p14 / p15 / p20 / p23",
         "accessed": "2026-10-21",
         "version": "32页更新版；非Second Wind完整规则书"
+      },
+      {
+        "url": "/rules/second-wind-verification.md",
+        "title": "用户提供 Second Wind 官方规则书：逐卡核验记录",
+        "locator": "p27 / Understudy",
+        "accessed": "2026-10-23",
+        "version": "用户提供的32页PDF"
       }
     ],
     "testId": "SW-36",
-    "verified": false,
-    "verification": "卡文转录已核对；待官方 Second Wind 规则/卡面复核",
+    "verified": true,
+    "verification": "已对照用户提供 Second Wind 规则书第27页官方卡面和逐角色说明；网页差异见项目规则。",
     "imageUrl": "https://johnnlds.github.io/Magical-Athlete-Racers/images/expansion/Understudy.png"
   }
 ];

@@ -1,10 +1,11 @@
 import { installLeaf } from './leaf-expansion.js';
 import { installTwists } from './twist-cards.js';
+import { installThirds } from './special-events.js';
 import { nextTrackNodes, passesTrackSpace, sharedTrackSpace } from '../shared/track-topology.js';
 import { progress, raceDirection, startPosition, finishPosition, firstCorner, secondCorner, positionAt, sharing as sameSpace, separation, forwardDistance, adjacentPosition, trackNodes } from '../shared/race-track.js';
 import { enabledCharacterIds, validateRoomConfigForPlayers } from '../shared/room-config.js';
 import { createMatchPlan, matchRaceCount } from '../shared/competition.js';
-import { MAPS_RULES_VERSION } from '../shared/rules-versions.js';
+import { EVENTS_RULES_VERSION } from '../shared/rules-versions.js';
 import { CHARACTERS, characterPool } from '../shared/characters.js';
 import { TRACKS, RACE_POINTS } from '../shared/tracks.js';
 import { createRandomStream, nextRandomWord, secureRandomSeed, uniformInteger, type RandomSeed } from '../shared/random.js';
@@ -18,6 +19,8 @@ const name = (r: Racer) => String(r.flags.extraName ?? character(r.characterId)?
 const live = (r: Racer) => !r.finished && !r.eliminated;
 const racer = (s: GameState, id: string) => s.racers.find(r => r.id === id);
 const active = (s: GameState) => s.racers.filter(live);
+const hogs=(r:Racer):string[]=>Array.isArray(r.flags.hogOwnerIds)?r.flags.hogOwnerIds as string[]:typeof r.flags.hogOwnerId==='string'?[r.flags.hogOwnerId]:[];
+function setHogs(r:Racer,ids:string[]){r.flags.hogOwnerIds=[...new Set(ids)];if(ids.length)r.flags.hogOwnerId=ids[0];else delete r.flags.hogOwnerId;}
 const owner = (s: GameState, r: Racer) => s.players.find(p => p.id === r.playerId)!;
 const push = (s: GameState, ...tasks: Work[]) => s.queue.unshift(...tasks);
 function log(s: GameState, type: string, text: string, detail: Record<string, any> = {}) {
@@ -52,6 +55,7 @@ function drawUnchosen(s:GameState,count:number):string[] {
     const displays=Array.isArray(r.flags.leafDisplayedCards)?r.flags.leafDisplayedCards as BorrowedPower[]:typeof r.flags.leafDisplayedCard==='string'?[{power:r.flags.leafDisplayedCard,source:''}]:[];
     for(const item of displays)held.add(item.power);
   }
+  const event=thirds.state(s);if(event)for(const id of [...Object.values(event.held),...event.extraCards])held.add(id);
   for(const id of s.draft?.market??[])held.add(id);
   if(s.pending?.kind==='egg')for(const id of ((s.pending.context as {cards?:string[]}).cards??[]))held.add(id);
   const cards:string[]=[],seen=new Set<string>();
@@ -86,8 +90,8 @@ function baseOrder(s: GameState): string[] { return s.baseTurnOrder ?? s.racers.
 export function stepdadTarget(s:GameState,r:Racer):Racer|undefined {
   const fixed=baseOrder(s),index=fixed.indexOf(r.id);
   if(index<0||fixed.length<2)return;
-  const target=racer(s,fixed[(index+1)%fixed.length]!);
-  return target&&target.id!==r.id?target:undefined;
+  for(let n=1;n<fixed.length;n++){const target=racer(s,fixed[(index+n)%fixed.length]!);if(target&&!target.eliminated&&target.playerId!==r.playerId)return target;}
+  return undefined;
 }
 function printedPower(s: GameState, r: Racer): string {
   const base = String(r.flags.power ?? r.flags.copiedPower ?? r.characterId);
@@ -172,9 +176,9 @@ function hasPower(s:GameState,r:Racer,power:string) { return effectivePowers(s,r
 function powers(s: GameState, power: string) { return order(s).filter(r => hasPower(s,r,power)); }
 function dispatch(s:GameState,r:Racer,power:string,run:()=>void){ if(!hasPower(s,r,power))return;dispatchPowers.set(r,power);try{run();}finally{dispatchPowers.delete(r);} }
 
-function points(s: GameState, r: Racer, delta: number, cause: string) {
+function points(s: GameState, r: Racer, delta: number, cause: string, category?:'event') {
   const p = owner(s,r); const previous = p.score; p.score = Math.max(0,p.score+delta);if(p.score>previous)fanTrackIncome(s,r,p.score-previous);
-  const entry=s.scoreLedger?.find(entry=>entry.playerId===p.id);if(entry){entry[cause==='赛道星格'?'map':'skill']+=p.score-previous;entry.total+=p.score-previous;}
+  const entry=s.scoreLedger?.find(entry=>entry.playerId===p.id);if(entry){entry[category??(cause==='赛道星格'?'map':'skill')]+=p.score-previous;entry.total+=p.score-previous;}
   log(s, 'score', `${p.name} ${p.score >= previous ? '+' : ''}${p.score-previous}分（${cause}）`, { source:r.id });
 }
 function ask(s: GameState, r: Racer, kind: string, title: string, options: {id:string;label:string}[], context: Record<string,any>, optional = false) {
@@ -233,7 +237,7 @@ function usePower(s: GameState, r: Racer, tasks: Work[], power = effectivePower(
 }
 
 export function createGame(players: Player[], seed: RandomSeed = secureRandomSeed(), mode: GameMode = 'multiplayer', pool: CharacterPool = 'original'): GameState {
-  return { mode, characterPool:pool, rulesVersion:MAPS_RULES_VERSION, phase:'lobby', round:0, players:structuredClone(players), deck:[], discard:[], racers:[], turn:0, turnCount:0, queue:[], logs:[], results:[], rngState:(typeof seed==='number'?seed>>>0:0)||0x9e3779b9,...(typeof seed==='number'?{}:{randomStream:createRandomStream(seed)}), randomLog:[], track:'mild', flags:{} };
+  return { mode, characterPool:pool, rulesVersion:EVENTS_RULES_VERSION, phase:'lobby', round:0, players:structuredClone(players), deck:[], discard:[], racers:[], turn:0, turnCount:0, queue:[], logs:[], results:[], rngState:(typeof seed==='number'?seed>>>0:0)||0x9e3779b9,...(typeof seed==='number'?{}:{randomStream:createRandomStream(seed)}), randomLog:[], track:'mild', flags:{} };
 }
 function snake(s: GameState, first: string, twice = false) {
   const i=s.players.findIndex(p=>p.id===first); const ids=s.players.map((_,j)=>s.players[(i+j)%s.players.length]!.id);
@@ -278,12 +282,13 @@ function prepareRace(s: GameState) {
   log(s,'reveal',s.racers.map(r=>`${owner(s,r).name}：${name(r)}`).join('，'));
   if(s.players.length===2)log(s,'turn-order',`本场固定行动顺序：${s.baseTurnOrder.map(id=>{const r=racer(s,id)!;return `${owner(s,r).name}的${name(r)}`;}).join(' → ')}`);
   push(s,...order(s).map(r=>({kind:'beforeRace',racerId:r.id})),{kind:'refreshCopies'},{kind:'beginTurn',racerId:initial.id});
+  thirds.prepareRace(s);
 }
 function currentPlacements(s:GameState):RaceResult['placements'] { return (s.flags.placements??=[]) as RaceResult['placements']; }
 function finish(s:GameState,r:Racer, forcedRank?:number) {
   if(!live(r)&&forcedRank===undefined)return;
-  if(forcedRank===undefined&&currentPlacements(s).length===0&&!((s.flags.twist as {finale?:{qualifiers:string[]}}|undefined)?.finale?.qualifiers.length)){const doubles=powers(s,'doppelgangster').filter(x=>!x.flags.doppelUsed);if(doubles.length){const inherited=[...effectivePowers(s,r)];for(const d of doubles){d.flags.doppelUsed=true;for(const power of inherited)acquirePower(d,power,{sourceRacerId:r.id,via:'doppelgangster'});log(s,'copy',`${name(d)}淘汰首位冲线者并获得其当前有效能力（不继承资源、次数或私人手牌）`,{source:d.id,targets:[r.id],cause:'doppelgangster',grantedPowerIds:inherited,grantDuration:'race'});}eliminate(s,r.id,doubles[0]!.id);return;}}
-  if(twists.beforeFinish(s,r))return;
+  if(forcedRank===undefined&&currentPlacements(s).length===0&&!((s.flags.twist as {finale?:{qualifiers:string[]}}|undefined)?.finale?.qualifiers.length)){const doubles=powers(s,'doppelgangster').filter(x=>!x.flags.doppelUsed);if(doubles.length){const inherited=effectivePowers(s,r);if(printedPower(s,r)==='mush'&&inherited.includes('mush'))inherited.splice(0,inherited.length,'mush');for(const d of doubles){d.flags.doppelUsed=true;for(const power of inherited)acquirePower(d,power,{sourceRacerId:r.id,via:'doppelgangster'});log(s,'copy',`${name(d)}淘汰首位冲线者并获得其当前有效能力（不继承资源、次数或私人手牌）`,{source:d.id,targets:[r.id],cause:'doppelgangster',grantedPowerIds:inherited,grantDuration:'race'});}eliminate(s,r.id,doubles[0]!.id);return;}}
+  if(thirds.beforeFinish(s,r)||twists.beforeFinish(s,r))return;
   const placements=currentPlacements(s);const rank=forcedRank??placements.length+1;if(rank>2)return;
   const championPower=printedPower(s,r);
   r.finished=true;r.rank??=rank;r.position=hasPower(s,r,em('doc-paradox'))?startPosition(s):finishPosition(s);
@@ -307,7 +312,7 @@ function finish(s:GameState,r:Racer, forcedRank?:number) {
 }
 function endRace(s:GameState,cycleDraw=false,awardsResolved=false) {
   if(s.phase!=='race')return;
-  if(twists.beforeRaceEnd(s))return;
+  if(thirds.beforeEnd(s)||twists.beforeRaceEnd(s))return;
   if(s.flags.wilyAwardsPending&&!awardsResolved)return;
   const runnerUp=currentPlacements(s).find(p=>p.rank===2)?.racerId;
   if(!awardsResolved&&!cycleDraw&&runnerUp){
@@ -318,9 +323,9 @@ function endRace(s:GameState,cycleDraw=false,awardsResolved=false) {
     }
   }
   delete s.flags.wilyAwardsPending;
-  leafRules.raceEnd(s,cycleDraw);fanRaceEnd(s,cycleDraw);twists.raceEnd(s);
+  leafRules.raceEnd(s,cycleDraw);fanRaceEnd(s,cycleDraw);twists.raceEnd(s);thirds.finishRace(s);
   if(!cycleDraw)for(const g of powers(s,'gloth'))if(progress(s,g)<=progress(s,secondCorner(s)))points(s,g,3,'葛洛斯未超过第二弯道');
-  for(const r of s.racers)if(hasPower(s,r,'re-runner')||r.characterId==='re-runner'){const entries=(s.flags.reRunners??=[]) as {playerId:string;characterId:string}[];const id=r.playerId;if(!entries.some(x=>x.playerId===id&&x.characterId===r.characterId))entries.push({playerId:id,characterId:r.characterId});}
+  for(const r of s.racers)if(r.characterId==='re-runner'){const entries=(s.flags.reRunners??=[]) as {playerId:string;characterId:string}[];const id=r.playerId;const existing=entries.find(x=>x.characterId===r.characterId);if(existing)existing.playerId=id;else entries.push({playerId:id,characterId:r.characterId});}
   s.results.push({round:s.round,placements:structuredClone(currentPlacements(s)),...(s.scoreLedger?{scores:structuredClone(s.scoreLedger)}:{}),...(cycleDraw?{drawReason:'forced-cycle' as const}:{})});
   if(s.players.length===2){
     const scores=s.flags.roundStartScores as Record<string,number>??{};const min=Math.min(...s.players.map(p=>p.score-(scores[p.id]??0)));const tied=s.players.filter(p=>p.score-(scores[p.id]??0)===min);
@@ -347,6 +352,7 @@ function previewMove(s:GameState,r:Racer,distance:number,departures:string[],ps=
   const path=[end],jumps:string[]=[],glueStopped:string[]=[];
   let fork:{position:number;options:number[];index:number}|undefined;
   while(count>0){
+    if(s.flags.thirdsStart!==undefined&&end===startPosition(s)&&distance<0)break;
     const options=nextTrackNodes(track,end,direction);
     if(!options.length){overshoot=count;break;}
     if(options.length>1){
@@ -377,6 +383,7 @@ function followingPreview(s:GameState,lead:Racer,distance:number,departures:stri
   return {...preview,from,to,delta,moveType};
 }
 function motion(s:GameState,t:Work) {
+  if(thirds.beforeMotion(s,t))return;
   const plans: {racerId:string;distance?:number;position?:number;follow?:string;offset?:number;from?:number}[]=t.plans??[{racerId:t.racerId,distance:t.distance,position:t.position,offset:t.offset,from:t.from}];
   const moving=plans.filter(p=>{const r=racer(s,p.racerId);return r&&live(r);});
   if(!moving.length)return;
@@ -484,7 +491,7 @@ function resolveStops(s:GameState,c:Work){
     }
   }
   }
-  const board=arrivals.map(id=>({kind:'board',racerId:id,whirlPair:t.whirlPair}));const stops:Work[]=[...leafRules.stopTasks(s,arrivals,before,t),...fanStopTasks(s,arrivals,before,t)];
+  const board=arrivals.map(id=>({kind:'board',racerId:id,whirlPair:t.whirlPair}));const stops:Work[]=[...thirds.stops(s,arrivals,before,t),...leafRules.stopTasks(s,arrivals,before,t),...fanStopTasks(s,arrivals,before,t)];
   if(t.cause==='main')for(const p of moved)racer(s,p.racerId)!.flags.fanMainDistance=Math.sign(p.distance??0)*Math.max(0,(paths[p.racerId]?.length??1)-1);
   for(const source of order(s)){
     for(const power of effectivePowers(s,source)){
@@ -501,7 +508,7 @@ function resolveStops(s:GameState,c:Work){
     if(power==='hotel')for(const id of arrivals){const target=racer(s,id)!;if(target.id!==source.id&&sameSpace(s,target,source)&&!arrivals.includes(source.id))stops.push({kind:'hotelPay',racerId:source.id,targetId:id});}
     }
   }
-  for(const carrier of active(s).filter(x=>x.flags.hogOwnerId)){const targets=order(s,active(s).filter(x=>x.id!==carrier.id&&sameSpace(s,x,carrier)&&arrivals.includes(x.id)&&!arrivals.includes(carrier.id)));for(const target of targets)stops.push({kind:'hogTake',racerId:target.id,hogOwnerId:carrier.flags.hogOwnerId});}
+  for(const carrier of active(s).filter(x=>hogs(x).length)){const targets=order(s,active(s).filter(x=>x.id!==carrier.id&&sameSpace(s,x,carrier)&&arrivals.includes(x.id)&&!arrivals.includes(carrier.id)));for(const target of targets)for(const hogOwnerId of hogs(carrier))stops.push({kind:'hogTake',racerId:target.id,hogOwnerId});}
   const fishDone=moved.filter(p=>p.follow).map(p=>({kind:'powerDone',racerId:p.racerId,power:'suckerfish'}));
   push(s,...board,{kind:'refreshCopies'},...orderEffectTasks(s,[...passEffects,...stops]),...extra,...fishDone);
 }
@@ -539,10 +546,10 @@ function beginTurn(s:GameState,r:Racer) {
   if(!live(r)){advance(s,r);return;}leafRules.turnBoundary(s,r);if(forcedCycle(s,r))return;s.currentRacerId=r.id;s.turn=s.racers.indexOf(r);s.turnCount++;s.flags.awaitRoll=false;s.flags.loopSeen=[];r.flags.turnStart=r.position;r.flags.turnPower=effectivePower(s,r);r.flags.rerolls={};r.flags.geniusGuess=undefined;r.flags.mainBonus=0;
   r.flags.turnsTaken=Number(r.flags.turnsTaken??0)+1;
   r.flags.burtAsked=false;r.flags.burtGuess=undefined;r.flags.wurstiiFace=undefined;
-  const power=effectivePower(s,r);r.flags.mainRolled=false;r.flags.mainDirection=undefined;r.flags.magicPassTrip=false;r.flags.showOffPrevious=undefined;r.flags.showOffTotal=0;r.flags.mainSelection=undefined;r.flags.criticAsked=[];r.flags.fanMainDistance=0;r.flags.emAsked=[];r.flags.headsFinal=false;r.flags.scoutFinal=false;r.flags.witchAllocated=false;r.flags.fanTax=0;r.flags.skipMain=hasPower(s,r,'hare')&&!(s.mode==='practice'&&active(s).length===1)&&active(s).every(x=>x.id===r.id||progress(s,x)<progress(s,r));r.flags.blimpBonus=progress(s,r)<progress(s,secondCorner(s))?3:-1;
+  const power=effectivePower(s,r);r.flags.mainRolled=false;r.flags.mainDirection=undefined;r.flags.magicPassTrip=false;r.flags.showOffPrevious=undefined;r.flags.showOffTotal=0;delete r.flags.sabotaged;delete r.flags.nemesisPending;r.flags.mainSelection=undefined;r.flags.criticAsked=[];r.flags.fanMainDistance=0;r.flags.emAsked=[];r.flags.headsFinal=false;r.flags.scoutFinal=false;r.flags.witchAllocated=false;r.flags.fanTax=0;r.flags.skipMain=hasPower(s,r,'hare')&&!(s.mode==='practice'&&active(s).length===1)&&active(s).every(x=>x.id===r.id||progress(s,x)<progress(s,r));r.flags.blimpBonus=progress(s,r)<progress(s,secondCorner(s))?3:-1;
   s.flags.fanTurnPowerCount=0;
   log(s,'turn',`轮到${owner(s,r).name}的${name(r)}`,{source:r.id});
-  push(s,{kind:'turnStartPower',racerId:r.id},...powers(s,'duelist').map(d=>({kind:'duelCheck',racerId:d.id})),{kind:'mainReady',racerId:r.id},{kind:'endTurn',racerId:r.id});
+  push(s,...thirds.turnStartTasks(s,r),{kind:'turnStartPower',racerId:r.id},...powers(s,'duelist').map(d=>({kind:'duelCheck',racerId:d.id})),{kind:'mainReady',racerId:r.id},{kind:'endTurn',racerId:r.id});
 }
 function turnStartPower(s:GameState,r:Racer) {
   const power=effectivePower(s,r);if(leafRules.turnStart(s,r,power)||fanTurnStart(s,r,power)||secondWindTurnStart(s,r,power))return;
@@ -563,6 +570,7 @@ function mainReady(s:GameState,r:Racer) {
   if(r.tripped&&r.flags.bullySource){ask(s,r,'em-bully-recover','校园恶霸：请掷恢复骰，1～3起身并移动，否则只起身',[{id:'roll',label:'掷恢复骰'}],{source:r.flags.bullySource,sourceId:r.flags.bullySource});return;}
   if(r.tripped&&!hasPower(s,r,'penguin')){r.tripped=false;log(s,'recover',`${name(r)}起身，代替主移动`,{source:r.id});leafRules.recover(s,r);return;}
   if(r.tripped&&hasPower(s,r,'penguin'))r.flags.penguinRecover=true;
+  if(thirds.mainReady(s,r))return;
   if(leafRules.mainReady(s,r))return;
   const mainPowers=effectivePowers(s,r).filter(p=>['genius','legs','flip-flop','mole','cheatah','mr-dice-guy','wurstii-hoagie','wurstii-pitfall-harry','wurstii-burt'].includes(p)||(p==='wurstii-eric'&&wurstiiMilestone(Number(r.flags.turnStart))));
   if(mainPowers.length>1&&!r.flags.mainSelection){ask(s,r,'main-ability','选择本次主移动使用的能力',mainPowers.map(p=>({id:p,label:character(p)?.nameZh??p})),{});return;}
@@ -584,6 +592,7 @@ function mainReady(s:GameState,r:Racer) {
   if(!stunnerSources(s,r).length)breakForcedCycle(s);s.flags.awaitRoll=true;
 }
 function rerollWindow(s:GameState,r:Racer,face:number) {
+  if(thirds.reroll(s,r,face))return;
   const critics=powers(s,'critic').filter(c=>c.id!==r.id&&progress(s,r)>progress(s,c)&&!((r.flags.criticAsked??[]) as string[]).includes(c.id));
   if(critics.length){const c=critics[0]!;r.flags.criticAsked=[...((r.flags.criticAsked??[]) as string[]),c.id];ask(s,c,'critic',`要让${name(r)}重掷主移动吗？`,yesNo,{target:r.id,face},true);return;}
   const counts=(r.flags.rerolls??={}) as Record<string,number>;
@@ -597,18 +606,20 @@ function finalRoll(s:GameState,r:Racer,face:number) {
   const firstTasks:Work[]=[];
   if(leafRules.finalRoll(s,r,face,firstTasks)||fanFinalRoll(s,r,face,firstTasks))return;
   if(secondWindFinalRoll(s,r,face,firstTasks))return;
+  if(thirds.finalRoll(s,r,face,firstTasks)){push(s,...firstTasks);return;}
   s.lastRoll={racerId:r.id,face,distance:face};log(s,'roll',`${name(r)}最终骰面为${face}`,{source:r.id,faces:[face],cause:'main',rollKind:'main'});
   r.flags.wurstiiFace=face;
   if(r.flags.burtGuess===face&&hasPower(s,r,'wurstii-burt'))push(s,{kind:'wurstiiBurtBonus',racerId:r.id});
   if(r.flags.geniusGuess===face)firstTasks.push({kind:'ability',racerId:r.id,power:'genius',effects:[emStep(r,'extra-turn')]});
   if(face===1){for(const skipper of powers(s,'skipper'))firstTasks.push({kind:'ability',racerId:skipper.id,effects:[{kind:'setNext',racerId:skipper.id}]});}
   if(face===6){for(const lackey of powers(s,'lackey').filter(x=>x.id!==r.id))firstTasks.push({kind:'ability',racerId:lackey.id,effects:[{kind:'move',racerId:lackey.id,distance:2,cause:'lackey'}]});}
-  firstTasks.sort((a,b)=>order(s).findIndex(x=>x.id===a.racerId)-order(s).findIndex(x=>x.id===b.racerId));
+  // Public event effects precede character reactions; sort only character reactions.
+  firstTasks.sort((a,b)=>Number(a.kind==='ability')-Number(b.kind==='ability')||(a.kind==='ability'&&b.kind==='ability'?order(s).findIndex(x=>x.id===a.racerId)-order(s).findIndex(x=>x.id===b.racerId):0));
   if(hasPower(s,r,'magical-athlete')||(hasPower(s,r,'icarus')&&face===6)){push(s,...firstTasks);return;}
   const worms=face===1?powers(s,'inchworm').filter(x=>x.id!==r.id):[];
   if(worms.length){push(s,...firstTasks,...worms.map(x=>({kind:'ability',racerId:x.id,effects:[{kind:'move',racerId:x.id,distance:1,cause:'inchworm'}]})));return;}
   const power=effectivePower(s,r);
-  if(hasPower(s,r,'sisyphus')&&face===6){push(s,{kind:'ability',racerId:r.id,effects:[{kind:'warp',racerId:r.id,position:0,cause:power},{kind:'gain',racerId:r.id,amount:-1}]},...firstTasks);return;}
+  if(hasPower(s,r,'sisyphus')&&face===6){push(s,{kind:'ability',racerId:r.id,effects:[{kind:'warp',racerId:r.id,position:startPosition(s),cause:power},{kind:'gain',racerId:r.id,amount:-1}]},...firstTasks);return;}
   if(hasPower(s,r,'wurstii-lizzie')&&face<=2){push(s,...firstTasks,{kind:'wurstiiLizzie',racerId:r.id,face});return;}
   if(hasPower(s,r,'alchemist')&&face<=2){push(s,...firstTasks,{kind:'baseChoice',racerId:r.id,face,power:'alchemist'});return;}
   if(hasPower(s,r,'rocket-scientist')){push(s,...firstTasks,{kind:'baseChoice',racerId:r.id,face,power:'rocket-scientist'});return;}
@@ -641,30 +652,31 @@ function mainMove(s:GameState,r:Racer,base:number) {
     if(p==='gunk'&&source.id!==r.id&&!(s.players.length===2&&source.playerId===r.playerId)){distance--;effects.push({kind:'powerDone',racerId:source.id,power:p});}
     }
   }
-  distance=twists.mainDistance(s,r,distance);
+  distance=thirds.distance(s,r,twists.mainDistance(s,r,distance));
   if(r.flags.mainDirection===-1){distance=-distance;r.flags.mainDirection=undefined;}
   distance=leafRules.distance(s,r,distance,base,effects);
   distance=fanDistance(s,r,distance,base,effects);
   if(twists.blocksMain(s,r,distance))return;
   if(s.lastRoll?.racerId===r.id)s.lastRoll.distance=distance;
   if(hasPower(s,r,em('witch-hazel'))&&distance>=0&&!r.flags.witchAllocated&&active(s).some(x=>x.id!==r.id)){ask(s,r,'em-witch-self',`女巫：共${distance}格，给自己前进几格？`,Array.from({length:distance+1},(_,i)=>({id:String(i),label:`自己前进${i}，目标后退${distance-i}`})),{distance,effects});return;}
-  push(s,{kind:'move',racerId:r.id,distance,cause:'main'},...effects);
+  push(s,{kind:'move',racerId:r.id,distance,cause:'main'},...effects,{kind:'swAfterMain',racerId:r.id},...thirds.afterMainTasks(s,r));
 }
 function endTurn(s:GameState,r:Racer) {
+  if((r.flags.nemesisPending as Work[]|undefined)?.length){const tasks=r.flags.nemesisPending as Work[];delete r.flags.nemesisPending;push(s,...tasks,{kind:'endTurn',racerId:r.id});return;}
   if(r.flags.penguinRecover){delete r.flags.penguinRecover;if(r.tripped){r.tripped=false;log(s,'recover',`${name(r)}完成主移动后起身`,{source:r.id,cause:'penguin'});leafRules.recover(s,r);}}
   leafRules.endTurn(s,r);s.flags.fanPreviousDistance=r.flags.fanMainDistance??0;
   s.flags.awaitRoll=false;r.flags.mainAsked=false;r.flags.geniusAsked=false;
   const tasks:Work[]=[];if(live(r))tasks.push(...effectivePowers(s,r).map(power=>({kind:'swEndTurn',racerId:r.id,power})));if(live(r)&&separation(s,r,{...r,position:Number(r.flags.turnStart??r.position)})<=1)for(const h of powers(s,'heckler'))tasks.push({kind:'ability',racerId:h.id,effects:[{kind:'move',racerId:h.id,distance:2,cause:'heckler'}]});
   const wurstiiTasks=wurstiiEndTasks(s,r);
-  push(s,...(wurstiiTasks.length?orderEffectTasks(s,[...tasks,...wurstiiTasks]):tasks),...twists.endTurnTasks(s,r),{kind:'advance',racerId:r.id});
+  push(s,...(wurstiiTasks.length?orderEffectTasks(s,[...tasks,...wurstiiTasks]):tasks),...twists.endTurnTasks(s,r),...thirds.endTurnTasks(s,r),{kind:'advance',racerId:r.id});
 }
 function advance(s:GameState,r:Racer) {
   if(s.phase!=='race')return;
-  if(twists.nextTurn(s,r))return;
+  if(thirds.nextTurn(s,r)||twists.nextTurn(s,r))return;
   const overrides=(s.flags.nextOverride??[]) as string[];let next=overrides.shift();s.flags.nextOverride=overrides;
   if(!next&&live(r)&&Number(r.flags.wurstiiExtraTurns)>0){next=r.id;r.flags.wurstiiExtraTurns=Number(r.flags.wurstiiExtraTurns)-1;}
   if(!next&&r.flags.extraTurn&&live(r))next=r.id;r.flags.extraTurn=false;
-  if(!next){const fixed=baseOrder(s);for(let i=1;i<=fixed.length;i++){const candidate=racer(s,fixed[(fixed.indexOf(r.id)+i)%fixed.length]!);if(candidate&&live(candidate)){next=candidate.id;break;}}}
+  if(!next){const fixed=baseOrder(s);for(let i=1;i<=fixed.length;i++){const candidate=racer(s,fixed[(fixed.indexOf(r.id)+i*(thirds.state(s)?.direction??1)+fixed.length)%fixed.length]!);if(candidate&&live(candidate)){next=candidate.id;break;}}}
   if(!next){endRace(s);return;}
   s.currentRacerId=next;s.turn=s.racers.findIndex(x=>x.id===next);
   // Do not begin another player's turn inside a completed action: this leaves
@@ -676,7 +688,7 @@ function processChoice(s:GameState,c:PendingChoice,id:string) {
   const r=racer(s,c.racerId!)!;const ctx=c.context as Record<string,any>;
   if(c.kind==='track-place'){push(s,{...ctx.continuation,backChoice:Number(id)});return;}
   if(c.kind==='track-branch'){const motion=ctx.motion as Work;const choices={...(motion.routeChoices??{})};const route=[...(choices[ctx.racerId]??[])];route[ctx.index]=Number(id);choices[ctx.racerId]=route;push(s,{...motion,routeChoices:choices});return;}
-  if(twists.choice(s,r,c,id))return;
+  if(thirds.choice(s,r,c,id)||twists.choice(s,r,c,id))return;
   if(c.kind==='wurstii-bart-simpson'){r.flags.bartTarget=id;log(s,'target',`${name(r)}指定${name(racer(s,id)!)}`,{source:r.id,targets:[id],cause:c.kind});push(s,{kind:'powerDone',racerId:r.id,power:c.kind});return;}
   if(c.kind==='wurstii-dr-wily'){r.flags.wilyPrediction=id;log(s,'prediction',`${name(r)}预测${name(racer(s,id)!)}获得亚军`,{source:r.id,targets:[id],cause:c.kind});push(s,{kind:'powerDone',racerId:r.id,power:c.kind});return;}
   if(c.kind==='wurstii-burt'){r.flags.burtGuess=Number(id);log(s,'prediction',`${name(r)}预测主骰为${id}`,{source:r.id,cause:c.kind});return;}
@@ -747,8 +759,9 @@ function processChoice(s:GameState,c:PendingChoice,id:string) {
 
 function rawTask(s:GameState,t:Work) {
   const r=racer(s,String(t.racerId??''));
-  if(twists.task(s,t))return;
+  if(thirds.task(s,t)||twists.task(s,t))return;
   switch(t.kind){
+    case 'rerollWindow':if(r&&live(r))rerollWindow(s,r,t.face);break;
     case 'wurstiiEnd':if(r&&live(r))dispatch(s,r,t.power,()=>wurstiiEnd(s,r,t));break;
     case 'wurstiiSpotFollow':if(r&&live(r)&&hasPower(s,r,'wurstii-spot')){const target=racer(s,t.targetId);if(target&&live(target)&&progress(s,target)>progress(s,r))push(s,{kind:'move',racerId:r.id,distance:2,cause:'wurstii-spot'});}break;
     case 'wurstiiBurtBonus':if(r&&live(r)&&hasPower(s,r,'wurstii-burt'))usePower(s,r,[{kind:'move',racerId:r.id,distance:5,cause:'wurstii-burt'}],'wurstii-burt');break;
@@ -772,6 +785,7 @@ function rawTask(s:GameState,t:Work) {
     case 'turnStartOne':if(r&&live(r))dispatch(s,r,t.power,()=>turnStartPower(s,r));break;
     case 'swEndTurn':if(r&&live(r))dispatch(s,r,t.power,()=>secondWindEndTurn(s,r,t.power));break;
     case 'swRollEffect':if(r&&live(r))dispatch(s,r,t.power,()=>secondWindRollEffect(s,r,t));break;
+    case 'swAfterMain':if(r){const tasks=(r.flags.nemesisPending??[]) as Work[];delete r.flags.nemesisPending;push(s,...tasks);}break;
     case 'swRoll':if(r&&live(r))secondWindRoll(s,r,t);break;
     case 'swFinal':if(r&&live(r))rerollWindow(s,r,t.face);break;
     case 'mainReady':if(r)mainReady(s,r);break;
@@ -784,7 +798,7 @@ function rawTask(s:GameState,t:Work) {
     case 'baseChoice':if(r)ask(s,r,t.power,t.power==='alchemist'?'要改为基础移动4格吗？':'要加倍骰面并在移动后绊倒吗？',yesNo,{face:t.face},true);break;
     case 'ability':if(r&&live(r))usePower(s,r,t.effects,t.power??effectivePower(s,r));break;
     case 'hotelPay':if(r&&live(r)){const target=racer(s,t.targetId);if(target&&live(target)&&sameSpace(s,target,r)){if(owner(s,target).score>=1){points(s,target,-1,'旅馆住宿费');points(s,r,1,'旅馆住宿收入');}else push(s,{kind:'trip',racerId:target.id,source:r.id});}}break;
-    case 'hogTake':if(r&&live(r)){const previous=s.racers.filter(x=>x.flags.hogOwnerId===t.hogOwnerId);for(const x of previous)delete x.flags.hogOwnerId;r.flags.hogOwnerId=t.hogOwnerId;log(s,'mount',`${name(r)}夺走野猪坐骑`,{source:r.id,cause:'hog-knight',changes:[...previous.filter(x=>x.id!==r.id).map(x=>({racerId:x.id,mount:null})),{racerId:r.id,mount:String(t.hogOwnerId)}]});}break;
+    case 'hogTake':if(r&&live(r)){const previous=s.racers.filter(x=>hogs(x).includes(t.hogOwnerId));for(const x of previous)setHogs(x,hogs(x).filter(id=>id!==t.hogOwnerId));setHogs(r,[...hogs(r),t.hogOwnerId]);log(s,'mount',`${name(r)}夺走野猪坐骑，现骑${hogs(r).length}只`,{source:r.id,cause:'hog-knight',changes:[...previous.filter(x=>x.id!==r.id).map(x=>({racerId:x.id,mount:x.flags.hogOwnerId??null})),{racerId:r.id,mount:r.flags.hogOwnerId}]});}break;
     case 'gain':if(r)points(s,r,t.amount,name(r));break;
     case 'setNext':((s.flags.nextOverride??=[]) as string[]).push(t.racerId);break;
     case 'trip':if(r&&live(r)){if(leafRules.preventTrip(s,r))break;if(hasPower(s,r,em('doctor-dice'))){usePower(s,r,[],em('doctor-dice'));break;}const wasTripped=r.tripped;r.tripped=true;leafRules.onTrip(s,r,wasTripped);log(s,'trip',`${name(r)}绊倒`,{source:t.source,targets:[r.id]});if(t.bullySource)r.flags.bullySource=t.bullySource;if(hasPower(s,r,em('pooh')))usePower(s,r,[{kind:'fan',racerId:r.id,step:'recover'}],em('pooh'));}break;
@@ -914,7 +928,7 @@ export function applyGameAction(s:GameState,playerId:string,action:GameAction):v
     // Follow/decline resumes this same movement branch. Retain its checkpoints:
     // real movement/resource changes distinguish progress, but returning the
     // whole group to the identical state must not hide a loop behind a prompt.
-    if(pending.kind!=='suckerfish')delete s.flags.resolutionSeen;
+    if(!['suckerfish','track-branch','track-place','em-whisper','thirds-fish'].includes(pending.kind))delete s.flags.resolutionSeen;
     delete s.flags.resolutionSeenScores;delete s.flags.resolutionSuppressed;s.pending=undefined;processChoice(s,pending,action.optionId);resolveTasks(s);return;
   }
   if(action.type==='roll'){
@@ -1013,11 +1027,11 @@ function secondWindBeforeRace(s:GameState,r:Racer,p:string):boolean {
   const prepared=(r.flags.swPrepared??=[]) as string[];if(prepared.includes(p))return true;
   if(!['hog-knight','nepo-baby','soulmate','understudy','stepdad','re-runner'].includes(p))return false;
   prepared.push(p);
-  if(p==='hog-knight'){r.flags.hogOwnerId=r.id;log(s,'mount',`${name(r)}骑上野猪`,{source:r.id,cause:p,changes:[{racerId:r.id,mount:r.id}]});}
+  if(p==='hog-knight'){setHogs(r,[...hogs(r),r.id]);log(s,'mount',`${name(r)}骑上野猪`,{source:r.id,cause:p,changes:[{racerId:r.id,mount:r.id}]});}
   if(p==='nepo-baby'){r.position=TRACKS[s.track].firstCorner;log(s,'place',`${name(r)}从第一弯道出发`,{source:r.id,after:[r.position],cause:p});}
   if(p==='re-runner')r.flags.reRunnerPlayerId=r.playerId;
   if(p==='stepdad')r.flags.stepTarget=stepdadTarget(s,r)?.id;
-  if(p==='soulmate'||p==='understudy')askTarget(s,r,p,p==='soulmate'?'选择一名对方选手作为灵魂伴侣':'复制一名对方选手的印刷能力',active(s).filter(x=>x.playerId!==r.playerId));
+  if(p==='soulmate'||p==='understudy')askTarget(s,r,p,p==='soulmate'?'选择一名对方选手作为灵魂伴侣':'复制另一名参赛者的印刷能力',active(s).filter(x=>p==='soulmate'?x.playerId!==r.playerId:x.id!==r.id));
   return true;
 }
 function secondWindTurnStart(s:GameState,r:Racer,p:string):boolean {
@@ -1045,11 +1059,13 @@ function secondWindMainReady(s:GameState,r:Racer,p:string):boolean {
 function secondWindFinalRoll(s:GameState,r:Racer,face:number,tasks:Work[]):boolean {
   // Replacing a roll (Mr Dice / Cheatah / Show-Off) is fully decided before
   // observers react. No abandoned or secret number enters the public pipeline.
+  if(hasPower(s,r,'show-off')&&face===3&&powers(s,'le-saboteur').some(x=>x.id!==r.id))r.flags.sabotaged=true;
   if(hasPower(s,r,'show-off')&&!r.flags.showOffResolved){r.flags.showOffPrevious=face;r.flags.showOffTotal=face;ask(s,r,'show-off',`已累计${face}，继续投掷还是停止？`,[{id:'stop',label:'停止并移动'},{id:'roll',label:'继续投掷'}],{previous:face,total:face},true);return true;}
   for(const source of order(s))for(const p of effectivePowers(s,source)) {
-    if((source.id===r.id&&['bite-mark','icarus','mush','magical-athlete'].includes(p))||(source.id!==r.id&&p==='nemesis'))tasks.push({kind:'swRollEffect',racerId:source.id,targetId:r.id,power:p,face});
+    if(source.id===r.id&&['bite-mark','icarus','mush','magical-athlete'].includes(p))tasks.push({kind:'swRollEffect',racerId:source.id,targetId:r.id,power:p,face});
+    if(source.id!==r.id&&p==='nemesis')((r.flags.nemesisPending??=[]) as Work[]).push({kind:'swRollEffect',racerId:source.id,targetId:r.id,power:p,face});
   }
-  if(face===3&&powers(s,'le-saboteur').some(x=>x.id!==r.id))r.flags.mainDirection=-1;
+  if((face===3||r.flags.sabotaged)&&powers(s,'le-saboteur').some(x=>x.id!==r.id))r.flags.mainDirection=-1;
   return false;
 }
 function secondWindRollEffect(s:GameState,r:Racer,t:Work) {
@@ -1057,26 +1073,26 @@ function secondWindRollEffect(s:GameState,r:Racer,t:Work) {
   if(t.power==='bite-mark'&&face<=2){r.flags.form='were-mouth';log(s,'transform',`${name(r)}变为狼人巨口`,{source:r.id,cause:'bite-mark',changes:[{racerId:r.id,form:'were-mouth'}]});}
   if(t.power==='icarus'&&face===6)eliminate(s,r.id,r.id);
   if(t.power==='mush'&&face<=2){const id=drawUnchosen(s,1)[0];if(id){s.discard.push(id);acquirePower(r,id,{sourceCardId:id,via:'mush'});log(s,'acquire',`${name(r)}获得${character(id)?.nameZh??id}的能力，不补用已经过的触发时机`,{source:r.id,cause:'mush',selectedCardId:id,grantedPowerIds:[id],grantDuration:'race'});if(id==='copycat')push(s,{kind:'refreshCopies'});}else log(s,'draw',`${name(r)}没有可抽取的合法未选牌，本次不获得新能力。`,{source:r.id,cause:'mush'});}
-  if(t.power==='nemesis'&&target&&live(target))ask(s,r,'nemesis',`要跟掷${name(target)}的${face}点吗？`,yesNo,{face},true);
+  if(t.power==='nemesis'&&target)ask(s,r,'nemesis',`要跟掷${name(target)}的${face}点吗？`,yesNo,{face},true);
   if(t.power==='magical-athlete'){
     if(face===1)usePower(s,r,[{kind:'mainMove',racerId:r.id,base:7}],t.power);
-    if(face===2)askTarget(s,r,'magical-last','选择一名末位选手传送到自己',extremeTargets(s,false));
+    if(face===2)usePower(s,r,[{kind:'warp',plans:order(s,extremeTargets(s,false)).filter(x=>x.id!==r.id).map(x=>({racerId:x.id,position:r.position})),cause:t.power}],t.power);
     if(face===3)askTarget(s,r,'magical-warp','选择传送目标并绊倒对方',active(s).filter(x=>x.id!==r.id));
     if(face===4)usePower(s,r,[emStep(r,'extra-turn'),{kind:'mainMove',racerId:r.id,base:4}],t.power);
-    if(face===5)askTarget(s,r,'magical-lead','选择一名领跑者后退5格',extremeTargets(s,true));
+    if(face===5)usePower(s,r,[{kind:'move',plans:order(s,extremeTargets(s,true)).map(x=>({racerId:x.id,distance:-5})),cause:t.power}],t.power);
     if(face===6){r.flags.magicPassTrip=true;usePower(s,r,[{kind:'mainMove',racerId:r.id,base:6}],t.power);}
   }
 }
 function secondWindDistance(s:GameState,r:Racer,distance:number):number {
   const ps=effectivePowers(s,r);
-  if(ps.includes('blunderdog')){if(extremeTargets(s,false).some(x=>x.id===r.id)){if(r.flags.mainRolled)distance*=3;}else r.flags.mainDirection=-1;}
+  if(ps.includes('blunderdog')){if(extremeTargets(s,false).some(x=>x.id===r.id)){if(r.flags.mainRolled)distance*=3;}else r.flags.mainDirection=-Number(r.flags.mainDirection??1);}
   if(ps.includes('penguin')&&r.tripped&&r.flags.mainRolled){distance*=2;log(s,'power',`${name(r)}绊倒状态下将主骰加倍`,{source:r.id,cause:'penguin'});}
   if(ps.includes('gloth'))distance--;
   if(ps.includes('icarus'))distance+=3;
   if(ps.includes('overtaker'))distance+=active(s).filter(x=>progress(s,x)>progress(s,r)).length;
   if(ps.includes('speed-demon'))distance+=owner(s,r).score;
   // A stolen hog is an object carried by its rider, independent of rider powers.
-  if(r.flags.hogOwnerId)distance+=2;
+  distance+=2*hogs(r).length;
   for(const source of order(s)){
     if(hasPower(s,source,'null')&&progress(s,r)>progress(s,source))distance--;
     if(hasPower(s,source,'stepdad')&&stepdadTarget(s,source)?.id===r.id)distance+=2;
@@ -1117,7 +1133,7 @@ function secondWindChoice(s:GameState,r:Racer,c:PendingChoice,id:string):boolean
     push(s,{kind:'rollBatch',racerId:r.id,count:1,purpose:'show-off',faces:[],context:ctx});return true;
   }
   if(kind==='magical-last'){usePower(s,r,[{kind:'warp',racerId:id,position:r.position,cause:'magical-athlete'}],'magical-athlete');return true;}
-  if(kind==='magical-warp'){const target=racer(s,id)!;usePower(s,r,[{kind:'warp',racerId:r.id,position:target.position,cause:'magical-athlete'},{kind:'trip',racerId:id,source:r.id}],'magical-athlete');return true;}
+  if(kind==='magical-warp'){const target=racer(s,id)!;usePower(s,r,[{kind:'warp',racerId:r.id,position:target.position,cause:'magical-athlete'},...order(s).filter(x=>x.id!==r.id&&sameSpace(s,x,target)).map(x=>({kind:'trip',racerId:x.id,source:r.id}))],'magical-athlete');return true;}
   if(kind==='magical-lead'){usePower(s,r,[{kind:'move',racerId:id,distance:-5,cause:'magical-athlete'}],'magical-athlete');return true;}
   if(kind==='switcharoo'){
     if(id==='skip')return true;const target=racer(s,id);if(!target||!live(r)||!live(target)||target.id===r.id||separation(s,target,r)>1)throw Error('交换对象已不在邻近范围内');const former=r.playerId;r.playerId=target.playerId;target.playerId=former;
@@ -1132,18 +1148,20 @@ function secondWindChoice(s:GameState,r:Racer,c:PendingChoice,id:string):boolean
 function rollBatch(s:GameState,r:Racer,t:Work){
   const faces=(t.faces??[]) as number[];let face=Number(t.heldFace??rollFor(s,r,t.purpose==='main'?`${name(r)}主移动`:`${name(r)} ${t.purpose}`));
   if(t.heldFace===undefined&&!t.leafRawChecked){const observed=leafRules.rawDie(s,r,Number(r.flags.secretLeafLastRaw));if(observed.length){push(s,...observed,{...t,heldFace:face,leafRawChecked:true});return;}}
+  if(thirds.beforeDie(s,r,t,face))return;
   if(hasPower(s,r,em('heads'))&&!t.headsChecked){ask(s,r,'em-heads',`硬币头：本骰${face}点，是否翻到底面${7-face}点？`,[{id:'keep',label:`保留${face}`},{id:'flip',label:`翻到${7-face}`}],{task:{...t,heldFace:face,headsChecked:true}});return;}
   if(!t.taxChecked){const kings=face>=5?powers(s,em('king-pete')).filter(x=>x.id!==r.id):[];if(kings.length){push(s,...kings.map(k=>({kind:'ability',racerId:k.id,power:em('king-pete'),effects:[...(t.purpose==='main'||t.purpose==='em-broken-clock'?[{kind:'fan',racerId:r.id,step:'tax'}]:[]),{kind:'move',racerId:k.id,distance:1,cause:em('king-pete')}]})),{...t,heldFace:face,headsChecked:true,taxChecked:true});return;}}
   if(!t.dieReactionsChecked){push(s,{...t,heldFace:face,headsChecked:true,taxChecked:true,dieReactionsChecked:true});return;}
   const poopers=face===6?powers(s,'party-pooper'):[];
-  if(poopers.length){
+  if(poopers.length&&!(twists.fixedDie(s,r)!==undefined&&t.fixedRerollResolved)){
     log(s,'reroll','扫兴鬼强制重掷6点',{source:r.id,cause:'party-pooper'});
-    push(s,...poopers.map(p=>({kind:'ability',racerId:p.id,power:'party-pooper',effects:[{kind:'move',racerId:p.id,distance:1,cause:'party-pooper'}]})),{...t,faces:[...faces],heldFace:undefined,leafRawChecked:false,headsChecked:false,taxChecked:false,dieReactionsChecked:false,reactionChecked:[],reactionBlocked:[],reactionAsked:[]});return;
+    push(s,...poopers.map(p=>({kind:'ability',racerId:p.id,power:'party-pooper',effects:[{kind:'move',racerId:p.id,distance:1,cause:'party-pooper'}]})),{...t,faces:[...faces],fixedRerollResolved:twists.fixedDie(s,r)!==undefined,thirdsPaidAsked:undefined,heldFace:undefined,leafRawChecked:false,headsChecked:false,taxChecked:false,dieReactionsChecked:false,reactionChecked:[],reactionBlocked:[],reactionAsked:[]});return;
   }
+  if(face===3&&['mr-dice-guy','show-off'].includes(String(t.purpose))&&powers(s,'le-saboteur').some(x=>x.id!==r.id))r.flags.sabotaged=true;
   faces.push(face);
-  if(faces.length<Number(t.count)){const next:Work={...t,faces};delete next.leafRawChecked;delete next.heldFace;delete next.headsChecked;delete next.taxChecked;delete next.dieReactionsChecked;delete next.reactionChecked;delete next.reactionBlocked;delete next.reactionAsked;push(s,next);return;}
+  if(faces.length<Number(t.count)){const next:Work={...t,faces};delete next.leafRawChecked;delete next.heldFace;delete next.headsChecked;delete next.taxChecked;delete next.dieReactionsChecked;delete next.thirdsPaidAsked;delete next.fixedRerollResolved;delete next.reactionChecked;delete next.reactionBlocked;delete next.reactionAsked;push(s,next);return;}
   const ctx=(t.context??{}) as Record<string,any>;
-  if(leafRules.rollResult(s,r,t,faces,ctx))return;
+  if(thirds.rollResult(s,r,t,faces)||leafRules.rollResult(s,r,t,faces,ctx))return;
   if(String(t.purpose).startsWith('em-')){fanRollResult(s,r,t,faces,ctx);return;}
   if(t.purpose==='main'){r.flags.mainRolled=true;s.lastRoll={racerId:r.id,face,distance:face};log(s,'die',`${name(r)}掷出${face}`,{source:r.id,faces:[face],cause:'main',rollKind:'main'});rerollWindow(s,r,face);return;}
   if(t.purpose==='mr-dice-guy'){
@@ -1499,5 +1517,7 @@ function semanticRacerFlags(s:GameState,r:Racer):Record<string,unknown>{
   return flags;
 }
 
-const twists=installTwists({name,live,racer,active,owner,order,hasPower,effectivePowers,ask,push,log,points,shuffle,drawUnchosen,rawDie:(s,_r,reason)=>random(s,reason),eliminate,finish,endRace,startPosition,finishPosition,firstCorner,secondCorner,progress,positionAt,raceRewards:s=>s.matchPlan?.races[s.round-1]?.rewards??RACE_POINTS[Math.min(3,s.round-1)]!});
-export function publicTrackState(s:GameState){return {reversed:Boolean(s.flags.twistReversed),twist:twists.publicState(s)};}
+const twistContext:import('./twist-cards.js').TwistContext={name,live,racer,active,owner,order,hasPower,effectivePowers,ask,push,log,points,shuffle,drawUnchosen,rawDie:(s,_r,reason)=>random(s,reason),eliminate,finish,endRace,startPosition,finishPosition,firstCorner,secondCorner,progress,positionAt,raceRewards:s=>s.matchPlan?.races[s.round-1]?.rewards??RACE_POINTS[Math.min(3,s.round-1)]!};
+const twists=installTwists(twistContext);
+const thirds=installThirds({...twistContext,eventPoints:(s,r,n,cause)=>points(s,r,n,cause,'event'),acquirePower,rollOff});
+export function publicTrackState(s:GameState){return {reversed:Boolean(s.flags.twistReversed),twist:twists.publicState(s),event:thirds.publicState(s)};}

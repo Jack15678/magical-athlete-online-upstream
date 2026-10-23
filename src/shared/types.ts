@@ -95,4 +95,4 @@ export interface GameEvent { grantedPowerIds?: string[]; grantDuration?: PublicA
 /** Confirmed visited nodes, aligned with targets; needed for forked tracks. */
 export interface GameEvent { paths?: number[][]; }
 
-export interface RoomView { trackState?: { reversed:boolean; twist?: Omit<import('../engine/twist-cards.js').TwistState,'deck'|'swap'> }; }
+export interface RoomView { trackState?: { reversed:boolean; event?:ReturnType<ReturnType<typeof import('../engine/special-events.js').installThirds>['publicState']>; twist?: Omit<import('../engine/twist-cards.js').TwistState,'deck'|'swap'> }; }
