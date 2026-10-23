@@ -14,7 +14,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => { await app.close(); });
 
 const courses: { track: TrackId; reversed?: boolean }[] = [
-  { track: 'squiggle' }, { track: 'boardwalks' }, { track: 'bridges' }, { track: 'twisty-twirl' }, { track: 'twisty-twirl', reversed: true },
+  { track: 'squiggle' }, { track: 'boardwalks' }, { track: 'bridges' }, { track: 'twisty-twirl' }, { track: 'twisty-twirl', reversed: true }, { track: 'whirly-world' },
 ];
 for (const { track, reversed = false } of courses) test(`${track}${reversed ? ' Mirror' : ''} actual 3D course, mobile rotation and overview`, async ({ page }, info) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -65,6 +65,10 @@ for (const { track, reversed = false } of courses) test(`${track}${reversed ? ' 
     if (track === 'twisty-twirl') {
       await expect(page.getByTestId('twist-cards')).toContainText('炼金实验室泄漏');
       await expect(page.getByTestId('twist-cards')).toContainText('皮纳塔漏宝');
+    }
+    if (track === 'whirly-world') {
+      await expect(page.getByTestId('whirly-rules')).toContainText('3↔5、7↔12、10↔15');
+      await expect(page.getByTestId('whirly-rules')).toContainText('等待共同确定布局');
     }
     await board.screenshot({ path: info.outputPath(`${track}-${compact ? 'mobile' : 'desktop'}.png`) });
     await board.getByRole('button', { name: '自己', exact: true }).click();

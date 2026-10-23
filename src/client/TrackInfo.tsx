@@ -14,8 +14,14 @@ export function TrackInfo({ room, queue }: { room: RoomView; queue?: Presentatio
   const [collapsed, setCollapsed] = useState('');
   const drawn = visibleTwists(room, queue), key = `${room.code}:${room.round}:${drawn.join(',')}`;
   const expanded = collapsed !== key, event = room.trackState?.event;
-  if (room.track !== 'bridges' && !drawn.length && !event) return null;
+  if (room.track !== 'bridges' && room.track !== 'whirly-world' && !drawn.length && !event) return null;
   return <aside className="race-track-info" aria-label="本场地图规则">
+    {room.track === 'whirly-world' && <details className="track-rule-card" data-testid="whirly-rules" open>
+      <summary>Whirly World · 共创草稿</summary>
+      <p>停在漩涡格时，传送到配对格；只经过不触发。一次传送不会沿同一连接立即弹回。</p>
+      <p>已确认并实现：3↔5、7↔12、10↔15。</p>
+      <p>下半段暂未添加传送，等待共同确定布局；当前仅用于开发预览。</p>
+    </details>}
     {room.track === 'bridges' && <details className="track-rule-card" data-testid="bridges-rules">
       <summary>Bridges · 桥上桥下怎样走？</summary>
       <p><strong>只按格号顺序走，交叉处不能换层抄近路。</strong>例如3→4，8→9，不能3→8。</p>
