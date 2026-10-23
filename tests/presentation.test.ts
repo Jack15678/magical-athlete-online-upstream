@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { applyGameAction, createGame, enqueueMove, resolveTasks } from '../src/engine/index.js';
 import type { GameEvent, GameState, Racer, RoomView } from '../src/shared/types.js';
 import { beatDuration, completeBeat, confirmedFace, createPlayback, receiveRoom, skipPlayback, trackPath } from '../src/client/presentation.js';
+import { visibleTwists } from '../src/client/TrackInfo.js';
 
 function racer(id: string, position = 0): Racer { return { id, playerId: `p${id}`, characterId: 'coach', position, tripped: false, finished: false, eliminated: false, flags: {} }; }
 function view(version = 1, logs: GameEvent[] = [], racers = [racer('a'), racer('b')]): RoomView {
@@ -13,6 +14,24 @@ function motion(id: number, targets: string[], before: number[], after: number[]
 }
 const die = (id: number, face: number): GameEvent => ({ id, type: 'die', source: 'a', text: `教练掷出${face}` });
 const roll = (id: number, face: number): GameEvent => ({ id, type: 'roll', source: 'a', text: `教练最终骰面为${face}` });
+
+test('Twist cards appear after crossing and in draw order, while refresh restores already drawn cards', () => {
+  const initial = { ...view(1, [], [racer('a', 12)]), track: 'twisty-twirl' as const };
+  const final: RoomView = { ...initial, version: 2, racers: [racer('a', 1)], trackState: { reversed: false, twist: { triggered: true, drawn: ['fans', 'conveyor', 'bonkbug'] } }, logs: [
+    motion(1, ['a'], [12], [14]),
+    { id: 2, type: 'twist', text: '再抽两张', source: 'a', cause: 'fans' },
+    { id: 3, type: 'twist', text: '传送带', source: 'a', cause: 'conveyor' },
+    { ...motion(4, ['a'], [14], [1]), type: 'warp' },
+    { id: 5, type: 'twist', text: '虫灾', source: 'a', cause: 'bonkbug' },
+  ] };
+  let state = receiveRoom(createPlayback(initial), final);
+  assert.deepEqual(visibleTwists(final, state.queue), []);
+  state = completeBeat(state); assert.deepEqual(visibleTwists(final, state.queue), ['fans']);
+  state = completeBeat(state); assert.deepEqual(visibleTwists(final, state.queue), ['fans', 'conveyor']);
+  state = completeBeat(state); assert.deepEqual(visibleTwists(final, state.queue), ['fans', 'conveyor']);
+  state = completeBeat(state); assert.deepEqual(visibleTwists(final, state.queue), ['fans', 'conveyor', 'bonkbug']);
+  assert.deepEqual(visibleTwists(final, createPlayback(final).queue), ['fans', 'conveyor', 'bonkbug']);
+});
 
 test('successive control, form and mount changes replay their event snapshots instead of jumping to the final state', () => {
   const racers = [racer('a'),racer('b')];

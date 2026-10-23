@@ -1,7 +1,7 @@
 import type { Racer, RoomView } from '../../shared/types.js';
 import { TRACKS, type TrackId } from '../../shared/tracks.js';
 import type { PresentationBeat } from '../presentation.js';
-import { BOARD_CENTER_SPAN, boardBounds, boardPoint, TILE } from './math.js';
+import { BOARD_CENTER_SPAN, boardBounds, boardPoint, routeChoice, TILE } from './math.js';
 
 export type CameraMode = 'self' | 'overview';
 export type CameraState = 'self' | 'action' | 'choice' | 'manual' | 'overview' | 'intro';
@@ -64,6 +64,8 @@ export function choiceFocus(room: RoomView, racers: Racer[]): CameraFocus | unde
   if (!pending || pending.playerId !== room.selfId) return;
   const ids = [...new Set([pending.racerId, ...pending.options.map(option => option.id)].filter((id): id is string => !!id && racers.some(racer => racer.id === id)))];
   const positions = ids.flatMap(id => racers.filter(racer => racer.id === id).map(racer => racer.position));
+  const route = routeChoice(room);
+  if (route) return { state: 'choice', ids: [], positions: [route.from, ...route.options.map(option => option.to)] };
   // Some abilities select a numbered cell rather than a racer.
   if (pending.kind === 'third-wheel' || pending.kind === 'track-branch') positions.push(...pending.options.map(option => Number(option.id)).filter(value => Number.isInteger(value) && value >= 0 && (TRACKS[room.track].nodes ? !!TRACKS[room.track].nodes![value] : value <= TRACKS[room.track].finish)));
   return { state: 'choice', ids, positions: positions.length ? positions : ownFocus(room, racers).positions };

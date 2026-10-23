@@ -11,7 +11,8 @@ import { DioramaStadium } from './DioramaStadium.js';
 import { CameraRig } from './CameraRig.js';
 import { StudioLighting, AdaptiveQuality, PawnContact } from './StudioLighting.js';
 import { RaceEffects } from './RaceEffects.js';
-import { boardPoint, TILE, trackConnections, trackNodeIds, trackSvgLayout, trackMovementDistance } from './math.js';
+import { boardPoint, TILE, trackConnections, trackNodeIds, trackSvgLayout, trackMovementDistance, routeChoice } from './math.js';
+import { RouteChoices, RouteButtons } from './RouteChoices.js';
 import { TwistPieces } from './TwistPieces.js';
 import { DiceSpotlight } from './DiceSpotlight.js';
 import { pawnRoute, strideLift, strideProgress } from './pawn-motion.js';
@@ -36,6 +37,8 @@ interface Props extends ScenePlayback {
   onSkipIntro?: () => void;
   onIntroReady?: (key:string) => void;
   introReady?: boolean;
+  onChooseRoute?: (optionId: string) => void;
+  choiceBusy?: boolean;
 }
 const characterName = (id: string) => CHARACTERS.find(c => c.id === id)?.nameZh ?? id;
 /** Presentation captions describe the existing effect; they are not new rule names. */
@@ -58,7 +61,7 @@ class SceneBoundary extends Component<{ children: ReactNode; resetKey: number; r
   render() { return this.state.failed ? <div className="scene-fallback" role="status"><strong>3D 场景暂时无法显示</strong><p>选手位置与操作仍可在下方查看。</p><button onClick={this.props.retry}>重新载入 3D</button></div> : this.props.children; }
 }
 
-export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQuality, reducedMotion, muted, onDetail, onSkipIntro, onIntroReady, introReady = true }: Props) {
+export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQuality, reducedMotion, muted, onDetail, onSkipIntro, onIntroReady, introReady = true, onChooseRoute, choiceBusy = false }: Props) {
   const [automaticLow, setAutomaticLow] = useState(false);
   lowQuality = lowQuality || automaticLow;
   const spectator = room.role === 'spectator';
@@ -85,6 +88,7 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
   },[beat?.key,startedAt,durationMs,reducedMotion,introReady]);
   const root = useRef<HTMLElement>(null);
   const labels = useRef(new Map<string, HTMLSpanElement>());
+  const routeButtons = useRef(new Map<string, HTMLButtonElement>());
   const scoreLabel = useRef<HTMLSpanElement>(null);
   useEffect(() => { const m = matchMedia('(max-width: 650px)'); const update = () => setCompact(m.matches); m.addEventListener('change', update); return () => m.removeEventListener('change', update); }, []);
   useDiceSound(beat, durationMs, muted);
@@ -98,10 +102,11 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
   const action = beat && beat.kind !== 'intro' ? actionFocus(beat, racers) : null;
   const myAction = action?.ids.some(id => racers.some(racer => racer.id === id && racer.playerId === room.selfId));
   const choosing = !beat && !(queue?.length) ? choiceFocus(room, racers) : undefined;
+  const route = choosing && onChooseRoute ? routeChoice(room) : undefined;
   const introIndex = introStep.key === beat?.key ? introStep.index : 0;
   const intro = {focus:beat?.kind==='intro'?introFocus(racers,introIndex,reducedMotion):undefined,racer:beat?.kind==='intro'&&!reducedMotion?racers[introIndex]:undefined,index:introIndex,total:racers.length,reducedMotion,skip:()=>{if(beat?.kind==='intro')onSkipIntro?.();}};
   const idleFocus = autoWatch && heldFocus && heldFocus.chainId !== dismissedChain ? idleFollowFocus(room, racers, heldFocus) : ownFocus(room, racers);
-  const focus: CameraFocus = cameraMode === 'overview' ? { state: 'overview', ids: active ? [active] : [], positions: [] } : choosing ?? (manualCamera ? { state: 'manual', ids: [], positions: [] } : intro.focus ?? (action && action.chainId !== dismissedChain && (autoWatch || myAction) ? action : idleFocus));
+  const focus: CameraFocus = route && choosing ? choosing : cameraMode === 'overview' ? { state: 'overview', ids: active ? [active] : [], positions: [] } : choosing ?? (manualCamera ? { state: 'manual', ids: [], positions: [] } : intro.focus ?? (action && action.chainId !== dismissedChain && (autoWatch || myAction) ? action : idleFocus));
   const returnSelf = () => { intro.skip(); setCameraMode('self'); setManualCamera(false); setDismissedChain(action?.chainId ?? heldFocus?.chainId ?? 'manual-self'); setCameraReset(value => value + 1); };
   return <section ref={root} className={`board-scene ${compact ? 'compact-scene' : ''}`} data-testid="board-3d" data-track={room.track} data-node-count={trackNodeIds(room.track).length} data-twist-boundary={TRACKS[room.track].twistBoundary?`${TRACKS[room.track].twistBoundary!.before}-${TRACKS[room.track].twistBoundary!.after}`:undefined} data-neutral-monster={room.trackState?.twist?.monster&&!room.trackState.twist.monster.racerId&&!room.trackState.twist.monster.finished?room.trackState.twist.monster.position:undefined} data-twist-chips={room.trackState?.twist?.chips?.join(',')} data-special-event={room.trackState?.event?.id} data-event-marker={room.trackState?.event?.npc?.position} data-trampolines={room.trackState?.event?.trampolines?.join(',')} data-phase={beat?.kind ?? 'idle'} data-intro-ready={String(introReady)} data-event-ids={beat?.events.map(e => e.id).join(',') ?? ''} data-motion-count={beat?.motions.length ?? 0} data-renderer="react-three-fiber" data-frameloop={beat && beat.kind!=='intro' && !dice && !reducedMotion ? 'always' : 'demand'} data-camera-mode={cameraMode} data-camera-state={focus.state} data-camera-target-ids={focus.ids.join(',')} data-camera-chain-id={focus.chainId ?? ''} aria-label={`${TRACKS[room.track].name}立体棋盘`}>
     <div className="scene-camera-toolbar">
@@ -124,6 +129,7 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
         <AdaptiveQuality lowQuality={lowQuality} onSlow={() => setAutomaticLow(true)} root={root} />
         <CameraRig track={room.track} racers={racers} compact={compact} reset={cameraReset} focus={focus} reducedMotion={reducedMotion} onManual={() => { intro.skip(); setManualCamera(true); }} root={root} />
         <DioramaStadium compact={compact} track={room.track} reversed={room.trackState?.reversed} lowQuality={lowQuality} beat={beat} racers={racers} />
+        {route && <RouteChoices {...{ route, compact }} track={room.track} buttons={routeButtons} />}
         <Suspense fallback={null}><TwistPieces {...{ room, compact, lowQuality, reducedMotion }} />{racers.filter(r => !r.eliminated || beat?.kind === 'eliminate' && beat.targets.includes(r.id)).map(racer => <Pawn key={racer.id} racer={racer} racers={racers} room={room} compact={compact} beat={beat} startedAt={startedAt} durationMs={durationMs} lowQuality={lowQuality} reducedMotion={reducedMotion} active={active === racer.id} onDetail={onDetail} labels={labels} />)}</Suspense>
         <RaceEffects track={room.track} reversed={room.trackState?.reversed} {...{ beat, racers, compact, startedAt, durationMs, reducedMotion, lowQuality }} />
         <ScoreProjector track={room.track} beat={beat} racers={racers} compact={compact} label={scoreLabel} />
@@ -131,6 +137,7 @@ export function Board3D({ room, racers, beat, queue, startedAt, durationMs, lowQ
         <IntroReadiness beat={beat} count={racers.filter(racer=>!racer.eliminated).length} onReady={onIntroReady} root={root} />
       </Canvas>
     </SceneBoundary>
+    {route && onChooseRoute && <RouteButtons route={route} buttons={routeButtons} disabled={choiceBusy} onChoose={onChooseRoute} />}
     <div className="scene-labels" aria-hidden="true">{racers.filter(r => !r.eliminated).map(racer => { const owner = room.players.find(p => p.id === racer.playerId), scale = occupancy(racer, racers, racer.position, compact, room.track).scale; return <span key={racer.id} data-racer-id={racer.id} ref={element => { if (element) labels.current.set(racer.id, element); else labels.current.delete(racer.id); }} className={`pawn-seat ${active === racer.id ? 'is-active' : ''} ${scale < .5 ? 'is-crowded' : scale < .9 ? 'is-shared' : ''}`} style={{ borderColor: owner?.color }}>{(owner?.seat ?? 0) + 1}</span>; })}<span ref={scoreLabel} className="score-float" style={{ display: beat?.kind === 'score' || beat?.kind === 'finish' ? undefined : 'none' }}>{beat?.events[0]?.text.match(/[+＋-]\d+分/)?.[0] ?? (beat?.kind === 'finish' ? '冲线！' : '得分！')}</span></div>
     {lost && <div className="scene-fallback"><strong>正在恢复图形画面…</strong><button onClick={() => { setLost(false); setResetKey(n => n + 1); }}>重新载入 3D</button></div>}
     <SceneBoundary resetKey={resetKey} retry={() => setResetKey(n => n + 1)}><DiceSpotlight active={dice} beatKey={dice ? beat?.key : undefined} contenders={duelContenders} face={beat?.face ?? room.lastRoll?.face ?? 1} faces={beat?.faces} cause={beat?.cause} detail={beat?.events.map(event=>event.text).join(" · ")} sourceRacerId={selected?.id} sourceCharacterId={selected?.characterId} onDetail={onDetail} startedAt={startedAt} durationMs={durationMs} reducedMotion={reducedMotion} lowQuality={lowQuality} source={selected ? characterName(selected.characterId) : '运动员'} /></SceneBoundary>
@@ -275,7 +282,7 @@ function PredictionHud({ room, racers, choosing, onDetail }: { room: RoomView; r
 
 function ActionBanner({ track, reversed, beat, racers, onDetail }: { track: TrackId; reversed?: boolean; beat?: PresentationBeat; racers: Racer[]; onDetail:Props['onDetail'] }) {
   const skillMove = beat?.kind === 'move' && !!beat.cause && beat.cause !== 'main';
-  if (!beat || beat.abilityReveal || !skillMove && !['skill', 'trip', 'recover', 'score', 'finish', 'warp', 'swap'].includes(beat.kind)) return null;
+  if (!beat || beat.events.some(event => event.type === 'twist') || beat.abilityReveal || !skillMove && !['skill', 'trip', 'recover', 'score', 'finish', 'warp', 'swap'].includes(beat.kind)) return null;
   const affected = racers.filter(racer => beat.targets.includes(racer.id));
   const actor = skillMove ? affected[0] : racers.find(racer => racer.id === beat.source) ?? affected[0];
   const distances = [...new Set(beat.motions.map(motion => trackMovementDistance(track, motion.path, reversed)))];

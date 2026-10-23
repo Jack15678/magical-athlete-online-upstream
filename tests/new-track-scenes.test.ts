@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { TRACKS } from '../src/shared/tracks.js';
-import { boardPoint, TILE, trackConnections, trackMovementDistance, trackNodeIds, trackSvgLayout } from '../src/client/scene/math.js';
+import { boardPoint, TILE, trackConnections, trackMovementDistance, trackNodeIds, trackSvgLayout, routeChoice } from '../src/client/scene/math.js';
 import { cameraFrame, cameraProject, choiceFocus, pawnOccupancy, pawnWorldPoint } from '../src/client/scene/camera.js';
 import { pawnRoute } from '../src/client/scene/pawn-motion.js';
 import type { Racer, RoomView } from '../src/shared/types.js';
@@ -68,6 +68,16 @@ test('a Boardwalks branch prompt frames both legal lanes, including node IDs abo
     pending: { id: 'branch', kind: 'track-branch', playerId: 'a', racerId: 'a', title: '选路', optional: false, options: [{ id: '9', label: '内侧' }, { id: '31', label: '外侧' }] },
   } as RoomView;
   assert.deepEqual(choiceFocus(room, racers)?.positions, [8, 9, 31]);
+});
+
+test('all forward forks and backward merges anchor arrows at the junction, even before the racer reaches it', () => {
+  for (const [from, targets] of [[8, [9, 31]], [17, [18, 37]], [18, [19, 50]], [13, [12, 36]], [24, [23, 49]], [26, [25, 58]]] as const) {
+    const room = { track: 'boardwalks', selfId: 'owner', pending: { kind: 'track-branch', playerId: 'owner', racerId: 'other-player-racer', options: targets.map(to => ({ id: String(to), label: `进入${to}` })) } } as RoomView;
+    assert.equal(routeChoice(room)?.from, from);
+    assert.deepEqual(choiceFocus(room, [racer('other-player-racer', 0)])?.positions, [from, ...targets]);
+    assert.equal(routeChoice({ ...room, selfId: 'other' }), undefined);
+    assert.equal(routeChoice({ ...room, role: 'spectator' }), undefined);
+  }
 });
 
 test('Bridges pawn routes preserve height and numerically distinct layers have no crowd offset', () => {

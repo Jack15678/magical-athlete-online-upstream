@@ -1,4 +1,5 @@
 import { TRACKS, type TrackId } from '../../shared/tracks.js';
+import type { RoomView } from '../../shared/types.js';
 
 export const TILE = 2.05;
 export const TRACK_FIRST_CORNER = TRACKS.mild.firstCorner;
@@ -34,6 +35,17 @@ export function trackNodeIds(track: TrackId): number[] {
 export function trackConnections(track: TrackId): [number, number][] {
   const edges = TRACKS[track].edges;
   return edges ? Object.entries(edges).flatMap(([from, targets]) => targets.map(to => [Number(from), to] as [number, number])) : Array.from({ length: TRACKS[track].finish }, (_, i) => [i, i + 1]);
+}
+
+/** Both forward forks and backward merges use the authority's legal options.
+ * Recover the junction from public edges, including saves made before this UI. */
+export function routeChoice(room: Pick<RoomView, 'pending' | 'selfId' | 'role' | 'track'>) {
+  const pending = room.pending, edges = TRACKS[room.track].edges;
+  if (room.role === 'spectator' || pending?.kind !== 'track-branch' || pending.playerId !== room.selfId || !edges) return;
+  const options = pending.options.map(option => ({ ...option, to: Number(option.id) }));
+  const junctions = trackNodeIds(room.track).filter(from => options.every(option => edges[from]?.includes(option.to)) || options.every(option => edges[option.to]?.includes(from)));
+  if (junctions.length !== 1) return;
+  return { from: junctions[0]!, options };
 }
 
 /** Node IDs are identities; a branch such as 8 -> 31 is still one forward step. */

@@ -1,23 +1,9 @@
 import { CHARACTERS } from '../shared/characters.js';
 import type { ChoiceOption, GameState, PendingChoice, Player, Racer, Task } from '../shared/types.js';
+import { TWIST_CARDS, type TwistCardId } from '../shared/twists.js';
+export { TWIST_CARDS, type TwistCardId } from '../shared/twists.js';
 
 type Work=Task&Record<string,any>;
-export const TWIST_CARDS = [
-  {id:'alchemy-lab',name:'炼金实验室泄漏',page:28},
-  {id:'bonkbug',name:'终点线虫灾',page:28},
-  {id:'conveyor',name:'传送带启动',page:28},
-  {id:'curse-wands',name:'人手一支诅咒魔杖',page:28},
-  {id:'fans',name:'观众要求更混乱',page:28},
-  {id:'mirror-world',name:'镜像世界',page:28},
-  {id:'scrying-pool',name:'占卜池边禁止奔跑',page:28},
-  {id:'pinata',name:'皮纳塔漏宝',page:28},
-  {id:'randomness-ceased',name:'随机停止了随机',page:29},
-  {id:'roast-chicken',name:'地上的烤鸡',page:29},
-  {id:'season-finale',name:'季终决战',page:29},
-  {id:'swap-meet',name:'交换集市',page:29},
-  {id:'time-imp',name:'踩中了时间小鬼',page:29},
-] as const;
-export type TwistCardId=typeof TWIST_CARDS[number]['id'];
 interface ExtraRacer { round:number; playerId:string; characterId:string; powers:string[]; borrowedCard?:string }
 interface SwapOffer { playerId:string; cardId?:string; racerId?:string; decided:boolean }
 export interface TwistState {
