@@ -6,8 +6,8 @@ Reviewed 2026-10-23. This is a source investigation, not a completed map impleme
 
 The user explicitly chose to implement the visible portion first and discuss a house-rule layout for the obscured portion. Finding a complete original image is no longer a prerequisite for finishing a clearly labelled web adaptation.
 
-- Implemented in `src/shared/tracks.ts`: the confirmed 3 ↔ 5, 7 ↔ 12 and 10 ↔ 15 pairs, using the existing landing/warp engine and tile renderer. The draft has `verified: false`.
-- The lower-half design is still a discussion, not an adopted rule. The current proposal adds **18 ↔ 22** and **24 ↔ 27**, leaves the other lower-half cells ordinary, and keeps 28–29 clear for the finish approach. These are proposed custom values, not a reconstruction claim or a tested balance result.
+- Implemented in `src/shared/tracks.ts`: the source-read 3 ↔ 5, 7 ↔ 12 and 10 ↔ 15 pairs, plus **20 ↔ 23**, supplied by the user on 2026-10-24. The latter is recorded as a user-supplied correction, not independently established by the earlier image review. The draft uses the existing landing/warp engine and tile renderer, with `verified: false`.
+- The remaining lower-half design is still a discussion, not an adopted rule. The current proposal adds **18 ↔ 22** and **24 ↔ 27**, retains 20 ↔ 23, leaves the other lower-half cells ordinary, and keeps 28–29 clear for the finish approach. These two additional pairs are proposed custom values, not a reconstruction claim or a tested balance result. They are excluded from the Dots modeling brief until agreed.
 - The draft is available to development fixtures, with an in-race explanation. It is not selectable for a normal room until the user chooses the remaining layout. This wait is for co-design, not for an unobstructed source image.
 - After agreement, label the playable map and any tour containing it as a web adaptation; do not present a custom layout as the original official board. The source investigation below remains a dated record of the original map's evidence gap.
 
@@ -27,4 +27,4 @@ Page 21 is a single 1473 × 1035 JPEG image (PDF image object 464, with transpar
 
 An unobstructed photo/scan of the full Whirly side, or the complete endpoint list from its author/publisher, is still required. A useful image must expose every cell on the lower straight and both ends of every Whirl. Once it is available, add the full symmetric pair table and verify bidirectional landing, crossing without landing, ability warp arrivals, destination abilities, and serialization between the original landing and the Whirl warp.
 
-The partial three-pair map must not be opened as the complete Whirly World map. This follow-up changes no map availability or gameplay behavior.
+The 2026-10-23 investigation established only three pairs and did not change gameplay. The implemented co-design draft and subsequent user corrections are described above; it is not presented as a complete original-board reconstruction.

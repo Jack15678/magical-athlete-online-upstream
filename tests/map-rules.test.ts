@@ -21,7 +21,7 @@ function choose(s:GameState,id:string){assert(s.pending);applyGameAction(s,s.pen
 function begin(s:GameState){s.queue.push({kind:'beginTurn',racerId:'r0'});resolveTasks(s);}
 
 test('Whirly draft implements every confirmed pair in both directions without bouncing back',()=>{
-  for(const [a,b] of [[3,5],[7,12],[10,15]])for(const [from,to] of [[a!,b!],[b!,a!]]){
+  for(const [a,b] of [[3,5],[7,12],[10,15],[20,23]])for(const [from,to] of [[a!,b!],[b!,a!]]){
     const s=fixture('whirly-world',['legs','coach','banana'],[from-1,20,25]);
     move(s,1);assert.equal(s.racers[0]!.position,to);
     assert.equal(s.logs.filter(e=>e.cause==='track-whirl').length,1);
@@ -58,7 +58,7 @@ test('Whirly pending warp retains its pair guard across JSON restoration',()=>{
 });
 
 test('Whirly draft does not invent hidden pairs or open an unfinished competition',()=>{
-  assert.deepEqual(Object.keys(TRACKS['whirly-world'].specials).map(Number),[3,5,7,10,12,15]);
+  assert.deepEqual(Object.keys(TRACKS['whirly-world'].specials).map(Number),[3,5,7,10,12,15,20,23]);
   assert.equal(TRACKS['whirly-world'].verified,false);
   assert.throws(()=>createMatchPlan({competition:{...presetCompetition(),preset:'custom',rotation:['whirly-world']}}),/尚未开放地图/);
 });

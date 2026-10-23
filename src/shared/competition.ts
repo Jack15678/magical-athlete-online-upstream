@@ -5,7 +5,7 @@ export const TRACK_CATALOG = {
   mild: { name: 'Mild Mile', label: '温和一英里', kind: '官方', available: true, description: '30 格基础跑道，专注角色互动。' },
   wild: { name: 'Wild Wilds', label: '狂野荒野', kind: '官方', available: true, description: '星星得分、绊倒与有向箭头，30 格。' },
   'twisty-twirl': { name: 'Twisty Twirl', label: 'Twisty Twirl', kind: '官方续作', available: true, description: '首次穿过13／14格边界抽一张变化卡，13种事件按规则结算。' },
-  'whirly-world': { name: 'Whirly World', label: '漩涡世界', kind: '续作地图 · 网页共创中', available: false, description: '已实现可确认的三组传送连接；遮挡部分共同设计后开放。' },
+  'whirly-world': { name: 'Whirly World', label: '漩涡世界', kind: '续作地图 · 网页共创中', available: false, description: '已接入四组传送连接，含用户补充的20↔23；其余布局共同设计后开放。' },
   squiggle: { name: 'Squiggle', label: 'Squiggle', kind: '粉丝地图', available: true, description: '蜿蜒路线含正负积分星格、绊倒与箭头；弯道角色排除。' } ,
   boardwalks: { name: 'Boardwalks', label: 'Boardwalks', kind: '粉丝地图', available: true, description: '三处分岔自主选路，以作者的剩余步数判定领先；弯道角色排除。' } ,
   bridges: { name: 'Bridges', label: 'Bridges', kind: '粉丝地图', available: true, description: '桥上下分层移动，共格与越过按作者专属规则；不支持第一弯道角色。' } ,

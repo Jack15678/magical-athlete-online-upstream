@@ -19,8 +19,8 @@ export function TrackInfo({ room, queue }: { room: RoomView; queue?: Presentatio
     {room.track === 'whirly-world' && <details className="track-rule-card" data-testid="whirly-rules" open>
       <summary>Whirly World · 共创草稿</summary>
       <p>停在漩涡格时，传送到配对格；只经过不触发。一次传送不会沿同一连接立即弹回。</p>
-      <p>已确认并实现：3↔5、7↔12、10↔15。</p>
-      <p>下半段暂未添加传送，等待共同确定布局；当前仅用于开发预览。</p>
+      <p>已接入：3↔5、7↔12、10↔15，以及用户补充的20↔23。</p>
+      <p>其余遮挡部分等待共同确定布局；当前仅用于开发预览。</p>
     </details>}
     {room.track === 'bridges' && <details className="track-rule-card" data-testid="bridges-rules">
       <summary>Bridges · 桥上桥下怎样走？</summary>
