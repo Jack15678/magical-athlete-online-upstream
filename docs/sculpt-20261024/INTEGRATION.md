@@ -45,4 +45,19 @@ pnpm build
 
 浏览器验证使用本机桌面 Edge；360/390 宽度是视口模拟，不是实体手机 GPU、温度或内存测试。技能/倒地/起立与形态切换的专项场景部分使用服务器测试夹具，不能视为全部技能连锁规则复测。多人同格仍可能遮挡角色身体。构建既有的大 JavaScript 分块提示仍存在。
 
-此次记录对应本地接入，不代表已经推送、创建新 PR、合并或上线。
+以上记录对应模型接入阶段的本地验收，后续整合见下节。
+
+## 合并角色说明并准备 PR
+
+用户要求等角色梳理完成后一起提 PR。角色说明提交 `dfe52f7` 已接在模型提交 `6ac825f` 之后，重写神射手的目标距离、累计骰点、停止条件与射击后主移动，并在图鉴及对局详情中提供掷骰例子；同时补齐中文详情标签、遗漏条件、次数与持续时间，统一译名并改善多段效果排版。该提交的两个引擎文件仅更换可见提示字符串，未调整规则逻辑。
+
+PR #18 已合并。接入最新 `upstream/main` 的 `3f64f71`，保留 PR #19 的选路骰面和赛前地图预览；合并提交 `121a00b` 无冲突，避免在本次 PR 重复提交先前已合并的工作。
+
+整合后的检查：
+
+- `pnpm typecheck`、`pnpm build` 通过。
+- `pnpm test` 完整复验 1,247/1,247 通过。首次为 1,246/1,247，一项网络测试出现 Node fetch 的 `bad port`；未改代码原样复跑通过，保留两次日志，不将其视为已修复的环境问题。
+- 8 项生产构建浏览器检查通过：当前能力/继承卡身份及隐私、桌面与手机尺寸详情、模型高低画质加载失败恢复、选路骰面、逐场地图预览与暗选。
+- 本轮日志：`tmp/combined-character-unit.txt`、`tmp/combined-character-unit-recheck.txt`、`tmp/combined-character-typecheck.txt`、`tmp/combined-character-build.txt`、`tmp/combined-character-browser.txt`。
+
+角色说明阶段的实景：[神射手桌面](../qa/character-rules/marksman-desktop.png)、[神射手手机尺寸](../qa/character-rules/marksman-mobile.png)、[魔法运动员多段说明](../qa/character-rules/magical-athlete-mobile.png)。这些截图来自角色说明对话在提交前的页面验收；同步主分支后的 8 项回归另保留测试输出。模型阶段的全角色验收仍为上文记录，不把本轮 8 项回归称为重做全部模型视觉检查。
