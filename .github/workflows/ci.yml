@@ -72,6 +72,10 @@ jobs:
         run: pnpm exec playwright test tests/browser/home-entry.spec.ts
         env:
           CI: true
+      - name: Validate route dice reminder and pre-race map preview
+        run: pnpm exec playwright test tests/browser/route-selection-preview.spec.ts
+        env:
+          CI: true
       - name: Validate home configuration, pending choices and rematch setup
         run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home shows|tour can be created|two browsers preserve|rematch"
         env:
