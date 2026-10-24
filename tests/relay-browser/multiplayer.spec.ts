@@ -1,30 +1,11 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import type { GameAction, Room, RoomView } from '../../src/shared/types.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { boundedRead, playbackRecord, preparePlaybackProbe, skipQueuedPlayback, type PlaybackRecord } from './playback-diagnostics.js';
 
 const url=process.env.RELAY_URL??'http://127.0.0.1:8787';
-const smoke=process.env.RELAY_SMOKE==='1';
 async function captureRace(page:Page,path:string){await page.getByTestId('board-3d').scrollIntoViewIfNeeded();await boundedRead(page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())))),'capture-frame read');await page.getByTestId('board-3d').screenshot({path:path.replace(/\.png$/,'-board.png')});await page.screenshot({path,fullPage:true});}
 async function synced(page:Page,version:number){await expect.poll(async()=>Number(await page.locator('.game-shell').getAttribute('data-room-version'))).toBeGreaterThanOrEqual(version);}
-async function skipQueuedPlayback(page:Page){
-  const started=Date.now();let attempts=0,clicked=false;
-  const skip=page.getByRole('button',{name:'跳过动画',exact:true});
-  await expect(async()=>{
-    if(await skip.isVisible()){
-      // An optional control may disappear naturally during actionability checks.
-      // Recheck it promptly instead of spending 15s waiting for it to reappear.
-      try{attempts++;await skip.click({timeout:1_000});clicked=true;}
-      catch(error){if(await skip.isVisible())throw error;}
-    }
-    await expect(skip).toBeHidden({timeout:1_000});
-  }).toPass({timeout:20_000,intervals:[100,250,500]});
-  return{elapsedMs:Date.now()-started,attempts,clicked};
-}
-async function boundedRead<T>(operation:Promise<T>,label:string,timeoutMs=20_000):Promise<T>{
-  let timer:ReturnType<typeof setTimeout>|undefined;
-  try{return await Promise.race([operation,new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>reject(Error(`${label} exceeded ${timeoutMs}ms`)),timeoutMs);})]);}
-  finally{clearTimeout(timer);}
-}
 /** Keep failure diagnostics in the Node test process. A stalled renderer must
  * not be queried again while recording the original failure. */
 function publicRoom(room:Room){
@@ -159,14 +140,16 @@ test('playback skip accepts natural completion while its optional button is movi
   await expect(page.getByRole('button',{name:'掷骰子',exact:true})).toBeEnabled();
 });
 
-for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?'one race, host/guest recovery, privacy and layout':'four races, host recovery, privacy and rematch'}`,async({browser})=>{
-  // CI smoke completes one full race on eight isolated software WebGL clients.
-  // The default manual mode retains the complete four-race game and rematch.
+for(const n of [2,6,8]){
+  // Eight clients always stop after one complete race, even if a manual command
+  // requests a longer match. Two/six-client full matches remain explicit opt-ins.
+  const smoke=n===8||process.env.RELAY_SMOKE!=='0';
+test(`server authority ${n} independent players: ${smoke?'one race, host/guest recovery, privacy and layout':'four races, host recovery, privacy and rematch'}`,async({browser})=>{
   if(process.env.CI&&n===8)test.setTimeout(900_000);
   const contexts:BrowserContext[]=[],pages:Page[]=[],errors:string[]=[];
   const playbackControls={reads:0,attempts:0,clicked:0,elapsedMs:0,maxMs:0};
   let latestPublicRoom:ReturnType<typeof publicRoom>|undefined;
-  const uiSnapshots:unknown[]=[];
+  const playbackDiagnostics:PlaybackRecord[]=[];
   type UIAction={sequence:number;requestId:string;type:GameAction['type'];expectedVersion:number;acknowledgedAt?:number;result?:{ok:boolean;version?:number;error?:string}};
   const uiActions=new Map<Page,UIAction[]>();
   let activeCode:string|undefined;
@@ -174,22 +157,6 @@ for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?
   let checkpoint={stage:'setup',phase:'lobby',round:0,step:0,action:'open-contexts',version:0,logId:0,elapsedMs:0};
   const mark=(stage:string,action:string,room?:Room,step=checkpoint.step)=>{checkpoint={stage,action,phase:room?.game.phase??checkpoint.phase,round:room?.game.round??checkpoint.round,step,version:room?.version??checkpoint.version,logId:room?.game.logs.at(-1)?.id??checkpoint.logId,elapsedMs:Date.now()-startedAt};};
   const progress=()=>console.log(`[relay-${n}] checkpoint ${JSON.stringify(checkpoint)}`);
-  const cacheActingUI=async(page:Page,seat:number,action:string)=>{
-    let ui:unknown;
-    try{ui=await boundedRead(page.evaluate(()=>{
-      const board=document.querySelector<HTMLElement>('[data-testid="board-3d"]'),shell=document.querySelector<HTMLElement>('.game-shell');
-      const roll=document.querySelector<HTMLButtonElement>('[data-testid="roll-button"]'),choice=document.querySelector<HTMLElement>('[data-testid="skill-choice"]');
-      const bounds=roll?.getBoundingClientRect();
-      return{roomVersion:shell?.dataset.roomVersion,visibility:document.visibilityState,focused:document.hasFocus(),
-        connection:document.querySelector('.race-match-label .connection,.room-label .connection')?.textContent?.trim(),connectionBanner:document.querySelector('.connection-banner')?.textContent?.trim(),
-        phase:board?.dataset.phase,cameraState:board?.dataset.cameraState,cameraTarget:board?.dataset.cameraTarget,
-        loadedModels:board?.dataset.loadedModels,modelFallbacks:board?.dataset.modelFallbacks,drawCalls:board?.dataset.drawCalls,triangles:board?.dataset.triangles,quality:board?.dataset.quality,
-        status:document.querySelector('[data-testid="animation-phase"]')?.textContent?.trim(),
-        rollButton:roll?{text:roll.textContent?.trim(),disabled:roll.disabled,bounds:bounds?{x:bounds.x,y:bounds.y,width:bounds.width,height:bounds.height}:undefined}:null,
-        skillChoice:choice?{title:choice.querySelector('h2')?.textContent,buttonCount:choice.querySelectorAll('button').length,enabledButtons:choice.querySelectorAll('button:not(:disabled)').length}:null};
-    }),'acting-page public UI read',2_000);}catch(error){ui={readError:error instanceof Error?error.message:String(error)};}
-    uiSnapshots.push({elapsedMs:Date.now()-startedAt,step:checkpoint.step,seat,action,ui});if(uiSnapshots.length>20)uiSnapshots.shift();
-  };
   const observe=(page:Page)=>{
     const actions:UIAction[]=[];uiActions.set(page,actions);let sequence=0;
     page.on('pageerror',e=>errors.push(e.stack??e.message));
@@ -208,7 +175,7 @@ for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?
     for(let i=0;i<n;i++){
       const context=await browser.newContext({viewport:i===n-1?{width:390,height:844}:process.env.CI?i===0?{width:1280,height:900}:{width:768,height:650}:{width:1440,height:1000},deviceScaleFactor:1,permissions:['clipboard-read','clipboard-write']});contexts.push(context);
       await context.addInitScript(()=>{try{localStorage.setItem('magical-athlete:animation-speed','4');localStorage.setItem('magical-athlete:reduced-motion','true');localStorage.setItem('magical-athlete:low-quality','true');}catch{/* Opaque about:blank recovery pages have no storage. */}});
-      const page=await context.newPage();pages.push(page);observe(page);
+      const page=await context.newPage();pages.push(page);observe(page);await preparePlaybackProbe(page);
     }
     const host=pages[0]!;
     mark('setup','create-room');
@@ -268,17 +235,20 @@ for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?
       if(g.pending){playerId=g.pending.playerId;const option=g.pending.options.find(o=>['skip','pass','decline'].includes(o.id))??g.pending.options[0]!;action={type:'choose',choiceId:g.pending.id,optionId:option.id};}
       else if(g.phase==='results'){playerId=room.hostId;action={type:'next'};}
       else{playerId=g.racers.find(r=>r.id===g.currentRacerId)!.playerId;action={type:'roll'};}
-      const actionLabel=action.type==='choose'?`choose-${g.pending!.kind}-${action.optionId}`:action.type;
-      mark('submit',actionLabel,room,steps);
+      // Option IDs can identify private cards; diagnostics need only the kind/index.
+      const actionLabel=action.type==='choose'?`choose-${g.pending!.kind}-option-${g.pending!.options.findIndex(o=>o.id===action.optionId)+1}`:action.type;
+      mark('playback',actionLabel,room,steps);
       const p=pages[ids.indexOf(playerId)]!;await synced(p,room.version);
       // This suite checks the live protocol, not the duration of an accumulated
       // visual chain. Skills retain a 1.5s reading minimum even at 4x speed; a
       // player may legitimately have more than 15s of earlier events queued.
       // Use the actual local skip control before the actual action control.
       // No action is forced and the server acknowledgement is still required.
-      const skipped=await skipQueuedPlayback(p);
+      const playback=playbackRecord({seat:ids.indexOf(playerId)+1,step:steps,action:actionLabel,roomVersion:room.version});
+      playbackDiagnostics.push(playback);if(playbackDiagnostics.length>20)playbackDiagnostics.shift();
+      const skipped=await skipQueuedPlayback(p,playback);
       playbackControls.reads++;playbackControls.attempts+=skipped.attempts;playbackControls.clicked+=Number(skipped.clicked);playbackControls.elapsedMs+=skipped.elapsedMs;playbackControls.maxMs=Math.max(playbackControls.maxMs,skipped.elapsedMs);
-      if(n===8)await cacheActingUI(p,ids.indexOf(playerId)+1,actionLabel);
+      mark('submit',actionLabel,room,steps);
       const beforeAction=uiActions.get(p)!.at(-1)?.sequence??0;
       if(action.type==='choose')await p.getByRole('region',{name:'待处理技能'}).getByRole('button',{name:g.pending!.options.find(o=>o.id===action.optionId)!.label,exact:true}).click({timeout:15_000});
       else if(action.type==='next')await p.getByRole('button',{name:'前往下一场',exact:true}).click({timeout:15_000});
@@ -306,16 +276,17 @@ for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?
   }catch(error){
     bodyFailed=true;
     const observed=activeCode?latestView(snapshots.get(activeCode)):undefined;
-    if(n===8)writeFileSync('test-results/browser-authority/diagnostics8.json',JSON.stringify({
+    if(n===8)try{writeFileSync('test-results/browser-authority/diagnostics8.json',JSON.stringify({
       capturedAt:new Date().toISOString(),checkpoint:{...checkpoint,elapsedMs:Date.now()-startedAt},
       failure:{name:error instanceof Error?error.name:'Error',message:error instanceof Error?error.message.split('\n')[0]:String(error).split('\n')[0]},
-      pageErrorCount:errors.length,latestPublicRoom,uiSnapshots,playbackControls,
+      pageErrorCount:errors.length,latestPublicRoom,playbackDiagnostics:playbackDiagnostics.map(record=>({...record,
+        lastSampleAgeMs:record.samples.length?Date.now()-Date.parse(record.startedAt)-record.samples.at(-1)!.elapsedMs:undefined})),playbackControls,
       snapshotWait:activeCode?snapshotWaits.get(activeCode):undefined,
       observedSnapshots:observed?snapshotWait(observed,snapshots.get(observed.code),snapshotVersions.get(observed.code)):undefined,
       lastAcknowledgement:[...uiActions.values()].flat().filter(action=>action.acknowledgedAt!==undefined).sort((a,b)=>a.acknowledgedAt!-b.acknowledgedAt!).at(-1),
       uiActions:pages.map((page,seat)=>({seat:seat+1,actions:uiActions.get(page)?.slice(-6)})),
-      limitations:'UI snapshots are cached before actions with a 2s read limit; failure capture does not query potentially frozen browser pages. No tokens, deck, RNG or private hands are included.',
-    },null,2));
+      limitations:'Playback records include failed/in-progress attempts. Public UI samples stream every 500ms only from the acting page, with one outstanding sample. A 2s initial-sample watchdog never delays clicks. Frame counts describe Three rendering, not just timers. Failure capture only serializes Node caches; no tokens, deck, RNG, private hands, option labels or hit-element text/HTML are sampled.',
+    },null,2));}catch(diagnosticError){console.error(`[relay-${n}] diagnostic-write-error ${diagnosticError instanceof Error?diagnosticError.message:String(diagnosticError)}`);}
     console.error(`[relay-${n}] original-error ${error instanceof Error?error.stack??error.message:String(error)}\n[relay-${n}] last-checkpoint ${JSON.stringify({...checkpoint,elapsedMs:Date.now()-startedAt})}`);
     throw error;
   }finally{
@@ -331,3 +302,4 @@ for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?
     }
   }
 });
+}
