@@ -98,6 +98,10 @@ jobs:
         if: steps.validation.outputs.suite == 'all'
         env:
           CI: true
+      - name: Validate relay snapshot and playback diagnostic helpers
+        run: pnpm exec playwright test -c playwright.relay.config.ts --grep "snapshot aggregation|playback skip|playback diagnostics"
+        env:
+          CI: true
       - run: pnpm exec playwright test -c playwright.relay.config.ts --grep "server authority 8 independent"
         if: steps.validation.outputs.suite != 'ability-interactions'
         env:
