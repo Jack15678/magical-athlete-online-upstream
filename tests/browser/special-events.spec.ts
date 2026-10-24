@@ -6,14 +6,37 @@ let app:ReturnType<typeof createApplication>,url:string;
 test.beforeAll(async()=>{app=createApplication(':memory:');await new Promise<void>(resolve=>app.http.listen(0,'127.0.0.1',resolve));const a=app.http.address();if(!a||typeof a==='string')throw Error('no address');url=`http://127.0.0.1:${a.port}`;});
 test.afterAll(async()=>app.close());
 
-test('special event setup previews selected rounds, survives home navigation and fits mobile',async({page})=>{
+test('special event setup explains automatic events, validates rounds and saves the chosen settings',async({page},info)=>{
  await page.goto(url);await page.getByRole('tab',{name:'创建房间',exact:true}).click();
+ await page.getByLabel('你的昵称').fill('特殊赛事设置');
+ await expect(page.getByText(/规则待确认|尚未取得完整事件表|待开放内容/)).toHaveCount(0);
+ await expect(page.locator('.event-status')).toContainText('当前关闭');
+ await expect(page.locator('.event-instructions')).toContainText('系统自动抽取');
  await page.getByRole('checkbox',{name:'启用 36 项粉丝事件（网页适配）'}).check();
+ await expect(page.getByRole('checkbox',{name:'第 3 场',exact:true})).toBeChecked();
  await expect(page.locator('.config-main .schedule-preview li').nth(2)).toContainText('Thrilling Thirds');
+ await page.locator('.special-event-settings').screenshot({path:info.outputPath('special-event-controls.png')});
+ await page.getByRole('checkbox',{name:'第 3 场',exact:true}).uncheck();
+ await expect(page.locator('.event-status')).toContainText('至少勾选一场');
+ await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
+ await page.getByRole('checkbox',{name:'第 3 场',exact:true}).check();
  await page.getByRole('checkbox',{name:'第 1 场',exact:true}).check();
  await page.getByRole('button',{name:/返回首页（保留设置）/}).click();await page.getByRole('tab',{name:'创建房间',exact:true}).click();
  await expect(page.getByRole('checkbox',{name:'第 1 场',exact:true})).toBeChecked();await expect(page.getByRole('checkbox',{name:'第 3 场',exact:true})).toBeChecked();
+ await expect(page.locator('.event-status')).toContainText('第 1、3 场各抽取 1 项');
+ await page.screenshot({path:info.outputPath('special-event-setup-desktop.png'),fullPage:true});
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ await page.screenshot({path:info.outputPath('special-event-setup-mobile.png'),fullPage:true});
+ await page.getByRole('button',{name:'创建房间，召集朋友'}).click();await expect(page).toHaveURL(/\/room\/[A-Z2-9]{6}$/);
+ const code=page.url().split('/').at(-1)!;
+ expect(app.rooms.get(code).game.config?.competition?.thrillingThirds).toEqual({enabled:true,rounds:[1,3]});
+ await page.reload();await page.locator('.room-config-panel > summary').click();
+ await expect(page.locator('.event-status')).toContainText('第 1、3 场各抽取 1 项');
+ await page.getByRole('checkbox',{name:'启用 36 项粉丝事件（网页适配）'}).uncheck();
+ await expect(page.getByRole('group',{name:'特殊赛事适用场次'})).toHaveCount(0);
+ await expect(page.locator('.event-status')).toContainText('当前关闭');
+ await page.getByRole('button',{name:'保存本房间设置',exact:true}).click();
+ await expect.poll(()=>app.rooms.get(code).game.config?.competition?.thrillingThirds).toEqual({enabled:false,rounds:[]});
 });
 
 test('three browsers submit secret guesses, refresh and see one event reward',async({browser},info)=>{
@@ -27,6 +50,10 @@ test('three browsers submit secret guesses, refresh and see one event reward',as
   await expect(pages[0]!.getByTestId('roll-button')).toBeEnabled();await pages[0]!.getByTestId('roll-button').click();
   await expect.poll(()=>app.rooms.get(code).game.players[1]!.score).toBe(1);const scored=app.rooms.get(code);expect(scored.game.scoreLedger![1]!.event).toBe(1);expect(scored.game.racers[0]!.position).toBe(6);
   for(const page of pages)await expect.poll(async()=>Number(await page.locator('.game-shell').getAttribute('data-room-version'))).toBeGreaterThanOrEqual(scored.version);
-  await pages[0]!.setViewportSize({width:390,height:844});await pages[0]!.getByTestId('special-event').locator('summary').click();await pages[0]!.screenshot({path:info.outputPath('event-mobile.png')});expect(await pages[0]!.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(errors).toEqual([]);
+  await pages[0]!.setViewportSize({width:390,height:844});
+  await expect(pages[0]!.getByTestId('special-event').getByText('本场生效；需要你选择时会自动提示，其余效果由系统结算。')).toBeVisible();
+  await pages[0]!.getByTestId('special-event').locator('summary').click();await expect(pages[0]!.getByTestId('special-event')).not.toHaveAttribute('open','');
+  await pages[0]!.getByTestId('special-event').locator('summary').click();
+  await pages[0]!.screenshot({path:info.outputPath('event-mobile.png')});expect(await pages[0]!.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(errors).toEqual([]);
  }finally{await Promise.all(contexts.map(c=>c.close()));}
 });

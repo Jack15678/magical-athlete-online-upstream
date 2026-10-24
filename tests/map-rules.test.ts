@@ -7,7 +7,7 @@ import { progress } from '../src/shared/race-track.js';
 import { roomRules } from '../src/engine/runtime.js';
 import { SCHEDULE_RULES_VERSION } from '../src/shared/rules-versions.js';
 import type { GameState } from '../src/shared/types.js';
-import type { TrackId } from '../src/shared/tracks.js';
+import { TRACKS, type TrackId } from '../src/shared/tracks.js';
 
 function fixture(track:TrackId,ids=['banana','rocket-scientist','legs'],positions=[0,15,25]):GameState {
   const s=createGame(ids.map((_,i)=>({id:`p${i}`,name:`玩家${i}`,seat:i,color:'#000',ready:true,connected:true,score:0,hand:[],used:[],selection:[]})),137);
@@ -19,6 +19,49 @@ function fixture(track:TrackId,ids=['banana','rocket-scientist','legs'],position
 function move(s:GameState,distance:number,index=0){enqueueMove(s,`r${index}`,distance);resolveTasks(s);}
 function choose(s:GameState,id:string){assert(s.pending);applyGameAction(s,s.pending.playerId,{type:'choose',choiceId:s.pending.id,optionId:id});}
 function begin(s:GameState){s.queue.push({kind:'beginTurn',racerId:'r0'});resolveTasks(s);}
+
+test('Whirly implements all six approved pairs in both directions without bouncing back',()=>{
+  for(const [a,b] of [[3,5],[7,12],[10,15],[18,22],[20,23],[24,27]])for(const [from,to] of [[a!,b!],[b!,a!]]){
+    const s=fixture('whirly-world',['legs','coach','banana'],[from-1,20,25]);
+    move(s,1);assert.equal(s.racers[0]!.position,to);
+    assert.equal(s.logs.filter(e=>e.cause==='track-whirl').length,1);
+    assert.notEqual(s.phase,'paused');
+  }
+});
+
+test('Whirly pass-through does not trigger, but a later independent landing does',()=>{
+  const s=fixture('whirly-world',['legs','coach','banana'],[2,20,25]);
+  move(s,4);assert.equal(s.racers[0]!.position,6);assert(!s.logs.some(e=>e.cause==='track-whirl'));
+  move(s,-1);assert.equal(s.racers[0]!.position,3);
+  move(s,2);assert.equal(s.racers[0]!.position,3);
+  assert.equal(s.logs.filter(e=>e.cause==='track-whirl').length,2);
+});
+
+test('Whirly accepts ability warps, preserves tripping, and does not count as passing a Banana',()=>{
+  const s=fixture('whirly-world',['legs','banana','coach'],[1,4,25]);
+  enqueueWarp(s,'r0',3);resolveTasks(s);assert.equal(s.racers[0]!.position,5);assert(!s.racers[0]!.tripped);
+  s.racers[0]!.tripped=true;enqueueWarp(s,'r0',7);resolveTasks(s);
+  assert.equal(s.racers[0]!.position,12);assert(s.racers[0]!.tripped);
+});
+
+test('Whirly destination abilities still resolve once',()=>{
+  const s=fixture('whirly-world',['legs','hotel','coach'],[2,5,25]);s.players[0]!.score=2;
+  move(s,1);assert.equal(s.racers[0]!.position,5);
+  assert.equal(s.players[0]!.score,1);assert.equal(s.players[1]!.score,1);
+});
+
+test('Whirly pending warp retains its pair guard across JSON restoration',()=>{
+  const s=fixture('whirly-world',['legs','coach','banana'],[3,20,25]);
+  s.queue.push({kind:'warp',racerId:'r0',position:5,cause:'track-whirl',whirlPair:'3:5'});
+  const restored=JSON.parse(JSON.stringify(s)) as GameState;resolveTasks(restored);
+  assert.equal(restored.racers[0]!.position,5);assert.equal(restored.logs.filter(e=>e.cause==='track-whirl').length,1);
+});
+
+test('Whirly opens exactly the user-approved six-pair web layout',()=>{
+  assert.deepEqual(Object.keys(TRACKS['whirly-world'].specials).map(Number),[3,5,7,10,12,15,18,20,22,23,24,27]);
+  assert.equal(TRACKS['whirly-world'].verified,false);
+  assert.deepEqual(createMatchPlan({competition:{...presetCompetition(),preset:'custom',rotation:['whirly-world']}}).races.map(race=>race.map),Array(4).fill('whirly-world'));
+});
 
 test('Boardwalk branch is a real route, survives JSON restore, and cannot be chosen twice',()=>{
   let s=fixture('boardwalks');s.racers[0]!.position=8;move(s,3);assert.equal(s.pending?.kind,'track-branch');

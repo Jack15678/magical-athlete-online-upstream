@@ -11,10 +11,10 @@ import type { GameAction, GameState, Player, Room, ScoreBreakdown } from '../src
 
 const players = (count: number): Player[] => Array.from({ length: count }, (_, i) => ({ id: `p${i}`, name: `选手${i + 1}`, seat: i, color: '#315961', isAI: true, ready: true, connected: true, score: 0, hand: [], used: [], selection: [] }));
 
-function configuration(rounds: RaceCount, count: number) {
+function configuration(rounds: RaceCount, count: number, preset?: 'official' | 'extended') {
   const config = legacyRoomConfig();
   config.characterPacks = { original: true, 'second-wind': false, 'extra-mile': true, 'leaf-fan': true, wurstii: true };
-  config.competition = { ...presetCompetition(), preset: 'custom', raceCount: rounds, rotation: ['squiggle', 'boardwalks', 'bridges', 'twisty-twirl'] };
+  config.competition = preset ? presetCompetition(preset) : { ...presetCompetition(), preset: 'custom', raceCount: rounds, rotation: ['squiggle', 'boardwalks', 'bridges', 'twisty-twirl'] };
   return validateRoomConfigForPlayers(config, count);
 }
 
@@ -39,10 +39,14 @@ function ledgerBalances(state: GameState) {
   if (state.results.at(-1)?.round === state.round) assert.deepEqual(state.results.at(-1)!.scores, state.scoreLedger);
 }
 
-for (const rounds of [4, 6, 8] as const) for (const count of [2, 3, 8]) test(`new maps: ${count} players finish ${rounds} races with public AI, restored rounds and balanced scores`, () => {
+const scenarios: { rounds: RaceCount; count: number; preset?: 'official' | 'extended' }[] = [
+  ...([4, 6, 8] as const).flatMap(rounds => [2, 3, 8].map(count => ({ rounds, count }))),
+  { rounds: 4, count: 3, preset: 'official' }, { rounds: 8, count: 3, preset: 'extended' },
+];
+for (const { rounds, count, preset } of scenarios) test(`${preset ? `${preset} tour` : 'new maps'}: ${count} players finish ${rounds} races with public AI, restored rounds and balanced scores`, () => {
   const seed = 41000 + count * 100 + rounds, cardsPerRace = count === 2 ? 2 : 1;
   const room: Room = { code: 'MAP234', hostId: 'p0', createdAt: 1, updatedAt: 1, version: 1, maxPlayers: count, timeoutSeconds: 0, deadline: null, game: createGame(players(count), seed) };
-  room.game.config = configuration(rounds, count);
+  room.game.config = configuration(rounds, count, preset);
   roomRules(room.game).startGame(room.game);
   const plan = structuredClone(room.game.matchPlan), restored = new Set<number>();
   let drafted = false, steps = 0, lastAction: ReturnType<typeof publicAction>;

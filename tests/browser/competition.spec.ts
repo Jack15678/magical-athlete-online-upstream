@@ -25,20 +25,32 @@ async function clickAction(page:Page,action:GameAction,pending?:{options:{id:str
   else throw Error(`unsupported browser intent ${action.type}`);
 }
 
-test('home, preserved draft, exact presets, invalid rotation and desktop/mobile layout',async({page},info)=>{
+test('home shows only playable presets, preserves drafts, rejects invalid rotations and fits desktop/mobile',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize({width:1440,height:900});await page.goto(url);
   await expect(page.getByRole('checkbox')).toHaveCount(0);await page.screenshot({path:info.outputPath('home.png'),fullPage:true});
   await page.getByRole('tab',{name:'创建房间',exact:true}).click();
-  await expect(page.locator('.preset-select').nth(1)).toBeDisabled();await expect(page.locator('.preset-select').nth(2)).toBeDisabled();
+  await expect(page.locator('.preset-select')).toHaveCount(3);
+  for(const name of ['经典赛','官方巡回','扩展巡回'])await expect(page.locator('.preset-select').filter({hasText:name})).toBeEnabled();
+  await expect(page.getByText(/社区锦标赛|规则待确认|待开放内容/)).toHaveCount(0);
+  for(const [name,count] of [['官方巡回',4],['扩展巡回',8]] as const){
+    await page.locator('.preset-select').filter({hasText:name}).click();
+    await expect(page.locator('.preset-select').filter({hasText:name})).toHaveAttribute('aria-pressed','true');
+    await expect(page.locator('.config-main .schedule-preview li')).toHaveCount(count);
+    await expect(page.locator('.config-main .schedule-preview li').nth(3)).toContainText('Whirly World');
+    await expect(page.locator('.preset-select').filter({hasText:name})).toContainText('网页版布局');
+  }
+  await page.locator('.preset-select').filter({hasText:'经典赛'}).click();
   await expect(page.locator('.config-main .schedule-preview li')).toHaveCount(4);
   await page.getByRole('checkbox',{name:'Extra Mile',exact:true}).check();
-  await page.getByRole('button',{name:'修改扩展巡回赛程',exact:true}).click();
+  await page.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();
+  await page.getByLabel('比赛场数').selectOption('8');
+  for(let i=0;i<6;i++)await page.getByRole('button',{name:'添加 Mild Mile',exact:true}).click();
   await expect(page.getByLabel('比赛场数')).toHaveValue('8');await expect(page.locator('.rotation-list li')).toHaveCount(8);
   await expect(page.getByRole('checkbox',{name:'Extra Mile',exact:true})).toBeChecked();
-  await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
   await page.getByLabel('比赛场数').selectOption('4');await expect(page.locator('.rotation-list li')).toHaveCount(8);
   await expect(page.locator('.config-summary')).toContainText('长度不能超过');
+  await expect(page.getByRole('button',{name:'创建房间，召集朋友'})).toBeDisabled();
   await page.getByRole('button',{name:'修改经典赛赛程',exact:true}).click();
   await page.getByRole('button',{name:'移除第1项',exact:true}).click();await page.getByRole('button',{name:'移除第1项',exact:true}).click();
   await expect(page.locator('.config-summary')).toContainText('不能为空');
@@ -51,6 +63,20 @@ test('home, preserved draft, exact presets, invalid rotation and desktop/mobile 
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.evaluate(()=>document.documentElement.style.fontSize='20px');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   expect(errors).toEqual([]);
+});
+
+for(const [preset,name,count] of [['official','官方巡回',4],['extended','扩展巡回',8]] as const)test(`${preset} tour can be created from its card and restored`,async({page})=>{
+  await page.goto(url);await page.getByRole('tab',{name:'创建房间',exact:true}).click();
+  await page.getByLabel('你的昵称').fill('巡回测试');await page.getByLabel('房间人数上限').selectOption('3');
+  await page.locator('.preset-select').filter({hasText:name}).click();
+  await page.getByRole('button',{name:'创建房间，召集朋友'}).click();
+  await expect(page).toHaveURL(/\/room\/[A-Z2-9]{6}$/);
+  const code=page.url().split('/').at(-1)!;
+  const competition=app.rooms.get(code).game.config!.competition!;
+  expect(competition.preset).toBe(preset);expect(competition.raceCount).toBe(count);expect(competition.rotation[3]).toBe('whirly-world');
+  await page.reload();await expect(page.locator('.connection.is-online')).toBeVisible();
+  await expect(page.locator('.room-config-panel > summary')).toContainText(name);
+  expect(app.rooms.get(code).game.config!.competition).toEqual(competition);
 });
 
 for(const mode of ['practice','ai'] as const)test(`${mode} rematch returns to configuration and starts the saved six-race plan`,async({page})=>{

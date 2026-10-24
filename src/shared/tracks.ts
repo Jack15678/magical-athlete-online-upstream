@@ -1,10 +1,23 @@
 import { LEAF_TRACKS } from './leaf-tracks.js';
-export type TrackId = 'mild' | 'wild' | 'squiggle' | 'boardwalks' | 'bridges' | 'twisty-twirl';
+export type TrackId = 'mild' | 'wild' | 'squiggle' | 'boardwalks' | 'bridges' | 'twisty-twirl' | 'whirly-world';
 export interface TrackSpace { kind: 'star' | 'trip' | 'arrow' | 'warp'; move?: number; points?: number; to?: number }
 export interface TrackDefinition { id: TrackId; name: string; length: number; finish: number; firstCorner: number; secondCorner: number; specials: Record<number, TrackSpace>; verified: boolean; source: string; nodes?: Record<number,{x:number;z:number;y?:number;color?:string}>; edges?: Record<number,number[]>; remaining?: Record<number,number>; bridges?: [number,number][]; blockedCharacters?: string[]; twistBoundary?: {before:number;after:number} }
 export const TRACKS: Record<TrackId, TrackDefinition> = {
   ...LEAF_TRACKS,
   'twisty-twirl': { id:'twisty-twirl',name:'扭转旋道',length:30,finish:30,firstCorner:12,secondCorner:15,specials:{},verified:true,source:'Second Wind rulebook pp.10–11,23,28–29 (user PDF)',twistBoundary:{before:13,after:14} },
+  // User-approved six-pair web layout; verified=false preserves the original-board evidence gap.
+  'whirly-world': {
+    id:'whirly-world',name:'漩涡世界',length:30,finish:30,firstCorner:12,secondCorner:15,
+    specials: {
+      3:{kind:'warp',to:5},5:{kind:'warp',to:3},
+      7:{kind:'warp',to:12},12:{kind:'warp',to:7},
+      10:{kind:'warp',to:15},15:{kind:'warp',to:10},
+      18:{kind:'warp',to:22},22:{kind:'warp',to:18},
+      20:{kind:'warp',to:23},23:{kind:'warp',to:20},
+      24:{kind:'warp',to:27},27:{kind:'warp',to:24},
+    },
+    verified:false,source:'Second Wind rulebook pp.21,23: three source-read pairs; user supplied 20<->23 and approved adding 18<->22 and 24<->27 on 2026-10-24; remaining cells ordinary in this web adaptation',
+  },
   mild: { id: 'mild', name: '温和一英里', length: 30, finish: 30, firstCorner: 12, secondCorner: 15, specials: {}, verified: true, source: 'https://www.cmyk.games/cdn/shop/files/MA_29069_wide_1024x1024.jpg?v=1758033995' },
   // Numbered from Start=0: upper straight left-to-right, far bend 12..15,
   // lower straight right-to-left, then Finish=30 in the inner loop.

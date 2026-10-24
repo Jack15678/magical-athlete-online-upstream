@@ -1,6 +1,17 @@
 # Whirly World source follow-up
 
-Reviewed 2026-10-23. This is a source investigation, not a completed map implementation.
+Source investigation: 2026-10-23. Updated 2026-10-24 with the agreed, playable web adaptation. The original-board evidence gap remains separate from implementation status.
+
+## 2026-10-24: six-pair web adaptation
+
+The user corrected the initial four-pair delivery to **six** pairs and supplied `Whirly_World_Six_Pairs_Blender_GLB.zip`. The model and `src/shared/tracks.ts` now both use **3 ↔ 5, 7 ↔ 12, 10 ↔ 15, 18 ↔ 22, 20 ↔ 23, 24 ↔ 27**. Other cells are ordinary, including 28–29. Whirly, the four-race official-order tour, and the eight-race extended tour are selectable. See [model integration and verification](whirly-world-model.md).
+
+The user explicitly chose to implement the visible portion first and discuss a house-rule layout for the obscured portion. Finding a complete original image is no longer a prerequisite for finishing a clearly labelled web adaptation.
+
+- The source-read pairs are 3 ↔ 5, 7 ↔ 12 and 10 ↔ 15. **20 ↔ 23** was supplied by the user on 2026-10-24, not independently established by the earlier image review.
+- The initial proposals **18 ↔ 22** and **24 ↔ 27** are now included in the user's six-pair target, retaining 20 ↔ 23 and ordinary cells elsewhere, including 28–29. These are web adaptation values, not an original-board reconstruction claim or a tested balance result.
+- `verified: false` records the incomplete original-board evidence; it does not disable the approved web adaptation. Runtime availability is declared separately in `TRACK_CATALOG`.
+- The map and tour cards identify the web adaptation, and the in-race rules list all six pairs. Landing uses the existing warp engine, including the guard against immediately bouncing back. The source investigation below remains a dated record of the original map's evidence gap.
 
 ## Confirmed source
 
@@ -14,8 +25,8 @@ Page 21 is a single 1473 × 1035 JPEG image (PDF image object 464, with transpar
 - The [Ludopedia rulebook listing](https://ludopedia.com.br/jogo/magical-athlete-second-wind/anexos/350133) matches the supplied PDF. Search results for the early Second Wind announcement and community sharing of the rulebook did not yield an independently readable, uncovered Whirly board.
 - The [BGG general forum listing](https://boardgamegeek.com/boardgame/454103/magical-athlete/forums/65) had a search-indexed “Expansion First Look” item, but fetching the page returned a Cloudflare “Sorry, you have been blocked” page. Its underlying discussion and images were not verified.
 
-## Remaining prerequisite
+## Remaining prerequisite for an exact reproduction
 
 An unobstructed photo/scan of the full Whirly side, or the complete endpoint list from its author/publisher, is still required. A useful image must expose every cell on the lower straight and both ends of every Whirl. Once it is available, add the full symmetric pair table and verify bidirectional landing, crossing without landing, ability warp arrivals, destination abilities, and serialization between the original landing and the Whirl warp.
 
-The partial three-pair map must not be opened as the complete Whirly World map. This follow-up changes no map availability or gameplay behavior.
+The 2026-10-23 investigation established only three pairs and did not change gameplay. The completed web adaptation and subsequent user corrections are described above; it is not presented as a complete original-board reconstruction.

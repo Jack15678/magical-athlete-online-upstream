@@ -32,18 +32,14 @@ export function CompetitionFields({config,onChange,disabled=false}:{config:RoomC
   function custom(patch:Partial<CompetitionConfig>){change({...c,...patch,preset:'custom'});}
   function reorder(index:number,offset:number){const rotation=[...c.rotation];[rotation[index],rotation[index+offset]]=[rotation[index+offset]!,rotation[index]!];custom({rotation});}
   return <>
-    <fieldset className="competition-mode" disabled={disabled}><legend>比赛方式</legend>
-      <label><input type="radio" name="competition-mode" checked readOnly />积分赛 <small>按全部场次累计积分，同分共享胜利。</small></label>
-      <label aria-describedby="tournament-unavailable"><input type="radio" name="competition-mode" disabled />社区锦标赛 <small id="tournament-unavailable">规则待确认：尚未取得可核验的完整作者方案。</small></label>
-    </fieldset>
     <fieldset className="competition-settings" disabled={disabled}><legend>比赛方案与赛程</legend>
-      <div className="preset-grid">{(Object.keys(PRESETS) as Exclude<PresetId,'custom'>[]).map(id=>{
-        const preset=PRESETS[id],missing=unavailableMaps(presetCompetition(id));
+      <p>按全部场次累计积分，同分共享胜利。可以直接使用经典赛，也可以展开「自定义赛程」选择地图与场数。</p>
+      <div className="preset-grid">{(Object.keys(PRESETS) as Exclude<PresetId,'custom'>[]).filter(id=>!unavailableMaps(presetCompetition(id)).length).map(id=>{
+        const preset=PRESETS[id];
         return <div key={id} className={`preset-card${c.preset===id?' is-selected':''}`}>
-          <button type="button" className="preset-select" aria-pressed={c.preset===id} disabled={disabled||!!missing.length} onClick={()=>change({...presetCompetition(id),thrillingThirds:c.thrillingThirds})}>
+          <button type="button" className="preset-select" aria-pressed={c.preset===id} disabled={disabled} onClick={()=>change({...presetCompetition(id),thrillingThirds:c.thrillingThirds})}>
             <small>{id==='classic'?'基础四场':id==='official'?'官方地图顺序':'项目赛程 · 含粉丝地图'}</small><strong>{c.preset===id?'✓ ':''}{preset.name}</strong><p>{preset.description}</p>
           </button>
-          {!!missing.length&&<p className="unavailable-reason">尚缺：{missing.map(map=>TRACK_CATALOG[map].name).join('、')}</p>}
           <button type="button" className="text-button edit-preset" onClick={()=>change({...presetCompetition(id),preset:'custom',thrillingThirds:c.thrillingThirds})}>修改{preset.name}赛程</button>
         </div>;
       })}</div>
@@ -59,14 +55,15 @@ export function CompetitionFields({config,onChange,disabled=false}:{config:RoomC
       </details>
       {!!blocked.length&&<p className="project-rule" role="note">此赛程禁用：{blocked.map(id=>CHARACTERS.find(character=>character.id===id)?.nameZh??id).join('、')}。地图原规则未规定对应弯道，整局选秀、抽牌及复制均排除这些角色。</p>}
       {c.raceCount!==4&&<p className="project-rule">{c.raceCount} 场为项目自定义赛制：每人每场使用未出赛角色；每批按顺序和逆序各选一名，下批首选顺延。不是官方赛制，未获社区平衡性认证。最后一场不加倍。</p>}
-      <fieldset disabled={disabled}><legend>特殊赛事 · Thrilling Thirds</legend>
-        <label><input type="checkbox" checked={c.thrillingThirds.enabled} onChange={e=>change({...c,thrillingThirds:{enabled:e.target.checked,rounds:e.target.checked?[3]:[]}})} />启用 36 项粉丝事件（网页适配）</label>
-        <p>选手揭晓后抽取本场公共规则。原作者用于第三场；此处可选其他场次。独立事件签、双人双角色和扩展地图的适配见<a href="/rules/special-events.md" target="_blank" rel="noreferrer">规则说明</a>。</p>
-        {c.thrillingThirds.enabled&&<div className="event-rounds">{Array.from({length:c.raceCount},(_,i)=>i+1).map(round=><label key={round}><input type="checkbox" checked={c.thrillingThirds.rounds.includes(round)} onChange={e=>change({...c,thrillingThirds:{enabled:true,rounds:e.target.checked?[...c.thrillingThirds.rounds,round].sort((a,b)=>a-b):c.thrillingThirds.rounds.filter(n=>n!==round)}})} />第 {round} 场</label>)}</div>}
+      <fieldset className="special-event-settings" disabled={disabled}><legend>特殊赛事 · Thrilling Thirds</legend>
+        <label className="event-toggle"><input type="checkbox" checked={c.thrillingThirds.enabled} onChange={e=>change({...c,thrillingThirds:{enabled:e.target.checked,rounds:e.target.checked?[3]:[]}})} />启用 36 项粉丝事件（网页适配）</label>
+        <p>给指定场次增加一项所有选手共用的随机规则。例如「教练」事件会让主移动增加同格其他选手的数量。每场从 36 项中抽 1 项，不会同时开启全部事件。</p>
+        <ol className="event-instructions"><li>开启后默认用于第 3 场；可在下方勾选其他场次，至少选一场。</li><li>到达指定场次、所有人选定上场角色后，系统自动抽取并显示本场事件，无需手动抽牌。</li><li>照常比赛；需要选目标、猜骰或确认时，按屏幕提示操作，其余效果自动结算。本场结束后事件失效。</li></ol>
+        {c.thrillingThirds.enabled?<><p className="event-status" role="status">{c.thrillingThirds.rounds.length?`已开启：第 ${c.thrillingThirds.rounds.join('、')} 场各抽取 1 项事件；其余场次照常进行。`:'请在下方至少勾选一场，才能保存或开始。'}</p><div className="event-rounds" role="group" aria-label="特殊赛事适用场次">{Array.from({length:c.raceCount},(_,i)=>i+1).map(round=><label key={round}><input type="checkbox" checked={c.thrillingThirds.rounds.includes(round)} onChange={e=>change({...c,thrillingThirds:{enabled:true,rounds:e.target.checked?[...c.thrillingThirds.rounds,round].sort((a,b)=>a-b):c.thrillingThirds.rounds.filter(n=>n!==round)}})} />第 {round} 场</label>)}</div></>:<p className="event-status" role="status">当前关闭：所有场次按原赛程进行，不抽取特殊事件。</p>}
+        <p>原作者用于第三场；其他场次、独立事件签及扩展组合采用网页适配。<a href="/rules/special-events.md" target="_blank" rel="noreferrer">查看全部 36 项事件与适配规则 ↗</a></p>
       </fieldset>
       <h3>完整逐场安排</h3><SchedulePreview competition={c} />
-      <details className="source-details"><summary>来源与适配详情</summary><p>基础规则书第18页允许赛前约定地图，第19页为四场总分，第20页给出官方巡回顺序。6／8场与扩展巡回为本项目规则。</p><a href="/rules/competition.md" target="_blank" rel="noreferrer">核验范围、奖励表与待开放资料 ↗</a></details>
+      <details className="source-details"><summary>来源与适配详情</summary><p>基础规则书第18页允许赛前约定地图，第19页为四场总分。6／8场为本项目规则。</p><a href="/rules/competition.md" target="_blank" rel="noreferrer">赛程来源、奖励表与适配规则 ↗</a></details>
     </fieldset>
   </>;
 }
-export function PendingContent(){return <details className="optional-rules pending-content"><summary>待开放内容 · {Object.values(TRACK_CATALOG).filter(map=>!map.available).length} 张地图与 1 种玩法</summary><ul>{(Object.entries(TRACK_CATALOG) as [MapId,typeof TRACK_CATALOG[MapId]][]).filter(([,map])=>!map.available).map(([id,map])=><li key={id}><strong>{map.name} · {map.kind}</strong><p>{map.description}</p></li>)}<li><strong>社区锦标赛 · 社区方案</strong><p>作者原帖暂无法读取，按当前约定暂缓接入。</p></li></ul></details>;}

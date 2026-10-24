@@ -31,7 +31,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    timeout-minutes: 30
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.browser_suite == 'all' && 90 || 30 }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
       - name: Validate Scout playback and owner-absence room lifecycle
         run: pnpm exec tsx --test tests/fan-expansions.test.ts tests/presentation.test.ts tests/room-continuation.test.ts tests/room-lifecycle.test.ts tests/community-network.test.ts
       - name: Validate map topology, abilities, Twists and saved map matches
-        run: pnpm exec tsx --test tests/leaf-tracks.test.ts tests/new-track-scenes.test.ts tests/map-rules.test.ts tests/map-targets.test.ts tests/leaf-map-abilities.test.ts tests/map-matches.test.ts tests/twist-cards.test.ts tests/twist-integration.test.ts
+        run: pnpm exec tsx --test tests/leaf-tracks.test.ts tests/new-track-scenes.test.ts tests/whirly-model.test.ts tests/map-rules.test.ts tests/map-targets.test.ts tests/leaf-map-abilities.test.ts tests/map-matches.test.ts tests/twist-cards.test.ts tests/twist-integration.test.ts
       - name: Validate expansion scenery and delivered model assets
         run: pnpm exec tsx --test tests/expansion-scenery.test.ts tests/bridges-display.test.ts tests/revolutionary-sculpt.test.ts tests/avatars.test.ts tests/mouth-surfaces.test.ts
       - name: Validate special events, official card corrections and mixed long schedules
@@ -72,12 +72,23 @@ jobs:
         run: pnpm exec playwright test tests/browser/home-entry.spec.ts
         env:
           CI: true
-      - name: Validate home configuration and complete eight-race duo
-        run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home,|finish 8|two browsers preserve|rematch"
+      - name: Validate home configuration, pending choices and rematch setup
+        run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "home shows|tour can be created|two browsers preserve|rematch"
+        env:
+          CI: true
+      - name: Validate complete four, six and eight-race competitions
+        if: steps.validation.outputs.suite == 'all'
+        run: pnpm exec playwright test tests/browser/competition.spec.ts --grep "independent browsers finish"
+        env:
+          CI: true
+      - name: Validate representative Whirly and Bridges scenes
+        if: steps.validation.outputs.suite != 'all'
+        run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts tests/browser/whirly-model.spec.ts tests/browser/expansion-bridges.spec.ts --grep "whirly-world actual|Whirly|Bridges actual scene"
         env:
           CI: true
       - name: Validate new map scenes and controls
-        run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts tests/browser/expansion-bridges.spec.ts tests/browser/expansion-movement.spec.ts tests/browser/expansion-low.spec.ts
+        if: steps.validation.outputs.suite == 'all'
+        run: pnpm exec playwright test tests/browser/new-track-scenes.spec.ts tests/browser/whirly-model.spec.ts tests/browser/expansion-bridges.spec.ts tests/browser/expansion-movement.spec.ts tests/browser/expansion-low.spec.ts
         env:
           CI: true
       - name: Validate special event setup, private choices and refresh
@@ -98,6 +109,10 @@ jobs:
         if: steps.validation.outputs.suite == 'all'
         env:
           CI: true
+      - name: Validate relay snapshot and playback diagnostic helpers
+        run: pnpm exec playwright test -c playwright.relay.config.ts --grep "snapshot aggregation|playback skip|playback diagnostics"
+        env:
+          CI: true
       - run: pnpm exec playwright test -c playwright.relay.config.ts --grep "server authority 8 independent"
         if: steps.validation.outputs.suite != 'ability-interactions'
         env:
@@ -108,7 +123,7 @@ jobs:
         env:
           CI: true
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() || cancelled()
         with:
           name: playwright-failures
           path: test-results/

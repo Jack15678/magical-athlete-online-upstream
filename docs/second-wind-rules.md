@@ -17,7 +17,7 @@
 
 `characters.ts` 导出 `ORIGINAL_CHARACTERS`、完整 `CHARACTERS` 和 `characterPool('original'|'second-wind'|'mixed')`。完整36张续作记录在 `second-wind.ts`，包括稳定ID、中英文名、版本、来源/定位/访问日期、触发时点、可选性、目标、次数、持续时间、插画URL和核验状态。
 
-每次新局记录 `characterPool` 和 `rulesVersion`，可执行规则标识与旧版本映射以 `src/engine/runtime.ts` 为准。旧存档缺版本时绑定 `legacy-base-v1` 并通过 `engine/runtime.ts` 单一版本登记继续使用保存的旧引擎 `legacy-v1.ts`；未知版本拒绝套用当前规则，保留存档待对应引擎恢复。牌库与蛋候选补充都沿用本局牌池；练习模式一直提供完整72张选四张。默认仍为 Mild/Wild/Mild/Wild，自定义赛程新增 Twisty Twirl 与三张 Leaf 地图。Whirly World 的规则书照片被盒子遮住部分路线，尚未开放；不会按名称猜测完整布局。
+每次新局记录 `characterPool` 和 `rulesVersion`，可执行规则标识与旧版本映射以 `src/engine/runtime.ts` 为准。旧存档缺版本时绑定 `legacy-base-v1` 并通过 `engine/runtime.ts` 单一版本登记继续使用保存的旧引擎 `legacy-v1.ts`；未知版本拒绝套用当前规则，保留存档待对应引擎恢复。牌库与蛋候选补充都沿用本局牌池；练习模式一直提供完整72张选四张。默认仍为 Mild/Wild/Mild/Wild，自定义赛程新增 Twisty Twirl 与三张 Leaf 地图。2026-10-24，Whirly World 按用户确定的[六组传送网页版布局](whirly-world-source.md)开放，两套巡回恢复可选；原图遮挡的证据缺口继续单独记录。
 
 玩家ID用于身份、分数和重连；`Racer.identityPlayerId`保留选手创建来源，`Racer.playerId`是当前控制者，`Racer.id`是场上实例，`characterId`是印刷角色定义。Switcharoo只交换当前控制者和已用牌归属，不交换位置或实例ID。Re-Runner记录后续额外参赛条目，并在每场创建额外实例；固定行动列表不限定每玩家两名。
 

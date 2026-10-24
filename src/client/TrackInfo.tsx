@@ -14,8 +14,14 @@ export function TrackInfo({ room, queue }: { room: RoomView; queue?: Presentatio
   const [collapsed, setCollapsed] = useState('');
   const drawn = visibleTwists(room, queue), key = `${room.code}:${room.round}:${drawn.join(',')}`;
   const expanded = collapsed !== key, event = room.trackState?.event;
-  if (room.track !== 'bridges' && !drawn.length && !event) return null;
+  if (room.track !== 'bridges' && room.track !== 'whirly-world' && !drawn.length && !event) return null;
   return <aside className="race-track-info" aria-label="本场地图规则">
+    {room.track === 'whirly-world' && <details className="track-rule-card" data-testid="whirly-rules">
+      <summary>Whirly World · 传送规则</summary>
+      <p>停在漩涡格时，传送到配对格；只经过不触发。一次传送不会沿同一连接立即弹回。</p>
+      <p>六组连接：3↔5、7↔12、10↔15、18↔22、20↔23、24↔27；其余格子为普通格。</p>
+      <p>本图采用共同确认的网页版布局。</p>
+    </details>}
     {room.track === 'bridges' && <details className="track-rule-card" data-testid="bridges-rules">
       <summary>Bridges · 桥上桥下怎样走？</summary>
       <p><strong>只按格号顺序走，交叉处不能换层抄近路。</strong>例如3→4，8→9，不能3→8。</p>
@@ -35,6 +41,6 @@ export function TrackInfo({ room, queue }: { room: RoomView; queue?: Presentatio
         </article>;
       })}<a href="/rules/competition.md" target="_blank" rel="noreferrer">地图与网页裁定</a></div>}
     </section>}
-    {event && <details className="race-special-event" data-testid="special-event"><summary>特殊赛事 · {CHARACTERS.find(c => c.id === event.id)?.nameZh ?? event.id}</summary><p>{event.description}</p>{event.npc && <p>公共标记：第 {event.npc.position} 格</p>}<a href="/rules/special-events.md" target="_blank" rel="noreferrer">网页适配规则</a></details>}
+    {event && <details key={`${room.code}:${room.round}:${event.id}`} className="race-special-event" data-testid="special-event" open><summary>特殊赛事 · {CHARACTERS.find(c => c.id === event.id)?.nameZh ?? event.id}</summary><p>{event.description}</p><p>本场生效；需要你选择时会自动提示，其余效果由系统结算。</p>{event.npc && <p>公共标记：第 {event.npc.position} 格</p>}<a href="/rules/special-events.md" target="_blank" rel="noreferrer">网页适配规则</a></details>}
   </aside>;
 }

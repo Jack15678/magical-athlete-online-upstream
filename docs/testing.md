@@ -1,5 +1,15 @@
 # 测试与验收记录
 
+## 默认 CI 范围与预算（2026-10-24）
+
+默认自动检查只跑 **一场八人联机**，保留选秀/选人、真实动作及服务器确认、房主与客人恢复、私密快照检查、结算和桌面/手机布局。八人用例在第一场成绩后停止，并断言只有一份结果；即使手动设置 `RELAY_SMOKE=0`，八人也不会继续下一场。
+
+为给这场联机检查留出时间，双人/三人完整 4/6/8 场 UI 赛程，以及完整 36 项地图浏览器矩阵只在 **Run workflow → all** 执行。默认仍检查首页、巡回建房与恢复、再开配置、重复/过期操作、特殊赛事、房主离线续局、房间目录、诊断助手，以及 5 项 Whirly/Bridges 代表检查（含模型失败回退）。快速规则测试继续覆盖 2/3/8 人的完整 4/6/8 场赛程、计分账本和恢复；类型检查、构建与 Worker 预演保持开启。
+
+默认任务上限仍为 30 分钟，八人用例上限仍为 15 分钟，动作与跳过超时不放宽。只有手动选择 `all` 的任务使用 90 分钟预算。取消时允许上传现有测试产物，但平台已终止任务时不能保证上传完成。
+
+此次调整依据 [Checks #94](https://github.com/qiuh23/magical-athlete-online/actions/runs/40048278469)：GitHub 明确报告超过 30 分钟任务上限；双人 8 场约 10.6 分钟、完整地图矩阵约 8.9 分钟，八人已完成第一场并输出成绩 checkpoint，随后在用例收尾时被取消。该次运行不能记为完整通过。
+
 ## 能力相互作用与详情专项（2026-10-22）
 
 本轮按用户要求采用能力专项，不重复八人完整对局。`pnpm test:abilities`覆盖相关基础/扩展技能、嵌套复制、私密信息投影、旧版本、循环保护、详情与演出；网页只运行 `egg-character-info.spec.ts` 和 `ability-reveal-intro.spec.ts`，检查详情优先级、公开获得提示及入场先于赛前能力。结果与边界见[复制裁定](copy-ability-rulings.md)和[详情排版验收](ability-detail-layout-2026-10-22.md)。
@@ -86,22 +96,23 @@ Linux 软件渲染环境和短动画阶段观测修正后，[两个动画专项�
 
 ### 控制浏览器复验数量
 
-按用户要求，默认 CI 仅执行 **一场八人联机检查**，包含房主/客人恢复、快照隐私和桌面/手机布局；保留必要的类型检查、构建和部署预演。单元测试、掷骰/动画专项及完整四场矩阵均为手动按需执行。八人用例总时限为 **15 分钟**，整个 CI 任务上限为 **30 分钟**；单步动作仍限 20 秒，便于及时发现具体操作异常。
+当前默认与手动检查范围见本文开头的“默认 CI 范围与预算”。默认仅一场八人联机，保留必要的类型检查、定向规则测试、构建、部署预演和关键短回归；完整 UI 长赛程与地图矩阵按需手动执行。
 
 默认浏览器检查：
 
 ```sh
-RELAY_SMOKE=1 pnpm exec playwright test -c playwright.relay.config.ts --grep "browser authority 8 independent"
+pnpm exec playwright test -c playwright.relay.config.ts --grep "server authority 8 independent"
 ```
 
-需要时才执行的专项与完整四场检查：
+需要时才执行的专项与双人/六人完整四场检查：
 
 ```sh
 pnpm exec playwright test tests/browser/three-scene.spec.ts --grep "3D dice settles|3D simultaneous"
-pnpm exec playwright test -c playwright.relay.config.ts --grep "browser authority 8 independent"
+RELAY_SMOKE=0 pnpm exec playwright test -c playwright.relay.config.ts --grep "server authority (2|6) independent"
+pnpm exec playwright test tests/browser/competition.spec.ts --grep "independent browsers finish"
 ```
 
-GitHub Actions 的 **Run workflow** 默认选择 `browser_suite: eight-only`，只运行上述一场。只有明确需要追加检查时才选择 `all`，增加单元和两个动画专项。复验失败时先检查原始错误和换场 checkpoint，修复后仅重跑必要用例。
+GitHub Actions 的 **Run workflow** 默认选择 `browser_suite: eight-only`，只运行一场八人完整比赛及关键短回归。只有明确需要追加检查时才选择 `all`，增加完整单元、长赛程、地图矩阵和动画专项；八人仍为一场。复验失败时先检查原始错误和 checkpoint，修复后仅重跑必要用例。
 
 
 ## 已完成的本地自动化
