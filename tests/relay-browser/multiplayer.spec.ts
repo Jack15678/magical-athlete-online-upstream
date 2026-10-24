@@ -4,7 +4,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { boundedRead, playbackRecord, preparePlaybackProbe, skipQueuedPlayback, type PlaybackRecord } from './playback-diagnostics.js';
 
 const url=process.env.RELAY_URL??'http://127.0.0.1:8787';
-const smoke=process.env.RELAY_SMOKE==='1';
 async function captureRace(page:Page,path:string){await page.getByTestId('board-3d').scrollIntoViewIfNeeded();await boundedRead(page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())))),'capture-frame read');await page.getByTestId('board-3d').screenshot({path:path.replace(/\.png$/,'-board.png')});await page.screenshot({path,fullPage:true});}
 async function synced(page:Page,version:number){await expect.poll(async()=>Number(await page.locator('.game-shell').getAttribute('data-room-version'))).toBeGreaterThanOrEqual(version);}
 /** Keep failure diagnostics in the Node test process. A stalled renderer must
@@ -141,9 +140,11 @@ test('playback skip accepts natural completion while its optional button is movi
   await expect(page.getByRole('button',{name:'掷骰子',exact:true})).toBeEnabled();
 });
 
-for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?'one race, host/guest recovery, privacy and layout':'four races, host recovery, privacy and rematch'}`,async({browser})=>{
-  // CI smoke completes one full race on eight isolated software WebGL clients.
-  // The default manual mode retains the complete four-race game and rematch.
+for(const n of [2,6,8]){
+  // Eight clients always stop after one complete race, even if a manual command
+  // requests a longer match. Two/six-client full matches remain explicit opt-ins.
+  const smoke=n===8||process.env.RELAY_SMOKE!=='0';
+test(`server authority ${n} independent players: ${smoke?'one race, host/guest recovery, privacy and layout':'four races, host recovery, privacy and rematch'}`,async({browser})=>{
   if(process.env.CI&&n===8)test.setTimeout(900_000);
   const contexts:BrowserContext[]=[],pages:Page[]=[],errors:string[]=[];
   const playbackControls={reads:0,attempts:0,clicked:0,elapsedMs:0,maxMs:0};
@@ -301,3 +302,4 @@ for(const n of [2,6,8])test(`server authority ${n} independent players: ${smoke?
     }
   }
 });
+}
