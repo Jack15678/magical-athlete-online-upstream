@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Eyes as InkyEyes } from './expansion-portrait-parts.js';
 
 // Hand-drawn vector counterparts to the original box's flat, inked portraits.
 // The Avatar component supplies the shared 120 × 120 viewport and outline.
@@ -6,11 +7,7 @@ const ink = '#191919', paper = '#fffdf4', yellow = '#ffda27', red = '#f44735';
 const blue = '#254de4', pink = '#f6a8d0', green = '#b5d66b', purple = '#9664bb';
 
 function Eyes({ x, y, gap = 18 }: { x: number; y: number; gap?: number }) {
-  return <g fill={paper}>
-    <ellipse cx={x} cy={y} rx="6.3" ry="8" />
-    <ellipse cx={x + gap} cy={y - 1} rx="6.3" ry="8" />
-    <g fill={ink} stroke="none"><circle cx={x + 1.8} cy={y + 1} r="2.6" /><circle cx={x + gap + 1.8} cy={y} r="2.6" /></g>
-  </g>;
+  return <InkyEyes x={x} y={y} gap={gap} rx={5.5} ry={7.2} offset={-1} />;
 }
 
 export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
@@ -25,6 +22,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <Eyes x={51} y={39} gap={18} />
     <path d="m50 33 7-2m10 0 8 2M51 52q11 11 22-1m-17-5 4 3M21 101l9 8m66-24 5 7" fill="none" />
     <path d="m85 31 12 2-6 10-8-2" fill={purple} />
+    <path d="m42 72 6 1m12 3 8 2M19 105h10m55-7 5-3m-57-53 6 2m50 28 6-5" fill="none" stroke={paper} strokeWidth="1.2" /><path d="m43 19 3-2m9-6 3 1m12 1 3 2m8 6 1 3" fill="none" stroke={paper} strokeWidth="1.1" /><path d="m46 57 5 2m23-3 3-1" fill="none" stroke="#ba7e9f" strokeWidth="1" />
   </>,
 
   'show-off': <>
@@ -40,6 +38,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <Eyes x={49} y={39} gap={20} />
     <path d="M60 46q-8 7-4 20l8 9q11 3 14-8 2-9-6-9l-3 6-6-5 3-12" fill={purple} />
     <path d="m39 51-8 8 13-3m35-5 9 8-13-2M21 37l8 7m63-5-7 6" fill={paper} />
+    <path d="M37 18q11-8 21-7m-2 13 8 2M21 34q-7 6 0 15m77-11q8 7 1 15M33 96l9 4m25-3 7 5" fill="none" stroke={paper} strokeWidth="1.2" opacity=".7" /><path d="m58 55 3 1m-2 5 3 1m0 6 3 1m-35 36 11-3m27 5 11-2" fill="none" stroke="#65487e" strokeWidth="1.1" /><g fill={paper} stroke="none"><circle cx="28" cy="109" r="1.2" /><circle cx="45" cy="105" r="1.2" /><circle cx="65" cy="111" r="1.2" /><circle cx="82" cy="110" r="1.2" /></g>
   </>,
 
   soulmate: <>
@@ -54,11 +53,13 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M59 69q13-10 14 0l-1 14q-7 10-14 0z" fill={red} />
     <path d="M65 73v11m-36-22-16-5m17 12-18 1m72-17 18-8" fill="none" />
     <path d="m30 78-12 9m62-11 13 8" fill="none" />
+    <path d="m27 37-2 7m61-14 2 4M39 83l5 3m32-3-5 3m-39 20h8m42 1h5" fill="none" stroke="#dc994d" strokeWidth="1.2" /><path d="m34 31 3 0m35-5 3 0M100 88q7-3 6-9" fill="none" stroke={paper} strokeWidth="1.4" /><path d="m51 88 7 3 6-2" fill="none" stroke={paper} strokeWidth="1.1" />
   </>,
 
   'speed-demon': <>
     <g fill={ink}><circle cx="26" cy="95" r="17" /><circle cx="94" cy="95" r="17" /></g>
     <g fill={paper}><circle cx="26" cy="95" r="9" /><circle cx="94" cy="95" r="9" /></g>
+    <path d="m20 89 12 12m-12 0 12-12m56 0 12 12m-12 0 12-12" fill="none" stroke="#858699" strokeWidth="1.2" /><g fill="#858699" strokeWidth="1.2"><circle cx="26" cy="95" r="2.8" /><circle cx="94" cy="95" r="2.8" /></g>
     <path d="m26 95 24-28 24 28H26m49-27 19 27M70 69l12-15h12" fill="none" stroke="#858699" strokeWidth="5" />
     <path d="M38 69q9-15 31-8l15 16-9 15H42l-11-9z" fill={red} />
     <path d="M25 70h35M76 66l13-3 10 8M49 91h17m-14-13h15" fill="none" />
@@ -70,7 +71,9 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M42 19 36 6l14 10m12 6L69 9l4 18" fill="#a1aa50" />
     <path d="m47 28 8 3m4-4 8 1M52 40q9 4 14-3" fill="none" />
     <g fill={paper}><path d="m45 28 10 3-3 7-7-3zm14-1 9 1 1 7-9 2z" /></g>
+    <g fill={ink} stroke="none"><ellipse cx="51" cy="33" rx="1.7" ry="2.4" /><ellipse cx="65" cy="32" rx="1.7" ry="2.4" /></g><path d="m42 24 4-3m13-1 4 1" fill="none" stroke={paper} strokeWidth="1.2" />
     <path d="m12 60 13-4m-12 15h10M85 50l9 1" fill="none" />
+    <path d="m43 73 7-3m16-3 7 4M39 83h8m17 0h7M39 47l3 8m20 4 4 1" fill="none" stroke={paper} strokeWidth="1.1" opacity=".7" /><path d="m30 24 8 0m0-7 6 4" fill="none" stroke={yellow} strokeWidth="1.2" /><circle cx="59" cy="83" r="3" fill="#9da9a6" strokeWidth="1.2" />
   </>,
 
   spoilsport: <>
@@ -84,6 +87,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <ellipse cx="61" cy="63" rx="23" ry="16" fill="#f486ae" />
     <g fill={ink} stroke="none"><ellipse cx="51" cy="63" rx="5" ry="7" /><ellipse cx="71" cy="63" rx="5" ry="7" /></g>
     <path d="M47 82q15-12 28 1m-48 0-14-9m79 9 14-7" fill="none" />
+    <path d="m28 19 6 5m57-3 7-4M39 76l3 1m38-1 3-1M35 99l5 0m38 1 5 0m-27-8 5 3 6-3" fill="none" stroke="#bd7d99" strokeWidth="1.2" /><path d="m34 59-1 7m55-8 1 8" fill="none" stroke={paper} strokeWidth="1.2" />
   </>,
 
   stepdad: <>
@@ -99,6 +103,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="m51 72 11 6-11 7zm22 0-11 6 11 7z" fill={blue} />
     <path d="M27 106 16 112h29l9-7m17 0 9 8h24l-11-9" fill={purple} />
     <path d="M30 91h7m39 0h8M43 47l-6-4m39 5 7-5" fill="none" />
+    <path d="M42 97h-5v6h5m37-6h-5v6h5M47 89h7m12 0h7m-15 6h1m-1 7h1M99 19v9" fill="none" stroke={yellow} strokeWidth="1.2" /><path d="m43 49 5 2m29-2-5 2m-21 8 1 11m20-10 1 11" fill="none" stroke="#b58265" strokeWidth="1" /><path d="M45 14q7-4 15-4" fill="none" stroke={paper} strokeWidth="1.2" opacity=".65" />
   </>,
 
   streaker: <>
@@ -109,6 +114,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M50 35 65 7q8 9 12 25l-2 14-15 10-11-5-1-8-19-4q-6-5 1-8z" fill="#f6d8a0" />
     <Eyes x={56} y={33} gap={15} />
     <path d="M52 46q8 8 17-1m-13 20 6 4M18 103l-2 5m80-7 4 8M18 26l12 2m-17 9h10" fill="none" />
+    <path d="m60 20 3-5m6 3 2 5M27 70l-4 1m66 0-4 1M51 74l3 2m11-1 3-2m-25 29-5 3m42-1 4 5" fill="none" stroke="#ca9d67" strokeWidth="1.1" /><path d="m17 106 8 0m65-2 7-1" fill="none" stroke={paper} strokeWidth="1.2" />
   </>,
 
   stunner: <>
@@ -120,6 +126,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M38 47q8-9 16 0m15 0q9-9 16-1M40 43l-4-5m13 5 1-6m21 5v-6m11 5 4-5" fill="none" />
     <path d="M44 64q10-9 17-2 9-8 18-1-5 19-18 17-12 1-17-14z" fill={red} />
     <path d="M47 65q14 4 28-2" fill="none" />
+    <path d="M32 34q-5 7-4 16m17-26 6 1m24 0 5 2m12 14 2 9M29 70q0 10 7 14m53-13q0 10-7 14" fill="none" stroke={yellow} strokeWidth="1.3" /><path d="m59 8 3 10M47 69q8 6 14 5m6-2 5-4" fill="none" stroke="#af4d28" strokeWidth="1.1" />
   </>,
 
   switcharoo: <>
@@ -137,6 +144,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M54 60q6 6 13-2m-22 10-18 7m51-10 11 10" fill="none" />
     <path d="M44 78q17 10 35-1l-5 18q-14 9-25-1z" fill="#f2d4a2" />
     <path d="m49 83 4 4m14 1 5-5" fill="none" />
+    <path d="M38 35q4-4 8-3m18 2q4-4 8-3" fill="none" stroke={paper} strokeWidth="1.7" /><path d="m51 92 4 2m3-1 4 2m3-2 4-1M31 108l11-3m43 2 9 3M85 86l10-2" fill="none" stroke="#dc994d" strokeWidth="1.1" /><path d="m51 69 5 3 5-3" fill="none" stroke={paper} strokeWidth="1.1" />
   </>,
 
   tail: <>
@@ -146,6 +154,7 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M69 52q8 19-12 29-11 6-27 4" fill="none" />
     <Eyes x={55} y={31} gap={21} />
     <path d="m52 45 7 4 11-5m-6 31 8 3m9-17 8 3" fill="none" />
+    <path d="m84 32 5 3-1 5m4 7 4 4-1 5m-3 10-3 3m-6 5-4 3m-9 5-4 3M42 103l3-6m35 5-2-6" fill="none" stroke="#4e914f" strokeWidth="1.2" /><path d="M60 23q9-3 17 1m-24 65-9 1" fill="none" stroke={paper} strokeWidth="1.3" opacity=".65" />
   </>,
 
   'the-hose': <>
@@ -159,11 +168,11 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="M29 48V28q0-18 18-18h23l10 10-10 10H49q-6 0-6 7v15z" fill={green} />
     <path d="m70 12 17 1 5 7-6 10-16-1z" fill="#dfb54b" />
     <path d="m86 14 12-5 8 17-14 4z" fill={yellow} />
-    <path d="m99 12 6 13" fill="none" />
-    <g fill={paper}><ellipse cx="39" cy="26" rx="6" ry="8" /><ellipse cx="56" cy="24" rx="6" ry="8" /></g>
-    <g fill={ink} stroke="none"><circle cx="41" cy="27" r="2.5" /><circle cx="58" cy="25" r="2.5" /></g>
+    <path d="m99 12 6 13" fill="none" /><path d="m76 15 2 11m5-11 2 10" fill="none" stroke="#ae8330" strokeWidth="1.2" />
+    <InkyEyes x={39} y={26} gap={17} small offset={-5} />
     <path d="M39 40q9 6 17-1M26 61q28 15 62 0m-63 16q29 15 63 0m-63 16q30 14 64-1" fill="none" />
     <path d="M110 10q10 10 0 11-7-1 0-11z" fill="#58b9e5" />
+    <path d="m23 53 4 3m2 12 4 3m-10 14 4 3m7 9 5 2m45-42 5-3m-4 20 5-3m-6 20 5-3" fill="none" stroke="#4e914f" strokeWidth="1.1" /><path d="M33 33v7m2 15 9 2m-11 14 10 3m-9 14 9 3" fill="none" stroke={paper} strokeWidth="1.2" opacity=".65" />
   </>,
 
   understudy: <>
@@ -179,7 +188,8 @@ export const SECOND_WIND_PORTRAITS_C: Record<string, ReactNode> = {
     <path d="m57 53 10 3 8-4" fill="none" />
     <path d="m36 57 10 1 2 7 8-5 7 7 7-6 8 3 7-7 4 12-13 7-16-4-13 1-10-9z" fill={paper} />
     <path d="m86 73 23-6v33l-23 8-13-7V69z" fill={paper} />
-    <path d="M86 73v35m5-30 11-3m-11 11 11-3m-11 11 8-2m-20-16 3 2m-3 9 3 2" fill="none" />
+    <path d="M86 73v35m5-30 11-3m-11 11 11-3m-11 11 8-2m-20-16 3 2m-3 9 3 2" fill="none" strokeWidth="1.4" /><path d="m104 69 0 28-15 5m-11-28 0 5" fill="none" stroke="#c5b994" strokeWidth="1" />
     <path d="M81 82q-11-5-11 3l10 8 7-4" fill={purple} />
+    <path d="m43 18 4-3m31 1 5 4M33 66l5 3m39-2 4 2m-32 22 3 2m10-2 3 2M28 107h8m45 0h9" fill="none" stroke={paper} strokeWidth="1.2" opacity=".7" /><path d="m88 100 4-1v6l-2-1-2 2z" fill={red} strokeWidth="1" /><path d="m58 13 5-5" fill="none" stroke="#6a934c" strokeWidth="1" />
   </>,
 };
