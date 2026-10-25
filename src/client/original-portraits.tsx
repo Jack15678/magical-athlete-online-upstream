@@ -1,204 +1,233 @@
 import type { ReactNode } from 'react';
 
-// Original pen-and-ink drawings. Back limbs and props are drawn before the body;
-// faces and held objects sit in front, so no construction line crosses a face.
-const yellow = '#ffda27', red = '#f44735', blue = '#254de4', pink = '#f6a8d0';
-const green = '#b5d66b', paper = '#fffdf4', ink = '#191919';
-const warm = '#e8b967', rose = '#d77591', slate = '#67849b';
+// Species, costume, palette and props follow the delivered model previews and manifest.
+const paper='#fffdf4', ink='#191919', green='#78af80', darkGreen='#4e8c72', olive='#a6a34c';
+const blue='#87bbd6', violet='#9b73c7', pink='#ef83b6', red='#f44735', orange='#ef9544';
+const skin='#e1a177', yellow='#e7cb79', grey='#c6d2cf', brown='#a07b46';
 
 export function Eyes({ x = 46, y = 42, gap = 23, small = false }: { x?: number; y?: number; gap?: number; small?: boolean }) {
   const rx = small ? 5.1 : 7, ry = small ? 6.7 : 9;
   return <g fill={paper} strokeWidth="2"><ellipse cx={x} cy={y} rx={rx} ry={ry} /><ellipse cx={x + gap} cy={y - 1} rx={rx} ry={ry} /><g fill={ink} stroke="none"><ellipse cx={x + 1.3} cy={y + 1} rx={small ? 2.1 : 2.8} ry={small ? 3.1 : 4} /><ellipse cx={x + gap + 1.3} cy={y} rx={small ? 2.1 : 2.8} ry={small ? 3.1 : 4} /></g><g fill={paper} stroke="none"><circle cx={x + 0.3} cy={y - 0.6} r="1" /><circle cx={x + gap + 0.3} cy={y - 1.6} r="1" /></g></g>;
 }
-function Feet({ x = 38, y = 94, gap = 36 }: { x?: number; y?: number; gap?: number }) {
-  const end = Math.min(y + 16, 112), sole = end + 2;
-  return <g><path d={`M${x} ${y}v${end-y-3}m${gap} ${-(end-y-3)}v${end-y-3}`} fill="none" strokeWidth="4" /><path d={`M${x-4} ${end-5}h8v8h-18q-2-6 10-8zM${x+gap-4} ${end-5}h8q12 2 10 8h-18z`} fill={ink} /><path d={`M${x-11} ${sole}h14m${gap-6} 0h14`} stroke={paper} strokeWidth="1.3" /></g>;
+function Gaze({x,y,gap=17,size=4}: {x:number;y:number;gap?:number;size?:number}) {
+  return <g strokeWidth="1.25" fill={paper}><ellipse cx={x} cy={y} rx={size} ry={size*1.35}/><ellipse cx={x+gap} cy={y-1} rx={size} ry={size*1.35}/><g fill={ink} stroke="none"><ellipse cx={x+.8} cy={y+.4} rx={size*.43} ry={size*.7}/><ellipse cx={x+gap+.8} cy={y-.6} rx={size*.43} ry={size*.7}/></g><g fill={paper} stroke="none"><circle cx={x+.4} cy={y-.8} r=".7"/><circle cx={x+gap+.4} cy={y-1.8} r=".7"/></g></g>;
 }
-function Blush({ x, y, gap = 30 }: { x:number; y:number; gap?:number }) { return <g fill={rose} opacity=".45" stroke="none"><ellipse cx={x} cy={y} rx="4" ry="2.3" /><ellipse cx={x+gap} cy={y-1} rx="4" ry="2.3" /></g>; }
+function Shoes({x=45,y=108,gap=28,color=ink}: {x?:number;y?:number;gap?:number;color?:string}) {
+  return <g fill={color}><path d={`M${x-6} ${y-5}h11v8h-17q-2-5 6-8zM${x+gap-5} ${y-5}h11q8 3 6 8h-17z`}/></g>;
+}
+function Pips({x,y,color=paper}: {x:number;y:number;color?:string}) {
+  return <g transform={`translate(${x} ${y})`}><rect width="12" height="12" rx="2" fill={color} strokeWidth="1.25"/><g fill={ink} stroke="none"><circle cx="3.4" cy="3.4" r="1"/><circle cx="8.6" cy="8.6" r="1"/><circle cx="6" cy="6" r="1"/></g></g>;
+}
 
 export const ORIGINAL_PORTRAITS: Record<string, ReactNode> = {
   alchemist: <>
-    <Feet x={43} y={96} gap={28} /><path d="m28 71-14-9m74 10 17-15" fill="none" /><circle cx="13" cy="61" r="3" fill={green} />
-    <path d="M43 12h30v13L65 35l23 36q18 29-15 30H43Q13 102 27 75l25-40-9-10z" fill={green} />
-    <path d="M29 73q15-10 30-2 16 8 28 0l5 12q3 16-23 16H43Q20 98 27 81z" fill={blue} />
-    <path d="M45 12h26v10H45z" fill={warm} /><path d="M50 14v5m7-5v5m7-5v5M38 53l-7 15" fill="none" stroke={paper} strokeWidth="3" />
-    <Eyes x={48} y={55} gap={22} /><path d="M52 82q10 8 20-1" fill="none" /><circle cx="40" cy="83" r="2" fill={paper} stroke="none" /><circle cx="77" cy="89" r="2.5" fill={paper} stroke="none" />
-    <circle cx="95" cy="27" r="7" fill={yellow} /><circle cx="104" cy="13" r="3" fill={green} /><path d="M89 25l2-2m7 14 3 4" stroke={paper} strokeWidth="2" />
+    <Shoes x={47} y={109} gap={27}/><path d="M42 53q17-8 34 0l11 50q-26 11-54 0z" fill={green}/><path d="M40 65 25 80l9 8m42-22 12 18-13 4" fill="none" stroke={green} strokeWidth="10"/>
+    <path d="M43 33q16-13 32 0v24q-16 16-32-1z" fill={pink}/><Gaze x={50} y={39} gap={17} size={3}/><ellipse cx="61" cy="48" rx="7" ry="9" fill={skin}/>
+    <path d="m44 47 9 7 8-4 8 4 8-7-4 30-9-7-5 12-8-8-7 4z" fill={orange}/><path d="M51 56v13m9-11v15m9-16v10" fill="none" stroke="#a86b4a" strokeWidth="1.4"/>
+    <path d="M39 34q7-12 5-24 13-4 20 12l13 13z" fill={green}/><path d="M36 34q25 7 45 0" fill="none" stroke={darkGreen} strokeWidth="5"/><path d="m48 13 5 4" stroke={paper} opacity=".6"/>
+    <path d="M28 81h40l-4 20q-17 12-33-1z" fill={violet}/><ellipse cx="48" cy="81" rx="20" ry="5" fill={darkGreen}/><path d="M31 85q-13-9-12 5 1 9 13 5m35-10q13-9 12 5-1 9-14 5" fill="none" stroke={violet} strokeWidth="3"/>
+    <path d="m46 81-7-20" stroke={brown} strokeWidth="3"/><circle cx="39" cy="61" r="4" fill={pink}/><path d="M54 75q-5-7 1-12" fill="none" stroke={paper} strokeWidth="1.7"/>
   </>,
   'baba-yaga': <>
-    <path d="m43 90-10 18-12 3m12-3 6 7m39-25 9 18 14 3m-14-3-6 7" fill="none" strokeWidth="3" />
-    <path d="M28 43h65v49H28z" fill={yellow} /><path d="M28 82h65M29 74h12m39 0h12M29 53h11m40 0h12" stroke={warm} strokeWidth="2" />
-    <path d="M28 34V14h11v12" fill={blue} /><path d="M17 45 60 13l43 32-5 5-38-25-38 25z" fill={red} /><path d="m35 37 9-6m4-3 8-6m16 10 10 7" stroke={paper} strokeWidth="1.5" opacity=".7" />
-    <path d="M39 52h43v22H39z" fill={warm} /><Eyes x={49} y={63} gap={24} small /><path d="M50 92V79q11-8 21 0v13" fill={blue} /><circle cx="66" cy="85" r="1.5" fill={yellow} stroke="none" />
-    <path d="m12 29 2-6 2 6 6 2-6 2-2 6-2-6-6-2z" fill={blue} /><path d="M33 10q-5-3-1-7" fill="none" stroke={slate} strokeWidth="2" />
+    <path d="m47 62-4 27-8 19m40-46 3 23-11 23" fill="none" stroke={yellow} strokeWidth="7"/><path d="m35 107-13 5m13-5 2 8m30-8-12 6m12-6 6 7" fill="none" stroke={orange} strokeWidth="2.4"/>
+    <path d="M30 29h54v35H30z" fill={paper}/><path d="m84 29 10-6v34l-10 7z" fill={grey}/><path d="M31 39h51M31 50h51M31 60h51" stroke="#b4bcb2" strokeWidth="1.2"/>
+    <path d="m22 30 35-21 40 20-13 4-27-14-27 14z" fill={orange}/><path d="M75 19V8h8v15" fill={brown}/><path d="M40 36h13v13H40zm23 0h13v13H63z" fill={blue}/><path d="M46 36v13m-6-7h13M69 36v13m-6-7h13" fill="none" stroke={paper} strokeWidth="1.3"/>
+    <path d="M53 53h12v11H53z" fill={brown}/><circle cx="62" cy="59" r="1" fill={yellow} stroke="none"/><path d="m32 27 19-11" stroke={paper} strokeWidth="1.6" opacity=".6"/>
   </>,
   banana: <>
-    <path d="m38 92-15 16H11m59-17 12 17h14M27 82 10 72M89 55l17-6" fill="none" />
-    <path d="M81 15q-1 44-37 56-16 7-29-3 2 27 23 30 42 3 60-42 8-21 1-38z" fill={yellow} />
-    <path d="M81 17 85 8l10 2 2 9z" fill={warm} /><path d="M25 80q14 14 35 4m-11 10q35-10 44-47" fill="none" stroke={warm} strokeWidth="3" />
-    <Eyes x={79} y={54} gap={12} small /><path d="M74 72q9 4 15-7" fill="none" /><path d="m85 29-2 9" stroke={paper} strokeWidth="3" /><path d="m19 70 5 2" strokeWidth="3" />
+    <path d="M80 16q8 29-6 52-8 15-27 21-14 4-15-7 0-7 10-14 25-17 24-52z" fill={yellow}/><path d="m66 17-3-10 10-1 5 11z" fill={brown}/><path d="M69 26q2 29-18 48" fill="none" stroke="#f7e6a8" strokeWidth="3"/>
+    <path d="M49 89v18m17-29v28" fill="none" stroke={orange} strokeWidth="4"/><path d="m49 106-12 7m12-7 2 8m15-8-12 7m12-7 4 8" fill="none" stroke={orange} strokeWidth="2"/>
+    <Gaze x={69} y={44} gap={10} size={2.6}/><path d="M67 59q6 4 11-3" fill="none" strokeWidth="1.7"/><path d="M47 74q-3 4-4 8" fill="none" stroke="#b9a054" strokeWidth="1.5"/>
   </>,
   blimp: <>
-    <path d="M50 76 54 91m29-15-5 15" fill="none" /><path d="M50 89h33l-4 15H54z" fill={blue} /><path d="M59 93h5v6h-5zm11 0h5v6h-5z" fill={paper} strokeWidth="1.4" />
-    <path d="m23 41-17-9 5 18-5 18 18-9" fill={blue} /><path d="M16 49q0-31 47-31 44 1 45 31-2 29-45 29-45 0-47-29z" fill={pink} />
-    <path d="M42 22q-17 26-1 51m42-51q16 26 0 51M22 35q39-13 78 1" fill="none" stroke={rose} strokeWidth="2" /><path d="M48 25q12-3 24-1" stroke={paper} strokeWidth="3" fill="none" />
-    <Eyes x={55} y={45} gap={22} /><path d="M59 65q11 6 21-1" fill="none" /><path d="M67 104v7m-8-1h16M10 86h15m-8 7h18" fill="none" stroke={slate} strokeWidth="1.8" />
+    <path d="M88 38 94 24l7 1-1 21m-8 19 8 12 7-3-6-17" fill={grey}/><path d="M45 75v15h23V74" fill={grey}/><path d="M52 78v7h9v-7" fill={blue} strokeWidth="1.5"/>
+    <path d="M17 55q2-26 43-27 41 0 44 26-2 25-43 26-42 1-44-25z" fill={grey}/><path d="M41 31q-11 23 0 46m38-46q10 23 0 45M23 45q39-14 73 0" fill="none" stroke="#94aba6" strokeWidth="1.4"/>
+    <Gaze x={26} y={53} gap={9} size={2.6}/><ellipse cx="19" cy="61" rx="5" ry="3" fill={pink}/><path d="M27 67q5 3 10 0M46 35q14-3 27-1" fill="none" strokeWidth="1.5"/><path d="M13 84h14m-10 8h20" stroke={blue} strokeWidth="1.8"/>
   </>,
   centaur: <>
-    <path d="m55 79 1 26 9 5m28-31-2 26 10 5" fill="none" stroke={warm} strokeWidth="6" /><path d="M94 69q18-14 16 5l-4 10" fill="none" stroke={red} strokeWidth="5" />
-    <path d="M34 62h53q17 0 16 17l-5 11H40q-13-1-10-15z" fill={red} /><path d="m40 84-8 24H21m62-23 6 24h13" fill="none" strokeWidth="5" />
-    <path d="M31 65V45q0-12 18-12 20 0 21 14v22z" fill={blue} /><path d="m35 47-17 9m48-9 17-8" fill="none" strokeWidth="4" /><path d="M36 14q4-12 18-10 17 3 15 19l-3 13H38z" fill={warm} />
-    <path d="M38 17q-4-12 9-13 12-2 20 10L54 11l-10 8z" fill={red} /><Eyes x={46} y={24} gap={15} small /><path d="M45 36q8 4 15-1M40 51h19M43 64v-7" fill="none" strokeWidth="1.8" /><path d="M74 73h17" stroke={paper} strokeWidth="2" opacity=".6" />
+    <path d="m56 80 1 24m34-25v24" stroke={red} strokeWidth="8"/><path d="M96 61q15-12 15 5l-4 18q-2-13-10-11" fill={paper}/>
+    <path d="M36 61h50q16 1 17 16l-6 15H41q-13-2-12-17z" fill={red}/><path d="m40 84-3 23m43-23 3 23" fill="none" stroke={red} strokeWidth="9"/><g fill={ink}><ellipse cx="36" cy="109" rx="7" ry="4"/><ellipse cx="58" cy="106" rx="6" ry="4"/><ellipse cx="84" cy="109" rx="7" ry="4"/><ellipse cx="92" cy="105" rx="6" ry="4"/></g>
+    <path d="M44 36q-12 2-13 17l5 15h30l6-16q-1-14-13-16z" fill={skin}/><path d="M35 47 26 59l15 4m25-15 9 13-14 3" fill="none" stroke={skin} strokeWidth="7"/>
+    <path d="M40 21q0-16 16-15 17 0 17 19l-4 23-8-8-20-9z" fill={paper}/><ellipse cx="52" cy="25" rx="15" ry="18" fill={skin}/><Gaze x={46} y={23} gap={12} size={2.8}/><path d="M47 36q6 4 12-1M48 50h12" fill="none" strokeWidth="1.6"/><path d="M67 16v15" stroke="#c9cabe" strokeWidth="1.5"/>
   </>,
   cheerleader: <>
-    <Feet x={47} y={94} gap={26} /><path d="m43 53-17-20m50 20 17-22" fill="none" strokeWidth="5" /><path d="m45 48-13 47h55L71 48z" fill={blue} /><path d="m42 57 17 10 17-10M37 84h45" stroke={paper} strokeWidth="3" fill="none" />
-    <path d="M37 29q-2-21 23-22 24 1 23 22v15H38z" fill={warm} /><circle cx="59" cy="29" r="19" fill={pink} /><path d="M41 18q17-17 36 2l-18-5-18 8" fill={warm} />
-    <Eyes x={51} y={28} gap={17} small /><path d="M51 42q8 5 16-2" fill="none" /><Blush x={44} y={38} gap={30} />
-    <path d="m19 14 4 9 9-7-2 11 12 1-10 7 4 10-12-5-7 9-1-12-12-2 10-7-5-10zM96 12l3 11 12-5-6 11 10 6-12 2-1 12-8-9-11 5 4-12-10-7 12-1 1-11z" fill={red} /><path d="m16 29 11 8m-4-11-3 14m71-10 12 6m-7-12-3 16" stroke={paper} strokeWidth="1.5" />
+    <Shoes x={47} y={109} gap={26} color={blue}/><path d="M36 55 23 34m60 21 14-22" fill="none" stroke={red} strokeWidth="9"/>
+    <path d="M31 51q0-22 28-22 29 0 29 24v35q-2 21-29 22-28-1-28-22z" fill={red}/><path d="m33 42-5 5 5 3m52-8 5 5-4 4m-52 36-4 4 4 3m51-8 5 5-4 3" fill="none" strokeWidth="1.5"/>
+    <Gaze x={46} y={49} gap={24} size={4.7}/><ellipse cx="59" cy="64" rx="15" ry="10" fill={violet}/><path d="M45 80q15-8 28 0l-4 12H50z" fill={ink}/><path d="M48 81h22v5H48z" fill={paper} strokeWidth="1"/><path d="M54 81v5m8-5v5" strokeWidth="1"/>
+    <circle cx="23" cy="33" r="6" fill={paper}/><circle cx="96" cy="33" r="6" fill={paper}/><path d="M14 29 9 18q-1-5 3-5l7 10-3-13q0-5 4-4l5 15 2-12q2-4 5-1l-2 16 6-7q4-3 6 1l-10 15zm74 0-5-11q-1-5 3-5l7 10-3-13q0-5 4-4l5 15 2-12q2-4 5-1l-2 16 6-7q4-3 6 1l-10 15z" fill={violet}/><path d="m19 17 4 10m7-10-3 11m66-10 1 10m8-10-5 12" stroke={paper} opacity=".6" strokeWidth="1.3"/>
   </>,
   coach: <>
-    <Feet x={43} y={100} gap={33} /><path d="m30 65-16 12m76-12 16 11" fill="none" strokeWidth="4" /><path d="M29 56q31-13 60 0l5 46H24z" fill={blue} /><path d="M34 59v40m49-41v41" stroke={paper} strokeWidth="2" opacity=".75" />
-    <path d="M37 31q0-23 24-22 25 0 23 23v22H37z" fill={yellow} /><path d="M33 24q2-18 26-17 25 0 25 17z" fill={red} /><path d="M31 24h57l16 7H76" fill={red} /><path d="M56 11v9" stroke={paper} strokeWidth="2" />
-    <Eyes x={50} y={38} gap={22} small /><path d="M50 52q10 5 21-1m-24 9 14 22 13-22" fill="none" /><circle cx="61" cy="83" r="7" fill={paper} /><path d="m59 81 4-1v4h-4zM41 69h8v10h-8z" fill={yellow} strokeWidth="1.4" />
+    <path d="M83 84q22 10 19-13-5 9-15 5" fill={green}/><Shoes x={43} y={109} gap={29} color={red}/><path d="M36 58q23-8 46 0l8 43H29z" fill={paper}/><path d="M45 60v41h30V60" fill={green}/><path d="M54 65h10m-10 9h10m-10 9h10m-10 9h10" stroke={darkGreen} strokeWidth="1.5"/>
+    <path d="M34 64 22 77l-9-4m69-9 13 12-8 8" fill="none" stroke={red} strokeWidth="10"/><circle cx="13" cy="73" r="6" fill={green}/>
+    <path d="M40 32q-1-20 21-20 22 0 22 20v15q-23 17-45 1l-11-7q-3-10 13-9z" fill={green}/><Gaze x={52} y={29} gap={17} size={3.5}/><path d="M36 45q16 9 35 1" fill="none" strokeWidth="1.5"/><path d="M36 22q1-18 25-17 22 0 24 17zM34 23h49l10 5H38z" fill={red}/>
+    <path d="m80 66 23-7 1 22-24-7z" fill={violet}/><ellipse cx="103" cy="70" rx="6" ry="11" fill={blue}/><ellipse cx="103" cy="70" rx="3" ry="6" fill={ink}/><path d="m78 75-1 8h7v-7" fill={violet}/><path d="M37 61v31m44-30v30" stroke={red} strokeWidth="2"/>
   </>,
   copycat: <>
-    <path d="M23 85q-17 5-16-13" fill="none" stroke={blue} strokeWidth="5" /><path d="M20 61V21l18 13 20-14v43q0 23-19 23T20 61z" fill={blue} /><path d="m25 31 9 6m14-1 5-7" stroke={paper} opacity=".55" strokeWidth="2" /><Eyes x={30} y={49} gap={18} small /><path d="m34 65 5 3 5-4M23 67l-10-3m11 9-11 3" fill="none" />
-    <path d="M93 96q18 1 16-14" fill="none" stroke={pink} strokeWidth="5" /><path d="M51 83V41l20 13 22-13v44q0 22-21 22T51 83z" fill={pink} /><path d="m57 52 11 6m15-2 6-6" stroke={rose} strokeWidth="2" /><Eyes x={62} y={76} gap={20} small /><path d="m68 91 5 3 5-4m-5 4v6m-20-7-10-2m49 1 11-2" fill="none" /><path d="M58 107v7m27-7v7" strokeWidth="4" />
+    <path d="M30 91q-22 10-22-9m87 10q17 3 16-15" fill="none" stroke={blue} strokeWidth="5"/>
+    <path d="M16 66q-2-25 4-45l13 12 17-15 8 28v50q-2 13-20 13-19 0-21-13z" fill={blue}/><path d="M62 71q-2-23 4-40l14 10 16-15 8 26v45q-1 12-20 12-19 0-21-12z" fill={blue}/>
+    <Gaze x={28} y={48} gap={15} size={3.5}/><Gaze x={75} y={57} gap={15} size={3.5}/><path d="m32 60 5 3 5-4m33 10 6 3 5-4" fill={skin}/><path d="m29 65 8 3 9-4m28 12 8 3 10-4" fill="none" strokeWidth="1.4"/>
+    <path d="m20 72 17 6 17-7-7 14-10-7-9 7zm47 9 15 5 17-7-6 14-11-7-8 6z" fill={paper}/><path d="m35 79-3 20 6 6 5-8-4-18" fill={yellow}/><path d="m81 87-3 15 6 5 4-8-4-12" fill={violet}/><path d="M26 107v5h10m52-5v5h11m-60-5v5h9m19-5v5h10" stroke={blue} strokeWidth="5"/>
   </>,
   dicemonger: <>
-    <path d="m36 99-8 12H17m58-13 7 13h12M28 60 12 68m84-10 14-8" fill="none" strokeWidth="3" />
-    <path d="m26 30 51-14 23 22v51l-54 15-20-22z" fill={yellow} /><path d="m26 30 20 23 54-15M46 53v51" fill="none" /><path d="m30 39 11 13v42L30 81z" fill={warm} stroke="none" />
-    <g fill={red} strokeWidth="1.6"><circle cx="42" cy="33" r="3" /><circle cx="69" cy="26" r="3" /><circle cx="76" cy="40" r="3" /></g><Eyes x={63} y={65} gap={20} small /><path d="M62 84q11 6 22-4" fill="none" /><path d="m53 57 2 5m33-15 5-2" stroke={paper} strokeWidth="3" /><circle cx="35" cy="68" r="3" fill={red} />
+    <Shoes x={44} y={109} gap={29}/><path d="M32 49q28-9 56 0l7 55H26z" fill={red}/><path d="m38 57-15 12 11 12m49-23 15 13-10 12" fill="none" stroke={red} strokeWidth="10"/><circle cx="33" cy="80" r="5" fill={violet}/><circle cx="87" cy="81" r="5" fill={violet}/>
+    <path d="M41 25q20-13 39 0v22q-19 16-39-1z" fill={violet}/><Gaze x={50} y={32} gap={18} size={3}/><ellipse cx="61" cy="44" rx="7" ry="5" fill={violet}/><path d="M35 23q3-17 25-17 21 0 27 17zM32 25h58" fill={red}/>
+    <path d="M37 59h46v40H37z" fill={brown}/><path d="M37 72h46m-46 13h46" stroke="#7c5e3d" strokeWidth="2"/><Pips x={39} y={59} color={blue}/><Pips x={54} y={59} color={yellow}/><Pips x={69} y={59} color={green}/><Pips x={39} y={73} color={green}/><Pips x={54} y={73}/><Pips x={69} y={73} color={blue}/><Pips x={39} y={87} color={yellow}/><Pips x={54} y={87} color={pink}/><Pips x={69} y={87}/><path d="m32 54 5 45m51-44-5 44" stroke={paper} strokeWidth="1.6" opacity=".7"/>
   </>,
   duelist: <>
-    <Feet x={46} y={96} gap={26} /><path d="M55 45h11v12H55z" fill={warm} /><path d="m43 52-10 43h53L73 52z" fill={red} /><path d="m43 54-20 16m52-13 17 7" fill="none" strokeWidth="4" />
-    <path d="M39 29q0-23 21-23 19 2 19 23L75 48H43z" fill={paper} /><path d="M43 18q14-10 29-2M41 44l33 1" fill="none" stroke={slate} strokeWidth="2" /><Eyes x={49} y={31} gap={19} small /><path d="M53 45h14" strokeWidth="1.7" />
-    <path d="m49 57 9 8 12-8m-12 8v26M39 84h40" fill="none" stroke={paper} strokeWidth="2" /><circle cx="59" cy="76" r="2" fill={yellow} />
-    <path d="m91 64 18-34m-22 28 12 7M22 70 12 40m-6 3 14-5" fill="none" stroke={slate} strokeWidth="3" /><path d="m90 66 4-7m-71 13-2-7" stroke={warm} strokeWidth="5" />
+    <Shoes x={45} y={109} gap={28} color={brown}/><path d="M40 53q20-8 38 0l11 50H30z" fill={blue}/><path d="M51 56v44m16-44v44" stroke={red} strokeWidth="3"/>
+    <path d="M39 62 27 79l-8-10m61-7 12 13 5-12" fill="none" stroke={blue} strokeWidth="8"/><circle cx="19" cy="68" r="5" fill={blue}/><path d="m97 65 12-36m-17 31 11 4" fill="none" stroke={grey} strokeWidth="2"/><ellipse cx="97" cy="63" rx="6" ry="3" fill={yellow} transform="rotate(17 97 63)"/>
+    <path d="M42 29q17-12 34 0v21H42z" fill={blue}/><Gaze x={51} y={32} gap={17} size={3}/><path d="M59 40q-13 2-15 8 9 5 19 1z" fill={red}/>
+    <path d="m38 49 7 3 5-3 6 5 6-4 6 4 8-5 8 4-7 9-34-1z" fill={paper}/><path d="M37 25 42 9q20-6 37 13l8 8H35z" fill={blue}/><path d="M71 16q12-12 10-15 11 7-1 21" fill={paper}/><path d="M36 29h48" stroke="#5c8caa" strokeWidth="3"/>
   </>,
   egg: <>
-    <path d="m30 94-15 14H6m83-14 13 14h9" fill="none" strokeWidth="3" /><path d="M60 10C46 10 23 48 23 75c0 42 74 42 74 0C97 48 74 10 60 10z" fill={paper} />
-    <path d="M29 78q1 21 30 25 22 0 30-17" fill="none" stroke={warm} strokeWidth="3" opacity=".55" /><path d="m24 70 16-8 15 12 15-10 26 10" fill="none" />
-    <Eyes x={46} y={43} gap={25} /><path d="M51 88q10 7 20-2" fill="none" /><Blush x={36} y={57} gap={46} /><path d="M45 27q-5 6-7 12" fill="none" stroke={warm} strokeWidth="2" opacity=".65" /><circle cx="74" cy="89" r="1.4" fill={warm} stroke="none" />
+    <Shoes x={48} y={108} gap={21} color={blue}/><path d="M45 77h28l6 29H39z" fill={blue}/><path d="M49 67q11-6 21 0v17H49z" fill={violet}/><ellipse cx="60" cy="79" rx="6" ry="7" fill={red}/><path d="m44 87-8 9m39-9 8 9" stroke={blue} strokeWidth="5"/>
+    <path d="M60 8C47 8 25 39 20 67q40 15 80 0C95 38 73 8 60 8z" fill={orange}/><path d="M20 67q40 11 80 0" fill="none" stroke={brown} strokeWidth="3"/><ellipse cx="60" cy="72" rx="28" ry="5" fill={violet}/><Gaze x={55} y={49} gap={10} size={2.2}/><path d="M42 32q-6 9-9 18" fill="none" stroke={paper} strokeWidth="2.2" opacity=".55"/>
   </>,
   'flip-flop': <>
-    <path d="M32 64 16 72m75-6 15-12" fill="none" strokeWidth="3" /><path d="M48 11q32-7 39 24l11 48q5 24-22 29-22 3-31-17L27 52Q15 20 48 11z" fill={green} />
-    <path d="M34 45q-5-21 14-26 25-6 31 18l11 48q3 16-14 18-15 1-22-14z" fill="none" stroke={paper} strokeWidth="2" opacity=".7" /><path d="m35 37 28 13 19-23m-19 23 8 40" fill="none" stroke={red} strokeWidth="7" />
-    <Eyes x={48} y={65} gap={25} small /><path d="M52 84q7 8 16 5" fill="none" /><path d="m42 27 3 3m4-7 3 3m24 67 4 4m1-10 4 4" stroke={slate} strokeWidth="1.4" opacity=".6" />
+    <path d="M23 96q3-30 14-53 7-14 22-14 18 0 27 15 13 22 14 52-4 16-38 16-34 0-39-16z" fill={violet}/>
+    <path d="M42 30q-7-18 5-20l2 14 5-11 1 16m14-2q-1-20 12-17l-4 15 9-9-3 16" fill={grey}/><path d="M44 17v9m33-8-3 9" stroke="#849f9b" strokeWidth="1.3"/>
+    <Gaze x={48} y={50} gap={23} size={3.4}/><ellipse cx="59" cy="73" rx="9" ry="6" fill={ink}/><path d="M59 58q-17-8-22 11L30 98q15-9 17-24l12-8 11 8q3 16 18 24l-7-29q-6-19-22-11z" fill={yellow}/><path d="M43 68q-5 8-7 18m39-18 7 18" fill="none" stroke="#bba35e" strokeWidth="1.5"/><ellipse cx="59" cy="59" rx="7" ry="5" fill={violet}/>
   </>,
   genius: <>
-    <Feet x={44} y={97} gap={30} /><path d="M32 62h57l-6 37H40z" fill={yellow} /><path d="M32 61Q14 59 18 42q-7-18 13-23 8-17 25-10 17-13 30 5 22-2 22 20 9 17-11 28z" fill={pink} />
-    <path d="M36 24q-12 4-6 15m16-20q10 7 2 15m22-14q-11 6-1 15m18-9q12 4 8 15M56 12v37M28 49q10-6 17 2m19-4q12 8 26-1" fill="none" stroke={rose} strokeWidth="2" />
-    <Eyes x={48} y={74} gap={25} small /><path d="M53 89q8 3 15-1" fill="none" /><path d="m34 66 3 17m45-16-2 17" stroke={paper} strokeWidth="2" /><circle cx="25" cy="22" r="2" fill={paper} stroke="none" />
+    <Shoes x={44} y={109} gap={28} color={green}/><path d="M34 60q24-10 49 0l8 45H28z" fill={red}/><path d="m35 68-14 19m61-20 13 18" stroke={pink} strokeWidth="8"/><path d="m45 60 13 13 14-13" fill={paper}/><path d="M59 72v26" stroke={orange} strokeWidth="2"/>
+    <path d="M40 32q-1-22 21-21 22 1 23 25v21q-24 15-45-1z" fill={pink}/><path d="M43 25 27 17l10-10 9 10m27 3 8-14 12 12-9 13" fill={blue}/><Gaze x={49} y={32} gap={22} size={3.4}/><circle cx="49" cy="32" r="8" fill="none"/><circle cx="71" cy="31" r="8" fill="none"/><path d="M57 32h6"/>
+    <path d="M48 41q-17-9-23 2-4 15 24 15h22l-1-11z" fill={pink}/><path d="M32 48h1m8 6q15 5 28-1" fill="none" strokeWidth="1.4"/>
+    <rect x="72" y="73" width="20" height="26" rx="2" fill={blue}/><path d="M76 77h12v5H76z" fill={paper} strokeWidth="1.2"/><path d="M77 87h1m6 0h1m-8 5h1m6 0h1" stroke={paper} strokeWidth="2.5"/>
   </>,
   gunk: <>
-    <path d="M27 94Q8 91 18 76 7 54 24 48 17 29 36 30 34 13 50 20 66 1 77 22 99 15 96 36 114 45 101 64 113 82 94 89 97 106 79 101 61 114 49 101 31 108 27 94z" fill={green} />
-    <path d="M27 50q-6 8-4 14m15-28q3-5 8-5m41 48q8-5 8-10M41 96l9-2" stroke={paper} strokeWidth="3" fill="none" opacity=".75" />
-    <Eyes x={44} y={49} gap={28} /><path d="M40 74q19 22 38 0-17 6-38 0z" fill={red} /><path d="M47 78h23" stroke={paper} strokeWidth="2" /><g fill={blue} strokeWidth="1.2"><circle cx="32" cy="35" r="3" /><circle cx="91" cy="71" r="3" /><circle cx="42" cy="92" r="2.4" /><circle cx="79" cy="29" r="2" /></g>
+    <path d="M43 24q1-17 19-17 20 0 22 19l-4 51q-1 12 15 14 18 3 14 12-9 12-47 11-44 0-49-11-4-9 15-12 12-3 11-15z" fill={olive}/>
+    <path d="M48 33q-10 16-12 41-1 11 8 11 10 0 11-11l8-33z" fill={olive}/><Gaze x={51} y={27} gap={18} size={3}/><path d="M46 24h11m6-1h11" stroke={olive} strokeWidth="4"/><path d="M63 58q6 4 11 0" fill="none" strokeWidth="1.5"/><path d="m69 59 3 8 2-9" fill={red} strokeWidth="1"/>
+    <path d="M51 14q5-3 9-3m-37 87q10 6 21 3m39-3q8 5 15 2" fill="none" stroke={paper} strokeWidth="2" opacity=".4"/><path d="M76 77q-3 12 6 16" fill="none" stroke="#7e814e" strokeWidth="1.7"/>
   </>,
   hare: <>
-    <path d="M36 50Q14 8 29 7q14-4 25 35M65 43Q68 1 83 8q11 8-4 44" fill={yellow} /><path d="M30 17q6 14 11 25m36-24-5 25" stroke={pink} strokeWidth="5" fill="none" />
-    <path d="M27 76q-4-34 30-34 34-1 36 31 6 33-29 32-35 2-37-29z" fill={yellow} /><ellipse cx="62" cy="96" rx="16" ry="8" fill={paper} stroke="none" />
-    <Eyes x={46} y={62} gap={25} /><path d="m55 77 7 4 7-5m-7 5v8m-13-2 13 3 12-4M36 99l-15 12h26m31-11 19 11H73" fill="none" /><path d="m31 68-15 4m16 3-15 6m71-13 15-5m-15 12 17 2" fill="none" strokeWidth="1.6" /><Blush x={35} y={79} gap={50} />
+    <path d="M47 41Q19 3 31 5q12 2 26 32M64 37Q76 1 88 5q2 12-13 39" fill={blue}/><path d="M34 14 48 34m33-18-12 20" stroke={paper} strokeWidth="3" opacity=".7"/>
+    <ellipse cx="59" cy="84" rx="23" ry="25" fill={blue}/><ellipse cx="53" cy="101" rx="20" ry="8" fill={blue}/><ellipse cx="77" cy="107" rx="12" ry="5" fill={blue}/><path d="M46 74 35 87m37-12 9 12" stroke={blue} strokeWidth="7"/>
+    <path d="M39 44q2-16 21-15 22 0 22 20l-3 16q-20 15-39-1z" fill={blue}/><Gaze x={49} y={46} gap={18} size={3.3}/><ellipse cx="47" cy="58" rx="8" ry="6" fill={red}/><path d="M46 66q10 5 20 0" fill="none"/><path d="M53 67h10v9H53zM58 67v9" fill={paper} strokeWidth="1.2"/><path d="M53 84q4-7 10-5" stroke={paper} strokeWidth="2" fill="none" opacity=".5"/>
   </>,
   heckler: <>
-    <path d="M33 78 27 107H15m44-22v25h14" fill="none" strokeWidth="4" /><path d="M19 41v29l57 19V22z" fill={red} /><path d="M24 45v21l42 14" fill="none" stroke={paper} strokeWidth="2" opacity=".6" />
-    <ellipse cx="79" cy="55" rx="16" ry="34" fill={yellow} /><ellipse cx="81" cy="55" rx="9" ry="26" fill={warm} /><ellipse cx="84" cy="55" rx="4" ry="16" fill={ink} />
-    <Eyes x={36} y={49} gap={17} small /><path d="M29 68q12 7 24-2" fill="none" /><path d="M9 44v22m92-34 10-7m-9 31h13m-13 23 10 7" fill="none" /><path d="m37 84 9 4-3 12-9-3z" fill={blue} />
+    <Shoes x={44} y={109} gap={30} color={pink}/><path d="M41 61q17-7 34 0l12 41q-26 11-53 0z" fill={pink}/><path d="m39 71-15 16m53-17 16 16" stroke={pink} strokeWidth="9"/>
+    <path d="M39 35 26 13q-12 0-8 15l19 23m39-17 16-22q13 4 7 17L81 49" fill={pink}/><path d="M48 24q3-20 17-17l-4 8 13 4-9 10" fill={yellow}/>
+    <path d="M35 38q25-16 49 0v25q-24 20-49-1z" fill={pink}/><Gaze x={46} y={42} gap={24} size={3.6}/><ellipse cx="44" cy="56" rx="10" ry="7" fill={red}/><path d="M42 67q16-6 32-2l-4 11H47z" fill={ink}/><path d="M45 67h26v5H45z" fill={paper} strokeWidth="1.1"/><path d="M52 67v5m7-5v5m7-5v5" strokeWidth="1"/>
+    <path d="M38 78q21 6 42-1" stroke={green} strokeWidth="5"/><g fill={violet} stroke="none"><ellipse cx="45" cy="91" rx="3" ry="4"/><ellipse cx="68" cy="86" rx="3" ry="4"/><ellipse cx="75" cy="98" rx="3" ry="4"/><ellipse cx="58" cy="103" rx="3" ry="3"/></g>
   </>,
   'huge-baby': <>
-    <path d="M32 78 12 88m77-11 17 13M47 101l-7 11H29m41-11 8 11h11" fill="none" strokeWidth="4" /><path d="m32 78 13 27h30l13-28" fill={blue} />
-    <path d="M22 47q-3-34 37-34 43-1 41 34 2 38-40 39-41-1-38-39z" fill={pink} /><path d="M53 14q-9-14 5-12m8 12q15-10 13-2" fill="none" strokeWidth="2" />
-    <Eyes x={43} y={42} gap={33} /><Blush x={32} y={60} gap={56} /><path d="M46 66q15 14 30-2" fill={paper} /><path d="M59 68v5" strokeWidth="1.5" /><circle cx="60" cy="94" r="4" fill={yellow} /><path d="M40 85l6 6m35-6-6 6" stroke={paper} strokeWidth="2" />
+    <Shoes x={47} y={109} gap={24} color={pink}/><ellipse cx="60" cy="81" rx="27" ry="24" fill={pink}/><path d="m37 77-10 10m56-10 10 10" stroke={pink} strokeWidth="10"/><path d="M35 91q25 9 50 0l-6 16H41z" fill={paper}/><path d="m43 96 16 7 17-7" fill="none" stroke="#c9cabe" strokeWidth="1.4"/>
+    <path d="M31 43q-1-31 29-32 31 0 31 32v18q-1 20-31 21-29-2-29-21z" fill={pink}/><ellipse cx="29" cy="50" rx="5" ry="8" fill={pink}/><ellipse cx="92" cy="50" rx="5" ry="8" fill={pink}/><path d="M53 12q7-8 15 0" fill={pink}/>
+    <Gaze x={50} y={44} gap={21} size={2.9}/><path d="M47 40h7m13-1h7" stroke={pink} strokeWidth="2.5"/><ellipse cx="61" cy="57" rx="8" ry="6" fill={orange}/><circle cx="61" cy="59" r="4" fill={blue}/><circle cx="61" cy="63" r="5" fill="none" stroke={blue} strokeWidth="2"/>
   </>,
   hypnotist: <>
-    <Feet x={45} y={99} gap={30} /><path d="m31 43 11-27h39l12 27-5 58H35z" fill={blue} /><path d="m42 17 18-9 15 9m-32 65 18 11 17-11" fill={yellow} />
-    <circle cx="61" cy="49" r="25" fill={paper} /><path d="M61 48q1-5 6-2 7 7-3 12-15 4-17-9-2-17 17-18 21 1 20 22" fill="none" strokeWidth="2.3" /><path d="M41 76q20 14 38-2m12-5 15 6-11 25" fill="none" /><circle cx="95" cy="104" r="7" fill={yellow} /><path d="m93 100 2-1" stroke={paper} strokeWidth="2" /><path d="M41 32l-3 10m43 40-1 10" stroke={paper} opacity=".5" strokeWidth="2" />
+    <ellipse cx="61" cy="102" rx="35" ry="12" fill={green}/><ellipse cx="61" cy="97" rx="25" ry="5" fill={darkGreen}/><path d="M47 82v17q14 9 28-1V81" fill={green}/>
+    <path d="M60 13Q29 4 25 37q-3 28 22 45h28q26-17 23-45Q94 6 64 13z" fill={green}/><path d="M47 22q13-10 26 0l2 59H45z" fill={green}/>
+    <g stroke={blue} strokeWidth="5"><path d="M31 31h10m-12 13h11m-10 13h11m-6 12h9m35-38h11M80 44h12M79 57h12m-14 12h10"/></g>
+    <g fill={paper}><circle cx="51" cy="37" r="8"/><circle cx="72" cy="37" r="8"/></g><path d="M50 37q0-3 3-1 3 3-1 5-7 2-7-4 1-8 9-7m17 7q0-3 3-1 3 3-1 5-7 2-7-4 1-8 9-7" fill="none" strokeWidth="1.2"/>
+    <ellipse cx="62" cy="56" rx="14" ry="5" fill={red}/><path d="m60 79-14-7v15l14-5 14 5V72z" fill={red}/><circle cx="60" cy="80" r="4" fill={orange}/><path d="M49 90h24" stroke={darkGreen} strokeWidth="1.5"/>
   </>,
   inchworm: <>
-    <path d="M20 86v19m14-20v20m16-21v21m16-21v21m17-21v21m16-21v21" fill="none" strokeWidth="3" />
-    <path d="M12 86q-4-22 15-22 1-26 22-22 12-23 30-9 23-7 25 16l-2 38z" fill={green} /><path d="M28 65v21m21-43v43m29-51v51" fill="none" strokeWidth="2" />
-    <path d="M78 47V34q-3-20 15-19 18 0 15 20v14z" fill={green} /><Eyes x={86} y={31} gap={15} small /><path d="M89 46q7 4 12-1m-12-28-3-8m15 9 5-8" fill="none" /><circle cx="86" cy="8" r="2" fill={yellow} /><circle cx="106" cy="9" r="2" fill={yellow} /><path d="M17 75h5m12-18 7-4m16-14 9-2" stroke={paper} strokeWidth="3" />
+    <path d="M17 105C19 50 43 35 57 80s28 28 31-31" fill="none" stroke={ink} strokeWidth="20"/>
+    <path d="M17 105C19 50 43 35 57 80s28 28 31-31" fill="none" stroke={violet} strokeWidth="16"/>
+    <path d="M20 83q4-17 10-22M43 61q7 7 11 22m10 17q10 10 17-13" fill="none" stroke={blue} strokeWidth="16"/>
+    <path d="M78 32q0-13 11-13 13 1 13 15l-2 20H78z" fill={green}/><Gaze x={84} y={34} gap={10} size={2.7}/><path d="M85 47q5 3 10-1m-10-25-4-12m14 13 5-12" fill="none" strokeWidth="1.6"/><circle cx="81" cy="8" r="2" fill={green}/><circle cx="99" cy="9" r="2" fill={green}/><path d="m30 57 2-4m5 5 4-4m11 17 4-1m6 22 4-2" stroke={violet} strokeWidth="2"/>
   </>,
   lackey: <>
-    <Feet x={40} y={95} gap={34} /><path d="M25 85q-4-29 29-29 34 1 40 40H44z" fill={blue} /><path d="M39 37q1-23 26-21 24 3 17 24l-6 23H42z" fill={yellow} />
-    <path d="M41 24q9-14 25-10l9 6" fill={warm} /><Eyes x={49} y={37} gap={19} small /><path d="M48 51q8 4 16-1m-14 16L29 76 20 61m60 10 23-8-2-9" fill="none" />
-    <path d="M7 57h29m48-5h27" strokeWidth="4" /><path d="M11 52q9-13 19 0zm78-5q9-13 17 0z" fill={paper} /><circle cx="20" cy="40" r="2" fill={yellow} /><circle cx="98" cy="35" r="2" fill={yellow} /><path d="m43 64 8 6 6-5m-6 5-2 16" fill="none" stroke={paper} strokeWidth="2" />
+    <Shoes x={46} y={109} gap={28} color={green}/><path d="M31 91q-2-41 13-67 8-13 22-12 25 0 28 28v62q-34 13-64 0z" fill={pink}/><path d="M42 31q3-18 20-18 21 1 20 24v19H42z" fill={darkGreen}/>
+    <path d="M43 32q16-10 31 0v16q-15 13-30 0z" fill={green}/><Gaze x={50} y={34} gap={16} size={3.2}/><path d="M51 43q-15 4-14 15 4 11 12 0l12-8" fill={green}/><path d="M57 54q8 3 13-1" fill="none" strokeWidth="1.4"/>
+    <path d="m34 72 10 15m43-15L75 87" fill="none" stroke={pink} strokeWidth="10"/><ellipse cx="45" cy="86" rx="7" ry="5" fill={green}/><ellipse cx="74" cy="86" rx="7" ry="5" fill={green}/>
+    <path d="m49 14 14 1-2 7-14-1zM76 66l9 3-3 13-10-4z" fill={green} strokeWidth="1.2"/><path d="m76 69 7 2m-9 5 7 2M47 95l5 3m20 0 7-3" fill="none" stroke={paper} opacity=".6" strokeWidth="1.2"/>
   </>,
   leaptoad: <>
-    <path d="m42 78-25 14 12 17H11m66-31 26 12-11 19h18" fill="none" strokeWidth="5" /><path d="M29 65q-3-32 32-30 35 0 32 31L76 86H44z" fill={green} /><circle cx="41" cy="36" r="16" fill={green} /><circle cx="82" cy="36" r="16" fill={green} />
-    <Eyes x={41} y={33} gap={41} small /><path d="M44 79q16-11 31-1l-5 7H49z" fill={yellow} stroke="none" /><path d="M40 60q21 20 41-1M34 70l-16 1m67 0 18-2" fill="none" /><path d="M54 69h13" stroke={red} strokeWidth="4" /><g fill={yellow} stroke="none"><circle cx="35" cy="51" r="2" /><circle cx="88" cy="54" r="2" /><circle cx="29" cy="62" r="1.6" /></g><path d="m16 105-6 4m90-4 9 5" fill="none" strokeWidth="2" />
+    <path d="M42 76 21 86l15 18m40-28 23 11-14 17" fill="none" stroke={blue} strokeWidth="9"/><path d="m36 101-17 9 8-1-1 6 9-5 6 3-1-10zm48 0 17 9-8-1 1 6-9-5-6 3 1-10z" fill={orange} strokeWidth="1.6"/>
+    <ellipse cx="60" cy="76" rx="24" ry="24" fill={blue}/><path d="M35 49q24-17 51 0l4 15q-29 26-59 0z" fill={blue}/><ellipse cx="42" cy="37" rx="13" ry="19" fill={blue}/><ellipse cx="78" cy="37" rx="13" ry="19" fill={blue}/>
+    <ellipse cx="42" cy="36" rx="9" ry="15" fill={paper}/><ellipse cx="78" cy="36" rx="9" ry="15" fill={paper}/><ellipse cx="44" cy="36" rx="4" ry="10" fill={ink} stroke="none"/><ellipse cx="80" cy="36" rx="4" ry="10" fill={ink} stroke="none"/>
+    <path d="M35 64q25 15 50 0" fill="none" stroke={paper} strokeWidth="4"/><path d="M41 78 30 96m47-18 12 18" fill="none" stroke={blue} strokeWidth="5"/>
   </>,
   legs: <>
-    <path d="m38 37-4 60-20 9q-6 8 28 5l12-72m14-2 10 59 21 10q12 8-15 6L58 39" fill={pink} /><path d="M37 88h9m29-1 9-2" stroke={paper} strokeWidth="5" /><path d="m32 99 11 3-2 9H15q-4-7 17-12zm46-1 10-1 12 11q5 6-16 4z" fill={paper} />
-    <path d="M32 16q27-15 48 2l-8 25H42z" fill={blue} /><path d="M38 16h37" stroke={paper} strokeWidth="3" /><Eyes x={47} y={28} gap={19} small /><path d="M54 40h11M31 26 17 35m65-10 16 8" fill="none" /><path d="M22 108h15m49 0h9" stroke={slate} strokeWidth="1.4" />
+    <path d="M43 41h15l-5 65H37zm20 0h15l7 65H69z" fill={green}/><path d="m49 46-5 55m27-55 5 55" stroke={yellow} strokeWidth="3"/><Shoes x={43} y={109} gap={33} color={red}/>
+    <path d="M36 27q24-9 47 0l3 20H33z" fill={violet}/><path d="M52 14q0-8 8-8 8 0 8 8v9H52z" fill={yellow}/><Gaze x={56} y={14} gap={8} size={1.8}/><path d="M56 21h8" strokeWidth="1.3"/>
+    <path d="m59 34-10-6v13l10-5 11 5V28z" fill={red}/><circle cx="60" cy="35" r="3" fill={red}/><circle cx="34" cy="41" r="5" fill={yellow}/><circle cx="86" cy="41" r="5" fill={yellow}/><path d="M60 43v6" stroke={paper} strokeWidth="1.5"/>
   </>,
   'lovable-loser': <>
-    <Feet x={45} y={101} gap={28} /><path d="m36 60-10 42h65L79 60z" fill={blue} /><path d="M34 36q-1-27 27-27 28 2 28 28-2 26-28 26-27-1-27-27z" fill={pink} />
-    <Eyes x={48} y={33} gap={23} small /><path d="M48 51q13-9 23 1m-28-31 11 3m14-1 12-5" fill="none" /><Blush x={40} y={47} gap={38} />
-    <path d="m38 71 17 10m25-10 16 15M46 65l13 9 14-10" fill="none" /><path d="M59 75h22l-5 17H64z" fill={yellow} /><path d="m68 76 6 7-4 9m-2 0v7m-7 0h14" fill="none" strokeWidth="1.8" /><path d="M56 78q-10 0-5 8l10 3m22-10q10-2 6 6l-10 3" fill="none" stroke={yellow} strokeWidth="3" /><path d="m44 37-5 4m1-5 5 5" stroke={paper} strokeWidth="2" />
+    <circle cx="51" cy="64" r="37" fill={pink}/><path d="M54 64q0-12-12-9-18 9-3 25 20 15 34-10 10-29-21-39" fill="none" stroke={violet} strokeWidth="3"/>
+    <path d="M70 62q0-12 12-12 13 1 11 15v25q0 9 14 12 11 8-5 12H28q-16-1-12-9 3-7 21-6 29 0 33-15z" fill={green}/><path d="M76 54V37m12 18 6-18" stroke={green} strokeWidth="5"/><Gaze x={76} y={34} gap={18} size={4}/><path d="M77 72q6 4 12-1" fill="none" strokeWidth="1.6"/>
+    <path d="M93 91 102 74" fill="none" stroke={darkGreen} strokeWidth="2"/><g fill={paper} strokeWidth="1"><circle cx="103" cy="70" r="4"/><circle cx="108" cy="74" r="4"/><circle cx="106" cy="79" r="4"/><circle cx="100" cy="78" r="4"/><circle cx="98" cy="73" r="4"/></g><circle cx="103" cy="74" r="3" fill={yellow}/><path d="M31 106h26" stroke={paper} opacity=".5" strokeWidth="1.7"/>
   </>,
   magician: <>
-    <path d="m43 79-16 29h65L78 79" fill={blue} /><path d="m31 86-17-9m72 9 15-23" fill="none" strokeWidth="4" /><path d="M40 48h43v32H40z" fill={yellow} />
-    <path d="M40 48 35 16h49l-3 32z" fill={ink} /><path d="m39 34 43-1v11H40z" fill={red} /><path d="M27 49h70" strokeWidth="6" /><path d="m43 21 2 8" stroke={paper} opacity=".6" strokeWidth="2" />
-    <Eyes x={50} y={62} gap={22} small /><path d="M50 76q10 4 20-1" fill="none" /><path d="m51 82 10 6 10-6v12l-10-6-10 6z" fill={red} /><circle cx="61" cy="101" r="2" fill={yellow} />
-    <path d="m98 70 12-26" strokeWidth="4" /><path d="m107 50 3-6" stroke={paper} strokeWidth="4" /><path d="m14 25 2-7 3 7 7 3-7 2-3 7-2-7-7-2z" fill={yellow} /><circle cx="25" cy="13" r="2" fill={red} stroke="none" />
+    <Shoes x={44} y={109} gap={31}/><path d="M34 58q27-10 52 0l8 46H26z" fill={blue}/><path d="M48 60h25v43H48z" fill={orange}/><path d="M61 72v26" stroke="#a86b4a" strokeWidth="1.5"/>
+    <ellipse cx="34" cy="37" rx="16" ry="24" fill={violet}/><ellipse cx="87" cy="37" rx="15" ry="24" fill={violet}/><ellipse cx="34" cy="37" rx="9" ry="17" fill={pink}/><ellipse cx="87" cy="37" rx="8" ry="17" fill={pink}/>
+    <path d="M39 29q0-21 22-21 22 0 22 22v24H39z" fill={violet}/><Gaze x={50} y={32} gap={20} size={3.5}/><path d="M55 43v27q-1 15-14 14-10-3-5-11 3 8 10 3V43" fill={violet}/><path d="m52 68 9 6 12-6v13l-12-6-9 6z" fill={paper}/>
+    <path d="M35 66 24 82l-9-6m69-10 12 14" fill="none" stroke={blue} strokeWidth="8"/><path d="M16 78 8 45" stroke={ink} strokeWidth="4"/><path d="m8 46-2-8" stroke={paper} strokeWidth="4"/>
+    <path d="M84 78h25l-3 17H87zM80 77h32" fill={blue}/><Pips x={90} y={64}/><ellipse cx="96" cy="96" rx="10" ry="4" fill={violet}/>
   </>,
   mastermind: <>
-    <Feet x={43} y={88} gap={32} /><path d="M27 32h67v56H27z" fill={red} /><path d="m36 31-8-15m25 15V10m22 21V10m12 21 10-15" fill="none" />
-    <g fill={yellow}><circle cx="27" cy="13" r="5" /><circle cx="53" cy="9" r="5" /><circle cx="75" cy="9" r="5" /><circle cx="98" cy="13" r="5" /></g>
-    <path d="M33 39h55v32H33z" fill={pink} /><Eyes x={46} y={54} gap={28} /><path d="M45 78h33" strokeWidth="2" /><path d="M27 50H16v25h10m68-25h12v25H95" fill="none" strokeWidth="4" /><circle cx="17" cy="76" r="4" fill={yellow} /><circle cx="105" cy="76" r="4" fill={yellow} /><g fill={paper} stroke="none"><circle cx="32" cy="83" r="1.5" /><circle cx="89" cy="83" r="1.5" /></g>
+    <path d="M39 62q22-10 42 0l7 39q-1 13-29 13-28-1-27-13z" fill={green}/><path d="M43 43q0-18 19-18 21 0 20 20v16q-19 17-39 0z" fill={skin}/><Gaze x={51} y={46} gap={21} size={3}/>
+    <path d="M56 51q-10 4-12 14 1 7 7 3l11-11" fill={skin}/><path d="M60 65q7 3 13-2" fill="none" strokeWidth="1.4"/>
+    <path d="M29 28q-8-13 5-18 13-10 26-5 18-6 30 5 14 6 6 20-4 14-32 14-30 0-35-16z" fill={paper}/><path d="M40 14q-6 9-1 18m11-21q6 11 0 22m13-24q-4 14 0 24m12-23q7 13 1 24m9-21q8 8 3 16" fill="none" stroke={yellow} strokeWidth="1.7"/>
+    <path d="M40 80 54 89l9-13m19 4L69 89l-6-13" fill="none" stroke={green} strokeWidth="9"/><path d="m55 87 8-11 7 11-7 7z" fill={skin}/><path d="M62 79v11m-3-8 1 7m6-7v7" stroke="#b77d5a" strokeWidth="1.1"/>
   </>,
   mouth: <>
-    <path d="m34 91-9 18H13m66-16 11 16h14" fill="none" strokeWidth="3" /><path d="M13 55q15-30 45-12 33-21 51 10-12 43-49 44-34-3-47-42z" fill={red} />
-    <path d="M20 57q38-13 81-2-12 27-42 27-25 1-39-25z" fill={paper} /><path d="M37 56v15m17-17v23m17-23v22m16-21v15M21 58q38 16 79-3" fill="none" strokeWidth="1.8" /><path d="M24 46q9-6 18-2m39 1q8-4 14 2" stroke={paper} strokeWidth="2" fill="none" opacity=".65" />
-    <path d="M44 38v-8m29 7v-9" strokeWidth="3" /><Eyes x={44} y={25} gap={29} small /><path d="m22 80-11-4m89 3 11-5" fill="none" />
+    <path d="M41 89v17m37-17v17M24 53 12 61m85-7 12 7" stroke={blue} strokeWidth="7"/><Shoes x={39} y={109} gap={39} color={blue}/>
+    <path d="M18 58q3-28 41-28 40 0 43 29-1 35-42 36-39 0-42-37z" fill={red}/><path d="M30 52q30-10 60 0v23q-29 14-59 0z" fill={ink}/>
+    <path d="M31 50q29-7 58 0v9q-29-5-58 0zM32 75q29 8 56 0v9q-29 7-56 0z" fill={paper}/><path d="M40 49v9m10-10v9m10-10v9m10-9v10m10-9v10M41 78v8m10-7v9m10-8v8m10-9v8m9-9v7" strokeWidth="1.2"/>
+    <Gaze x={52} y={27} gap={16} size={2.7}/><path d="M29 43q6-4 13-4m38 49 7-3" fill="none" stroke={paper} strokeWidth="1.7" opacity=".6"/>
   </>,
   'party-animal': <>
-    <path d="M29 39 16 25l-3 29 18 9m56-24 19-13-2 28-18 9" fill={blue} /><path d="M29 40q31-21 59 0v44q0 24-29 22-30-1-30-22z" fill={yellow} />
-    <path d="m39 32 20-28 23 28z" fill={red} /><path d="m48 19 20 9" stroke={paper} strokeWidth="4" /><circle cx="59" cy="5" r="3" fill={yellow} />
-    <Eyes x={45} y={54} gap={29} /><ellipse cx="60" cy="79" rx="17" ry="13" fill={pink} /><path d="m54 74 6 6 7-6m-7 6v6M29 73 12 85m77-12 18 11" fill="none" /><path d="m49 97 11 6 11-6" fill="none" stroke={blue} strokeWidth="3" /><path d="m12 9 2 7m88-8-3 8M17 101l6 4m78-9 6 3" stroke={red} strokeWidth="3" />
+    <Shoes x={45} y={109} gap={29} color={yellow}/><path d="M35 57q26-10 49 0l4 47H30z" fill={pink}/><path d="M43 59v43m16-46v47m17-44v42" stroke={green} strokeWidth="4"/>
+    <path d="M35 65 23 74l-7-18m68 9 14 9 6-20" fill="none" stroke={pink} strokeWidth="7"/><circle cx="16" cy="54" r="6" fill={yellow}/><circle cx="104" cy="52" r="6" fill={yellow}/>
+    <path d="M38 27 25 19l4 21 11 6m39-19 15-7-5 20-10 5" fill={yellow}/><path d="M38 28q22-14 42 0v25q-21 17-43-1z" fill={yellow}/><Gaze x={49} y={35} gap={21} size={3.2}/><ellipse cx="60" cy="47" rx="8" ry="6" fill={blue}/><path d="M50 56q10 5 20-1" fill="none" strokeWidth="1.5"/>
+    <path d="M39 22 42 7h34l4 15zM33 24h54" fill={pink}/><path d="M42 17h35" stroke={green} strokeWidth="4"/><path d="m47 63 12 5 13-6" fill="none" stroke={paper} strokeWidth="2"/>
   </>,
   'rocket-scientist': <>
-    <path d="M43 64 26 91h18m34-27 17 27H78" fill={red} /><path d="M43 31 61 7l18 24v58H43z" fill={paper} /><path d="M43 31h36L61 7z" fill={red} /><path d="M47 35v43" stroke={slate} strokeWidth="2" opacity=".5" />
-    <circle cx="61" cy="53" r="18" fill={yellow} /><Eyes x={53} y={51} gap={16} small /><path d="M53 64q8 4 16-1" fill="none" /><path d="M44 80h34v9H44z" fill={blue} /><path d="m48 91 3 20 10-10 9 10 5-20" fill={yellow} /><path d="m57 93 4 10 4-10" fill={red} stroke="none" /><path d="M18 18v10m-5-5h10m78 13v8m-4-4h8" stroke={blue} strokeWidth="2" />
+    <Shoes x={42} y={109} gap={26}/><path d="M31 55q24-9 44 0l11 48H23z" fill={paper}/><path d="M42 58 55 72l12-14M55 73v27" fill="none" stroke="#a7b9ba" strokeWidth="1.5"/><circle cx="61" cy="81" r="1.6" fill={ink}/><circle cx="61" cy="92" r="1.6" fill={ink}/>
+    <path d="M37 27q0-19 18-19 21 0 21 21v26H37z" fill={green}/><path d="M37 25 27 14l12-2 5-9 13 6 11 16-14-9z" fill={yellow}/><Gaze x={46} y={30} gap={20} size={4.7}/><g fill="none" stroke={paper} strokeWidth="3.5"><ellipse cx="46" cy="30" rx="8" ry="11"/><ellipse cx="66" cy="30" rx="8" ry="11"/></g><path d="M54 30h4m-8 18q8 4 15-1" fill="none" strokeWidth="1.5"/>
+    <path d="M84 34 96 8l12 26v67H84z" fill={red}/><path d="M84 35h24m-24 7h24" stroke={ink} strokeWidth="2"/><path d="M84 83 76 103h8m24-20 8 20h-8" fill={red}/><path d="M95 13 91 29" stroke={paper} strokeWidth="2" opacity=".6"/>
+    <path d="M72 65 86 72" stroke={paper} strokeWidth="9"/><ellipse cx="86" cy="72" rx="6" ry="5" fill={green}/>
   </>,
   romantic: <>
-    <path d="M48 91 41 111H30m41-20 7 20h11M36 79 19 91m66-12 15 9" fill="none" strokeWidth="3" /><path d="M60 96 20 52Q4 25 31 15q18-6 29 13 11-19 29-13 28 10 12 37z" fill={pink} />
-    <path d="M26 39q-4-12 8-16m2 0 6 1" fill="none" stroke={paper} strokeWidth="3" /><Eyes x={46} y={43} gap={27} /><path d="M47 65q13 14 26-2" fill="none" /><Blush x={35} y={60} gap={50} />
-    <path d="m99 91-3-28m1 15-8-8" stroke={green} strokeWidth="3" fill="none" /><path d="M98 76q8-11 14-6-3 9-14 8z" fill={green} strokeWidth="1.4" /><path d="M88 55q-1-10 9-8 10-5 14 4 4 10-7 14-12 3-16-10z" fill={red} /><path d="M96 52q10-2 8 6l-5 1-3-4" fill="none" strokeWidth="1.5" />
+    <Shoes x={45} y={109} gap={28} color={pink}/><path d="M35 61q24-9 48 0l7 43H27z" fill={yellow}/><path d="m45 60 11 12 16-12m-16 12-3 13m19-25-5 23" stroke={red} strokeWidth="4" fill="none"/>
+    <path d="M41 29q1-21 22-20 23 1 23 23v22q-23 18-45-1z" fill={pink}/><Gaze x={50} y={30} gap={21} size={3.2}/><path d="M46 39q-22-10-24 4-2 15 28 14h20l-2-13z" fill={pink}/><path d="M28 46h1m5 7q16 6 29 0" fill="none" strokeWidth="1.4"/>
+    <path d="M31 79q13-4 28 3 16-7 31-3v22q-17-4-31 2-14-6-28-2z" fill={paper}/><path d="M59 82v21m-21-18 13 2m-13 5 13 2m15-7 16-2m-16 9 16-2" fill="none" stroke="#a7b9ba" strokeWidth="1.2"/><ellipse cx="29" cy="89" rx="5" ry="6" fill={pink}/><ellipse cx="91" cy="89" rx="5" ry="6" fill={pink}/>
+    <path d="m79 75-2-9" stroke={green} strokeWidth="1.5"/><circle cx="78" cy="64" r="5" fill={red}/><path d="M76 64q3-4 5 1" fill="none" strokeWidth="1.2"/>
   </>,
   scoocher: <>
-    <path d="M39 87v20H27m54-20v20h15" fill="none" strokeWidth="4" /><path d="M30 43q-6-34 18-33 27 0 23 33v29H30z" fill={blue} /><path d="M32 71h55q15 0 12 18H31z" fill={yellow} />
-    <path d="M36 73h45q8 0 10 6" stroke={paper} strokeWidth="2" fill="none" /><Eyes x={42} y={37} gap={18} small /><path d="M40 57q9 7 19-2M29 51 16 60m55-6 15-12" fill="none" /><path d="M84 42h21" strokeWidth="5" /><path d="M37 18q5-4 11-3" stroke={paper} strokeWidth="2" fill="none" opacity=".55" /><path d="M8 96h12m-10 10h10m83-11h9" stroke={slate} strokeWidth="2" fill="none" />
+    <path d="M37 65q-10 12-9 35 0 15 28 15 35 0 37-16 0-23-13-37z" fill={brown}/><path d="M35 86 30 105m52-20 4 21" stroke="#7c5e3d" strokeWidth="1.7"/><ellipse cx="39" cy="108" rx="15" ry="7" fill={brown}/><ellipse cx="78" cy="109" rx="14" ry="6" fill={brown}/>
+    <path d="M35 35Q17 15 7 34l-1 24q12-3 21-15l13 5m38-15q18-16 31 2l4 23q-12-1-22-15l-12 4" fill={brown}/><path d="M29 38q2-26 31-25 30-1 31 26l-3 25q-27 18-54 0z" fill={brown}/>
+    <path d="m34 22 9-8 7 4 9-7 9 6 9-3 9 12" fill={brown}/><Gaze x={46} y={41} gap={26} size={3.3}/><path d="M41 37h12m13-1h12" stroke={brown} strokeWidth="4"/><ellipse cx="59" cy="54" rx="10" ry="6" fill="#7c5e3d"/>
+    <path d="M46 66q12 7 25 0" fill="none" strokeWidth="1.7"/><path d="M55 69h12v13q-1 10-9 6-6-3-3-19z" fill={pink}/><path d="M61 72v10" stroke="#ae6084" strokeWidth="1.3"/><path d="m39 78 5 7m31-6-5 7M51 97l5 7" fill="none" stroke="#7c5e3d" strokeWidth="1.5"/>
   </>,
   sisyphus: <>
-    <path d="M10 109h101L93 81z" fill={green} /><path d="M22 106 87 87m-41 18 7-2m28-4 8-2" stroke={paper} strokeWidth="2" opacity=".6" />
-    <path d="M75 18q27-5 31 21 6 30-18 35-28 5-32-21-5-24 19-35z" fill={blue} /><path d="m72 28 11-3m13 18 3 12m-27 9 8 3" stroke={paper} strokeWidth="2" fill="none" /><path d="m82 25 10 10-3 8 9 8" fill="none" stroke={slate} strokeWidth="1.5" />
-    <path d="m37 77-9 17 22 4m-20-5-15 14m34-9 8 9" fill="none" strokeWidth="4" /><circle cx="36" cy="61" r="16" fill={yellow} /><Eyes x={30} y={58} gap={13} small /><path d="M32 72h12m-3 7 16-15m-16 17 22-7" fill="none" /><circle cx="59" cy="64" r="3" fill={yellow} /><circle cx="64" cy="74" r="3" fill={yellow} />
+    <Shoes x={44} y={109} gap={29} color={skin}/><path d="M35 54q23-9 47 0l8 48q-28 10-60 0z" fill={paper}/><path d="M36 59q7 29 44 40M48 56q0 24 32 35M37 89l-1 10" fill="none" stroke="#c9cabe" strokeWidth="1.6"/>
+    <path d="M38 65 24 55l-8-22m64 33 16-13 4-21" fill="none" stroke={skin} strokeWidth="9"/><ellipse cx="15" cy="31" rx="5" ry="8" fill={skin}/><ellipse cx="101" cy="30" rx="5" ry="8" fill={skin}/>
+    <path d="M39 28q0-20 21-20 24 0 23 24v24q-21 18-44-1z" fill={skin}/><Gaze x={49} y={29} gap={22} size={3.3}/><path d="M51 39q-15-6-19 4-2 10 22 12h14V45z" fill={skin}/><path d="M43 53q12 6 24-1" fill="none" strokeWidth="1.5"/>
+    <path d="m45 13-4-6m13 3-1-7m10 7 2-7m7 9 4-6" stroke={paper} strokeWidth="3"/><path d="m34 62 6 11m38-14-4 13" fill="none" strokeWidth="1.4"/>
   </>,
   skipper: <>
-    <path d="m45 94-15 15H18m56-15 15 15h14" fill="none" strokeWidth="3" /><path d="M32 59q27-17 55 0l6 36H27z" fill={blue} /><path d="M38 33q-1-22 23-21 24 0 23 22v23H38z" fill={yellow} />
-    <path d="M34 23q26-15 55 0l-6 10H40z" fill={paper} /><path d="M46 12h30v13H46z" fill={paper} /><path d="M38 29h47" stroke={blue} strokeWidth="3" /><path d="m61 16 2 4-3 2-3-2 1-4" fill={yellow} strokeWidth="1.2" />
-    <Eyes x={51} y={42} gap={21} small /><path d="M53 54q9 3 18-1m-29 9 19 12 18-12M30 69 14 78m76-9 15 9" fill="none" /><path d="M61 78v13m-8-5q8 11 16 0m-12-5h8" stroke={paper} fill="none" strokeWidth="2" /><path d="M34 91h17m22 0h12" stroke={paper} strokeWidth="1.8" />
+    <Shoes x={44} y={109} gap={29} color={yellow}/><path d="M34 56q26-9 50 0l7 47H28z" fill={yellow}/><path d="M59 61v40m-20-7h10m23 0h9" stroke="#bba35e" strokeWidth="1.5"/>
+    <path d="M39 27q21-14 42 0v26q-20 17-42-1z" fill={skin}/><Gaze x={49} y={31} gap={20} size={3}/><path d="M47 41q-12-5-15 3-1 10 19 10h16V47z" fill={skin}/><path d="M43 52q12 4 23-1" fill="none" strokeWidth="1.5"/>
+    <path d="M35 27q0-21 25-21 25 0 26 21l5 5H30z" fill={yellow}/><path d="M32 29h57m-46-14q6-4 11-4" fill="none" strokeWidth="1.6"/>
+    <path d="M35 67 25 82l12 8m47-23 12 16-15 7" fill="none" stroke={yellow} strokeWidth="8"/><circle cx="58" cy="85" r="21" fill="none" stroke={pink} strokeWidth="5"/><path d="M58 62v46M35 85h46M42 69l32 32M74 69 42 101" stroke={pink} strokeWidth="2.5"/><circle cx="58" cy="85" r="4" fill={yellow}/><ellipse cx="36" cy="85" rx="5" ry="6" fill={skin}/><ellipse cx="81" cy="85" rx="5" ry="6" fill={skin}/>
   </>,
   stickler: <>
-    <path d="M43 101v12H31m40-12v12h12M31 63 15 76m70-13 16 12" fill="none" strokeWidth="3" /><path d="M33 13h51v90H31z" fill={yellow} /><path d="M34 13h28v18H34" fill={blue} /><path d="M38 42h9m-9 12h5m-5 13h9m-9 12h5m-5 13h9" strokeWidth="1.8" />
-    <Eyes x={59} y={50} gap={15} small /><path d="M58 72h15m-16 9h16" fill="none" strokeWidth="1.7" /><path d="M36 17h6m3 0h4m3 0h4" stroke={paper} strokeWidth="1.4" />
-    <path d="M88 18h19v33H88z" fill={paper} /><path d="m92 27 4 4 7-8m-11 17h10m-10 5h7" fill="none" strokeWidth="1.5" /><path d="M92 17v-3h10v3" fill={slate} />
+    <ellipse cx="59" cy="105" rx="35" ry="10" fill={pink}/><ellipse cx="60" cy="95" rx="30" ry="9" fill={pink}/><ellipse cx="60" cy="86" rx="23" ry="9" fill={pink}/>
+    <path d="M39 39q0-21 22-21 22 0 22 22v43q-23 14-44-1z" fill={pink}/><path d="M43 22 42 8l7 3 2 12m3-1V5l7 2v16m4-1 5-14 6 5-4 12" fill={blue}/><Gaze x={50} y={35} gap={20} size={3.3}/>
+    <path d="M52 44q-15-6-19 3-2 11 19 14h18V50z" fill={pink}/><ellipse cx="58" cy="68" rx="7" ry="4" fill={ink}/>
+    <path d="M28 75h55v24H28z" fill={orange}/><path d="M33 79h44v16H33z" fill={paper} strokeWidth="1.2"/><path d="M38 83h33m-33 4h33m-33 4h25" stroke={blue} strokeWidth="1.1"/>
+    <path d="M39 77 28 83m52-5 10 8-8 8" stroke={pink} strokeWidth="6" fill="none"/>
   </>,
   suckerfish: <>
-    <path d="m23 55-15-14v36l17-15M45 35l-1-13q15-6 31 10m-21 50 3 12 17-12" fill={pink} /><path d="M24 54q21-24 52-21 19 1 20 23 1 26-22 28-29-1-50-22z" fill={blue} />
-    <path d="m34 55 11 8-8 9" fill={pink} /><path d="M46 87l-5 13m34-14 4 14" fill="none" /><Eyes x={67} y={50} gap={17} small /><ellipse cx="98" cy="66" rx="10" ry="15" fill={yellow} /><ellipse cx="100" cy="66" rx="4" ry="9" fill={pink} /><path d="m50 41 7-2m-5 38 8 1" stroke={paper} strokeWidth="2" opacity=".65" />
+    <path d="M78 51 109 38l-4 17 8 20-32-6M52 38l7-23 7 14 7-15 5 26" fill={green}/><path d="m58 20 5 2m4-3 5 3m-18 5 5 2" stroke={red} strokeWidth="4"/>
+    <ellipse cx="60" cy="62" rx="35" ry="26" fill={green}/><path d="m59 78-8 21 16-10m13-13 11 17-1-23" fill={green}/><path d="m82 56 8 7-9 7" fill={darkGreen}/>
+    <Gaze x={49} y={48} gap={23} size={3.7}/><ellipse cx="28" cy="66" rx="18" ry="21" fill={orange}/><ellipse cx="27" cy="66" rx="11" ry="15" fill={ink}/><path d="M18 55q4-7 10-6" stroke={paper} strokeWidth="2" fill="none" opacity=".6"/><path d="m55 68 7 5m4-12 8 5" stroke={darkGreen} strokeWidth="1.5"/>
   </>,
   'third-wheel': <>
-    <path d="M37 33q-5-24 18-24 26 0 23 24z" fill={blue} /><Eyes x={47} y={23} gap={18} small /><path d="m21 66-14 5m90-6 14 5M39 105l-12 9m47-9 12 9" fill="none" strokeWidth="3" />
-    <circle cx="58" cy="70" r="37" fill={red} /><circle cx="58" cy="70" r="25" fill={paper} /><path d="M58 46v18m-21 17 16-9m27 9-17-9" fill="none" strokeWidth="4" /><circle cx="58" cy="70" r="7" fill={yellow} /><circle cx="58" cy="70" r="2" fill={ink} stroke="none" />
-    <path d="M30 57q4-10 13-15m38 8 4 6M36 93l6 5" fill="none" stroke={paper} strokeWidth="2" opacity=".75" /><path d="M47 108h22" stroke={slate} strokeWidth="1.5" />
+    <path d="M82 69q25 10 22-11" fill="none" stroke={yellow} strokeWidth="4"/><circle cx="60" cy="96" r="18" fill={ink}/><circle cx="60" cy="96" r="11" fill={grey}/><path d="M60 85v22M49 96h22m-19-8 16 16m0-16-16 16" stroke="#849f9b" strokeWidth="1.5"/><circle cx="60" cy="96" r="3" fill={orange}/>
+    <path d="M39 52q22-9 44 0l3 31q-24 9-49 0z" fill={red}/><path d="M39 61h44m-45 10h47m-46 10h45" stroke={pink} strokeWidth="4"/>
+    <path d="m40 59-13 13-6-15m60 2 13 10" stroke={yellow} strokeWidth="6" fill="none"/><circle cx="21" cy="54" r="4" fill={yellow}/>
+    <circle cx="43" cy="19" r="11" fill={yellow}/><circle cx="80" cy="18" r="10" fill={yellow}/><circle cx="43" cy="19" r="5" fill={pink} stroke="none"/><path d="M40 24q19-17 39 0v24q-19 18-39 0z" fill={yellow}/><Gaze x={50} y={28} gap={19} size={3.2}/><path d="M46 36q-18-4-23 4-2 11 21 13h23V43z" fill={yellow}/><ellipse cx="24" cy="43" rx="5" ry="4" fill={skin}/><path d="M39 50q10 5 19 0" fill="none" strokeWidth="1.4"/>
   </>,
   twin: <>
-    <path d="M25 97v13H15m30-13v13h8m25-13v13H68m30-13v13h11" fill="none" strokeWidth="3" /><path d="M13 65q-3-37 24-37 26-1 25 37l-7 33H20z" fill={pink} /><path d="M61 65q0-37 27-37 25 0 23 37l-7 33H68z" fill={blue} />
-    <Eyes x={27} y={50} gap={16} small /><Eyes x={78} y={50} gap={16} small /><path d="M29 71q9 7 18-1m32 1q9 7 18-1M62 80v12" fill="none" /><path d="m22 83 31 2m19-2 29 2" stroke={paper} strokeWidth="3" /><circle cx="36" cy="88" r="3" fill={blue} /><circle cx="86" cy="88" r="3" fill={pink} />
-    <path d="M33 16h58m-58 0 6-5m-6 5 6 5m52-5-6-5m6 5-6 5" stroke={red} fill="none" strokeWidth="2" />
+    <path d="M23 91Q7 106 6 90m94 0q17 16 17-1" fill="none" stroke={yellow} strokeWidth="4"/>
+    <path d="M16 62q19-9 37 0l3 42H12z" fill={paper}/><path d="M16 70h36m-37 11h38m-39 12h40" stroke={ink} strokeWidth="5"/><path d="M66 62q19-9 37 0l5 42H62z" fill={pink}/>
+    <path d="M18 29q-1-21 17-21 21 0 21 22v24H18zM67 29q0-21 19-21 20 0 20 22v24H67z" fill={yellow}/><Gaze x={27} y={29} gap={15} size={3}/><Gaze x={76} y={29} gap={15} size={3}/>
+    <path d="M25 38q-15-4-17 5-2 12 22 13h19V44zM75 38q-15-4-17 5-2 12 22 13h19V44z" fill={yellow}/><path d="M19 50q11 4 22 0m29 0q11 4 21 0" fill="none" strokeWidth="1.3"/>
+    <path d="M16 73 9 86m43-12 5 11m10-12-6 13m41-12 7 12" stroke={yellow} strokeWidth="5"/><Shoes x={25} y={109} gap={20} color={yellow}/><Shoes x={75} y={109} gap={20} color={yellow}/>
   </>,
 };

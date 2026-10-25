@@ -19,9 +19,9 @@ export function Eyes({ x = 46, y = 42, gap = 24, small = false, rx, ry, look = 1
     })}
   </g>;
 }
-export function Feet({ x = 43, y = 94, gap = 31 }: { x?: number; y?: number; gap?: number }) {
+export function Feet({ x = 43, y = 94, gap = 31, color = ink }: { x?: number; y?: number; gap?: number; color?: string }) {
   const floor = Math.min(114, y + 17), ankle = floor - 5;
-  return <g fill={ink} strokeWidth="1.7">
+  return <g fill={color} strokeWidth="1.7">
     <path d={`M${x - 2} ${y}v${ankle - y}q-12 0-12 5h19V${y}zM${x + gap - 3} ${y}v${floor - y}h19q0-5-12-5V${y}z`} />
     <path d={`M${x - 10} ${floor - 1.5}h13m${gap - 4} 0h13`} fill="none" stroke={paper} strokeWidth=".8" opacity=".65" />
   </g>;
